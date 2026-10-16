@@ -306,6 +306,18 @@ func (p *Parser) validateExpression(expression exp.Expression, args []any) exp.E
 	return expression
 }
 
+// parseStream ports _parse_stream (parser.py:4614-4620).
+func (p *Parser) parseStream() exp.Expression {
+	index := p.index
+	if p.match(tokens.STREAM) {
+		if this := p.tryParse(func() exp.Expression { return p.parseTable(false, false, nil, false, false, false, false) }, false); this != nil {
+			return p.expression(exp.Stream(exp.Args{"this": this}), nil, nil)
+		}
+		p.retreat(index)
+	}
+	return nil
+}
+
 func (p *Parser) tryParse(parseMethod func() exp.Expression, retreat bool) (out exp.Expression) {
 	index := p.index
 	// parseBlock (via CREATE PROCEDURE) can consume whole semicolon chunks, which upstream's
@@ -1270,6 +1282,9 @@ func (p *Parser) parseFrom(joins bool, skipFromToken bool, consumePipe bool) exp
 func (p *Parser) parseTable(schema bool, joins bool, aliasTokens map[tokens.TokenType]bool, parseBracket bool, isDBReference bool, parsePartition bool, consumePipe bool) exp.Expression {
 	// Divergence from upstream: skip _parse_table's fast path in this slice so
 	// subquery detection always runs before table-part parsing.
+	if stream := p.parseStream(); stream != nil {
+		return stream
+	}
 	if l := p.parseLateral(); l != nil {
 		return l
 	}
@@ -2284,7 +2299,7 @@ func (p *Parser) parseFactor() exp.Expression {
 	// (parser.py:6119-6121); only the first parse_method() call is wrapped in
 	// _parse_at_time_zone, not the ones inside the loop below.
 	this := p.parseAtTimeZone(p.parseUnary())
-	for constructor, ok := factorTokens[p.curr.TokenType]; ok; constructor, ok = factorTokens[p.curr.TokenType] {
+	for constructor, ok := p.factorToken(p.curr.TokenType); ok; constructor, ok = p.factorToken(p.curr.TokenType) {
 		tokenType := p.curr.TokenType
 		p.advance()
 		comments := p.prevComments
@@ -2547,7 +2562,7 @@ func (p *Parser) parseAtom() exp.Expression {
 	// columnFastBailTokens is exactly COLUMN_OPERATORS ∪ COLUMN_POSTFIX_TOKENS (parser.py:
 	// 804-812, 1008-1035; see parser/sets.go's definition for the cross-reference).
 	nextType := p.next.TokenType
-	if columnFastBailTokens[nextType] || (tokenType == tokens.STRING && nextType == tokens.STRING) {
+	if p.isColumnFastBail(nextType) || (tokenType == tokens.STRING && nextType == tokens.STRING) {
 		return nil
 	}
 
@@ -2580,6 +2595,9 @@ func (p *Parser) parseColumn() exp.Expression {
 		}
 		column = p.parseColumnOps(this)
 	}
+	if column != nil && p.dialect.ColonIsVariantExtract {
+		column = p.parseColonAsVariantExtract(column)
+	}
 	return column
 }
 
@@ -2597,7 +2615,7 @@ func (p *Parser) parseColumnPartsFast() exp.Expression {
 		hasDot := p.match(tokens.DOT)
 		currTT := p.curr.TokenType
 		if !hasDot {
-			if columnFastBailTokens[currTT] {
+			if p.isColumnFastBail(currTT) {
 				p.retreat(index)
 				return nil
 			}
@@ -2720,13 +2738,13 @@ func (p *Parser) parseColumnOps(this exp.Expression) exp.Expression {
 	}
 	for p.curr.IsValid() {
 		opToken := p.curr.TokenType
-		op, ok := columnOperators[opToken]
+		op, ok := p.columnOperator(opToken)
 		if !ok || (p.dialect.JSONOperatorsAreBinary && jsonOperatorTokens[opToken]) {
 			break
 		}
 		p.advance()
 		var field exp.Expression
-		if castColumnOperators[opToken] {
+		if p.isCastColumnOperator(opToken) {
 			field = p.parseDcolon()
 			if field == nil {
 				p.raiseError("Expected type")

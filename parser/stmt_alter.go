@@ -10,7 +10,7 @@ func init() {
 }
 
 // alterParsers/mysqlAlterParsers port ALTER_PARSERS (parser.py:1437-1449). Only
-// ADD/AS/ALTER/DELETE/DROP/RENAME/SET are ported (CLUSTER BY and SWAP are Redshift/
+// ADD/AS/ALTER/CLUSTER BY/DELETE/DROP/RENAME/SET are ported (SWAP is
 // Snowflake-only, out of the base/mysql/postgres dialect scope and absent from that
 // corpus). Each entry returns []exp.Expression directly (mirroring ensure_list(parser(self))
 // at the single call site in parseAlter), since upstream's sub-parsers are a mix of
@@ -37,6 +37,7 @@ func init() {
 		"ALTER": func(p *Parser) []exp.Expression {
 			return ensureListExpr(p.parseAlterTableAlter())
 		},
+		"CLUSTER BY": func(p *Parser) []exp.Expression { return ensureListExpr(p.parseClusterProperty()) },
 		"DELETE": func(p *Parser) []exp.Expression {
 			return ensureListExpr(p.expression(exp.Delete(exp.Args{"where": p.parseWhere(false)}), nil, nil))
 		},

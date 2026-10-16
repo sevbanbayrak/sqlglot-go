@@ -119,7 +119,7 @@ differential-check against the pinned Python):
   another is not. The per-dialect override tables that make it correct are partial — per-dialect
   parser `FUNCTIONS` ↔ generator `TRANSFORMS`/`TYPE_MAPPING` remaps (must land paired to avoid
   round-trip regressions), MySQL `||`/`&&`/`XOR` logical operators, MySQL `CAST(x AS TIMESTAMP/BLOB)`.
-- DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena, Spark2 and Spark (upstream
+- DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena, Spark2, Spark and Databricks (upstream
   ships 30+). Spark2 (dialects/spark2.go, generator/dialect_spark2.go,
   parser/dialect_spark2_overrides.go) is a 1:1 port except: `EXPRESSION_METADATA` (typing, waits for
   annotate_types), the PIVOT column naming (`PIVOT_COLUMN_NAMING`/`_pivot_column_names` — pivot
@@ -128,6 +128,15 @@ differential-check against the pinned Python):
   (dialects/spark.go, generator/dialect_spark.go, parser/dialect_spark_overrides.go) additionally
   defers `TYPE_PARAM_SETTINGS` (MONEY precision bounds), the `ifblock_sql` DROP IF EXISTS rewrite,
   and the `_dateadd_sql` return type, which reads the `return_type` arg instead of annotate_types.
+  Databricks (dialects/databricks.go, generator/dialect_databricks.go,
+  parser/dialect_databricks_overrides.go) ports the flags, the FUNCTIONS/FUNCTION_PARSERS/
+  NO_PAREN_FUNCTION_PARSERS overlays, the `:` variant extract (`_parse_colon_as_variant_extract`),
+  `?::` safe casts, `PRIMARY KEY (... TIMESERIES)`, `CLUSTER BY AUTO|NONE|(...)`, the backtick
+  JSONPath identifiers and every generator TRANSFORM/method. Deferred: `EXPRESSION_METADATA` and
+  `COERCES_TO` (typing, wait for annotate_types). Inherited gaps it shares with Hive/Spark: the
+  Command fallback of `ANALYZE TABLE[S] ... COMPUTE [DELTA] STATISTICS`, the strict time-format
+  inverse (`STRICT_TIME_FORMATS`, so `TO_DATE(x, 'yyyy-MM-dd')` keeps `%mstrict` when written to
+  base/presto), and the base `ToChar`/`SafeDivide`/presto `JSONFormat` renderings.
 - `_parse_table`'s fast-path terminator check (parser.py:4990-5013) is still not ported, so a
   dialect with `SUPPORTS_LIMIT_ALL` consumes `LIMIT` as a table alias in `FROM t LIMIT ALL`
   (`testdata/transpile_gaps.txt`, spark->base).

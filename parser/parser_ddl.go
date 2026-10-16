@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"strings"
+
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
@@ -95,6 +97,7 @@ func (p *Parser) parseCreateStructured(start tokens.Token) exp.Expression {
 	var expression exp.Expression
 	var indexes []exp.Expression
 	var noSchemaBinding any
+	var clone exp.Expression
 	var begin any
 
 	switch {
@@ -184,6 +187,12 @@ func (p *Parser) parseCreateStructured(start tokens.Token) exp.Expression {
 		} else if ctt == tokens.VIEW && p.matchTextSeq("WITH", "NO", "SCHEMA", "BINDING") {
 			noSchemaBinding = true
 		}
+
+		shallow := p.matchTextSeq("SHALLOW")
+		if p.matchTexts(cloneKeywords) {
+			isCopy := stringsUpper(p.prev.Text) == "COPY"
+			clone = p.expression(exp.Clone(exp.Args{"this": p.parseTable(true, false, nil, false, false, false, false), "shallow": shallow, "copy": isCopy}), nil, nil)
+		}
 	default:
 		return nil
 	}
@@ -214,6 +223,7 @@ func (p *Parser) parseCreateStructured(start tokens.Token) exp.Expression {
 		"no_schema_binding": noSchemaBinding,
 		"concurrently":      concurrently,
 		"begin":             begin,
+		"clone":             clone,
 	}), nil, nil)
 }
 
@@ -349,12 +359,16 @@ func (p *Parser) parseCreateFunction(ctt tokens.TokenType) (this, expression exp
 	// (parser.py:9372-9399, for dialects that don't lex heredocs) is not ported: for
 	// base/mysql pinned upstream itself produces a broken round-trip (`... END AS $$`), so
 	// those dialects keep the generic paths below.
-	if p.match(tokens.ALIAS) && p.match(tokens.HEREDOC_STRING) {
-		args := exp.Args{"this": p.prev.Text}
-		if tag := p.heredocTag(p.prev); tag != "" {
-			args["tag"] = tag
+	if p.match(tokens.ALIAS) {
+		if p.match(tokens.HEREDOC_STRING) {
+			args := exp.Args{"this": p.prev.Text}
+			if tag := p.heredocTag(p.prev); tag != "" {
+				args["tag"] = tag
+			}
+			expression = p.expression(exp.Heredoc(args), nil, nil)
+		} else if p.dialect.Is("hive") {
+			expression = p.parseDollarHeredoc()
 		}
-		expression = p.expression(exp.Heredoc(args), nil, nil)
 	}
 
 	// upstream's table-overload/MacroOverloads detection (parser.py:2422-2436) is a
@@ -404,6 +418,44 @@ func (p *Parser) parseCreateFunction(ctt tokens.TokenType) (this, expression exp
 		expression = p.expression(exp.Return(exp.Args{"this": expression}), nil, nil)
 	}
 	return this, expression, properties, begin
+}
+
+// parseDollarHeredoc ports the `$`-token branch of _parse_heredoc (parser.py:9665-9695) for
+// the Hive family, whose tokenizer emits `$` as PARAMETER (`AS $$ ... $$`, `AS $tag$ ... $tag$`).
+func (p *Parser) parseDollarHeredoc() exp.Expression {
+	if !p.matchTextSeq("$") {
+		return nil
+	}
+	tags := []string{"$"}
+	var tagText any
+	if p.isConnected() {
+		p.advance()
+		tags = append(tags, stringsUpper(p.prev.Text))
+	} else {
+		p.raiseError("No closing $ found")
+	}
+	if tags[len(tags)-1] != "$" {
+		if p.isConnected() && p.matchTextSeq("$") {
+			tagText = tags[len(tags)-1]
+			tags = append(tags, "$")
+		} else {
+			p.raiseError("No closing $ found")
+		}
+	}
+
+	heredocStart := p.curr
+	for p.curr.IsValid() {
+		index := p.index
+		if p.matchTextSeq(tags...) {
+			p.retreat(index)
+			this := p.findSQL(heredocStart, p.prev)
+			p.advance(len(tags))
+			return p.expression(exp.Heredoc(exp.Args{"this": this, "tag": tagText}), nil, nil)
+		}
+		p.advance()
+	}
+	p.raiseError("No closing " + strings.Join(tags, "") + " found")
+	return nil
 }
 
 // parseIndexBody ports the named/anonymous CREATE INDEX branch of _parse_index
@@ -818,6 +870,18 @@ func (p *Parser) parseDDLSelect() exp.Expression {
 // (CHARACTER SET/CHARSET and COLLATE consult it in the ported subset).
 type propertyParserFunc func(p *Parser, isDefault bool) exp.Expression
 
+// cloneKeywords ports CLONE_KEYWORDS (parser.py:1736).
+var cloneKeywords = map[string]bool{"CLONE": true, "COPY": true}
+
+// parseClusterProperty ports _parse_cluster_property (parser.py:3199-3204) with the Databricks
+// AUTO/NONE override (parsers/databricks.py:73-76).
+func (p *Parser) parseClusterProperty() exp.Expression {
+	if p.dialect.Is("databricks") && p.matchTexts(map[string]bool{"AUTO": true, "NONE": true}) {
+		return p.expression(exp.ClusterProperty(exp.Args{"this": stringsUpper(p.prev.Text)}), nil, nil)
+	}
+	return p.expression(exp.ClusterProperty(exp.Args{"expressions": p.parseWrappedCsv(p.parseColumn)}), nil, nil)
+}
+
 // propertyParsers contains the currently generator-safe base subset of PROPERTY_PARSERS.
 // Although pinned upstream base registers CLUSTERED, EXTERNAL, LOCATION, ROW, STORED,
 // TBLPROPERTIES, and USING at
@@ -845,6 +909,7 @@ func init() {
 		"CHARSET": func(p *Parser, isDefault bool) exp.Expression {
 			return p.parseCharacterSet(isDefault)
 		},
+		"CLUSTER BY": func(p *Parser, _ bool) exp.Expression { return p.parseClusterProperty() },
 		"COLLATE": func(p *Parser, isDefault bool) exp.Expression {
 			return p.parsePropertyAssignment(func(this exp.Expression) exp.Expression {
 				// Upstream builds CollateProperty via _parse_property_assignment(**kwargs);
@@ -873,9 +938,17 @@ func init() {
 				return p.expression(exp.EngineProperty(exp.Args{"this": this}), nil, nil)
 			})
 		},
+		"ENVIRONMENT": func(p *Parser, _ bool) exp.Expression {
+			return p.expression(exp.EnviromentProperty(exp.Args{"expressions": p.parseWrappedCsv(p.parseAssignment)}), nil, nil)
+		},
 		"FORMAT": func(p *Parser, _ bool) exp.Expression {
 			return p.parsePropertyAssignment(func(this exp.Expression) exp.Expression {
 				return p.expression(exp.FileFormatProperty(exp.Args{"this": this}), nil, nil)
+			})
+		},
+		"HANDLER": func(p *Parser, _ bool) exp.Expression {
+			return p.parsePropertyAssignment(func(this exp.Expression) exp.Expression {
+				return p.expression(exp.HandlerProperty(exp.Args{"this": this}), nil, nil)
 			})
 		},
 		"IMMUTABLE": func(p *Parser, _ bool) exp.Expression { return p.parseStabilityProperty("IMMUTABLE") },
@@ -922,6 +995,9 @@ func init() {
 		"SECURITY":     func(p *Parser, _ bool) exp.Expression { return p.parseSQLSecurity() },
 		"SQL SECURITY": func(p *Parser, _ bool) exp.Expression { return p.parseSQLSecurity() },
 		"STABLE":       func(p *Parser, _ bool) exp.Expression { return p.parseStabilityProperty("STABLE") },
+		"STREAMING": func(p *Parser, _ bool) exp.Expression {
+			return p.expression(exp.StreamingTableProperty(nil), nil, nil)
+		},
 		"STRICT": func(p *Parser, _ bool) exp.Expression {
 			return p.expression(exp.StrictProperty(nil), nil, nil)
 		},

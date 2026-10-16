@@ -1780,7 +1780,8 @@ func (g *Generator) createSQL(e expressions.Expression) string {
 	if expressionSQL != "" {
 		expressionSQL = begin + g.sep() + expressionSQL
 		// PG rejects `AS BEGIN ATOMIC`: the SQL-standard body replaces the AS clause.
-		if !atomicBody {
+		body := asExpression(e.Arg("expression"))
+		if !atomicBody && (g.dialect.CreateFunctionReturnAs || body == nil || body.Kind() != expressions.KindReturn) {
 			postAliasSQL := g.renderProperties(
 				g.propertiesExpression(propertyLocations[propertyLocationPostAlias], e),
 				"", ", ", "", false,

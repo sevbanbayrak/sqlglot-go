@@ -89,10 +89,7 @@ func init() {
 			return g.funcCall("DATEDIFF", []any{end, start}, "(", ")", true)
 		},
 		exp.KindCreate: func(g *Generator, e exp.Expression) string {
-			out := transforms.RemoveUniqueConstraints(e)
-			out = transforms.CtasWithTmpTablesToCreateTmpView(out, spark2TemporaryStorageProvider)
-			out = transforms.MovePartitionedByToSchemaColumns(out)
-			return g.createSQL(out)
+			return g.createSQL(sparkCreatePreprocess(e))
 		},
 		exp.KindDeclare: func(g *Generator, e exp.Expression) string {
 			replace := ""
@@ -122,6 +119,13 @@ func init() {
 			return "parquet.`" + e.Expressions()[0].Name() + "`"
 		},
 	})
+}
+
+// sparkCreatePreprocess ports the Create preprocess chain (generators/spark.py).
+func sparkCreatePreprocess(e exp.Expression) exp.Expression {
+	out := transforms.RemoveUniqueConstraints(e)
+	out = transforms.CtasWithTmpTablesToCreateTmpView(out, spark2TemporaryStorageProvider)
+	return transforms.MovePartitionedByToSchemaColumns(out)
 }
 
 // sparkDateAddSQL ports _dateadd_sql (generators/spark.py:31-55); the TsOrDsAdd return type

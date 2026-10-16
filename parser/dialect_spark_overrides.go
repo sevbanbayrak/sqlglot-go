@@ -7,6 +7,10 @@ import (
 
 // parsers/spark.py:55-58,121-123 on top of the Spark2 overlay (no parent chain here).
 func init() {
+	registerDialectParserOverrides("spark", sparkParserOverrideSet())
+}
+
+func sparkParserOverrideSet() dialectParserOverrideSet {
 	overrides := spark2ParserOverrideSet()
 	overrides.NoParenFunctions = map[tokens.TokenType]func(exp.Args) exp.Expression{
 		tokens.SESSION_USER: func(args exp.Args) exp.Expression { return exp.New(exp.KindSessionUser, args) },
@@ -17,5 +21,5 @@ func init() {
 		tokens.DECLARE: (*Parser).parseDeclareStatement,
 		tokens.REFRESH: (*Parser).parseRefresh,
 	}
-	registerDialectParserOverrides("spark", overrides)
+	return overrides
 }

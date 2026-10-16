@@ -32,6 +32,11 @@ type dialectParserOverrideSet struct {
 	AliasTokens     map[tokens.TokenType]bool
 	PropertyParsers map[string]propertyParserFunc
 	TypeParser      typeParserOverrideFunc
+	// ColumnOperators/CastColumnOperators add to COLUMN_OPERATORS/CAST_COLUMN_OPERATORS and
+	// FactorTokens to FACTOR (parsers/databricks.py:40-58).
+	ColumnOperators     map[tokens.TokenType]columnOpFunc
+	CastColumnOperators map[tokens.TokenType]bool
+	FactorTokens        map[tokens.TokenType]func(exp.Args) exp.Expression
 }
 
 var dialectParserOverrides = map[string]dialectParserOverrideSet{}
@@ -191,4 +196,33 @@ func (p *Parser) tableAliasTokensFor() map[tokens.TokenType]bool {
 		merged[tt] = true
 	}
 	return merged
+}
+
+func (p *Parser) columnOperator(tokenType tokens.TokenType) (columnOpFunc, bool) {
+	if op, ok := dialectParserOverrides[p.parserOverrideKey()].ColumnOperators[tokenType]; ok {
+		return op, true
+	}
+	op, ok := columnOperators[tokenType]
+	return op, ok
+}
+
+func (p *Parser) isCastColumnOperator(tokenType tokens.TokenType) bool {
+	return castColumnOperators[tokenType] || dialectParserOverrides[p.parserOverrideKey()].CastColumnOperators[tokenType]
+}
+
+// isColumnFastBail is columnFastBailTokens plus the overlay's COLUMN_OPERATORS.
+func (p *Parser) isColumnFastBail(tokenType tokens.TokenType) bool {
+	if columnFastBailTokens[tokenType] {
+		return true
+	}
+	_, ok := dialectParserOverrides[p.parserOverrideKey()].ColumnOperators[tokenType]
+	return ok
+}
+
+func (p *Parser) factorToken(tokenType tokens.TokenType) (func(exp.Args) exp.Expression, bool) {
+	if build, ok := dialectParserOverrides[p.parserOverrideKey()].FactorTokens[tokenType]; ok {
+		return build, true
+	}
+	build, ok := factorTokens[tokenType]
+	return build, ok
 }

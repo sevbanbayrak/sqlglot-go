@@ -33,6 +33,11 @@ var propertyLocations = map[expressions.Kind]propertyLocation{
 	expressions.KindAutoIncrementProperty:      propertyLocationPostSchema,
 	expressions.KindCalledOnNullInputProperty:  propertyLocationPostSchema,
 	expressions.KindCharacterSetProperty:       propertyLocationPostSchema,
+	expressions.KindClusterProperty:            propertyLocationPostSchema,
+	expressions.KindEnviromentProperty:         propertyLocationPostSchema,
+	expressions.KindHandlerProperty:            propertyLocationPostSchema,
+	expressions.KindParameterStyleProperty:     propertyLocationPostSchema,
+	expressions.KindStreamingTableProperty:     propertyLocationPostCreate,
 	expressions.KindCollateProperty:            propertyLocationPostSchema,
 	expressions.KindEngineProperty:             propertyLocationPostSchema,
 	expressions.KindInheritsProperty:           propertyLocationPostSchema,
@@ -100,6 +105,41 @@ func init() {
 	dispatch[expressions.KindPartitionBoundSpec] = (*Generator).partitionBoundSpecSQL
 	dispatch[expressions.KindPartitionedOfProperty] = (*Generator).partitionedOfPropertySQL
 	dispatch[expressions.KindWithDataProperty] = (*Generator).withDataPropertySQL
+	dispatch[expressions.KindClusterProperty] = (*Generator).clusterPropertySQL
+	dispatch[expressions.KindEnviromentProperty] = func(g *Generator, e expressions.Expression) string {
+		return "ENVIRONMENT (" + g.expressions(exprsOptions{expression: e, flat: true}) + ")"
+	}
+	dispatch[expressions.KindHandlerProperty] = func(g *Generator, e expressions.Expression) string { return "HANDLER " + g.sqlKey(e, "this") }
+	dispatch[expressions.KindParameterStyleProperty] = func(g *Generator, e expressions.Expression) string {
+		return "PARAMETER STYLE " + g.sqlKey(e, "this")
+	}
+	dispatch[expressions.KindStreamingTableProperty] = func(*Generator, expressions.Expression) string { return "STREAMING" }
+	// clone_sql (generator.py:1511-1515); SUPPORTS_TABLE_COPY is True for every ported dialect.
+	dispatch[expressions.KindClone] = func(g *Generator, e expressions.Expression) string {
+		shallow, keyword := "", "CLONE"
+		if boolValue(e.Arg("shallow")) {
+			shallow = "SHALLOW "
+		}
+		if boolValue(e.Arg("copy")) {
+			keyword = "COPY"
+		}
+		return shallow + keyword + " " + g.sqlKey(e, "this")
+	}
+	// timeserieskey_sql (generator.py:3768-3770).
+	dispatch[expressions.KindTimeseriesKey] = func(g *Generator, e expressions.Expression) string {
+		g.unsupported("TIMESERIES primary key columns are not supported")
+		return g.sqlKey(e, "this")
+	}
+	dispatch[expressions.KindStream] = func(g *Generator, e expressions.Expression) string { return "STREAM " + g.sqlKey(e, "this") }
+}
+
+// clusterPropertySQL ports clusterproperty_sql (generator.py:3106-3111).
+func (g *Generator) clusterPropertySQL(e expressions.Expression) string {
+	if e.Arg("this") != nil {
+		g.unsupported("Unsupported CLUSTER BY " + g.sqlKey(e, "this"))
+		return ""
+	}
+	return "CLUSTER BY (" + g.expressions(exprsOptions{expression: e, flat: true}) + ")"
 }
 
 func (g *Generator) propertyLocation(property expressions.Expression) (propertyLocation, bool) {
