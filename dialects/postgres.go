@@ -8,6 +8,7 @@ import (
 func Postgres() *Dialect {
 	d := Base()
 	d.Name = "postgres"
+	d.DecodeCaseUnsupported = true
 	// generators/postgres.py:264-279 and dialects/postgres.py:19.
 	d.Nvl2Supported = false
 	dimRequired := true

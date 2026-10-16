@@ -205,6 +205,7 @@ func MySQL() *Dialect {
 	// [("x'","'"),("X'","'"),("0x","")]; BIT_START/HEX_START take the FIRST tuple.
 	d.BitStart, d.BitEnd = "b'", "'"
 	d.HexStart, d.HexEnd = "x'", "'"
+	d.DecodeCaseUnsupported = true
 	cfg.NestedComments = false
 	cfg.IdentifiersCanStartWithDigit = true
 

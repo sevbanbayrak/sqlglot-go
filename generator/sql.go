@@ -351,6 +351,10 @@ func (g *Generator) placeholderSQL(e expressions.Expression) string {
 		}
 		return "%" + this + "s"
 	}
+	if truthy(e.Arg("widget")) {
+		// generators/spark.py:201-205.
+		return "{" + e.Name() + "}"
+	}
 	if truthy(e.Arg("this")) {
 		// A named placeholder (:name); base/mysql keep :name (NAMED_PLACEHOLDER_TOKEN=":").
 		return ":" + e.Name()

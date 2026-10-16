@@ -517,7 +517,10 @@ func (g *Generator) sequenceSQL(e expressions.Expression) string {
 	}
 	if start != nil && end != nil && targetType != nil && (expressions.IsType(targetType, expressions.DTypeDate) || expressions.IsType(targetType, expressions.DTypeTimestamp)) {
 		if start.Kind() == expressions.KindCast && asExpression(start.Arg("to")) == targetType {
-			end = expressions.New(expressions.KindCast, expressions.Args{"this": end, "to": targetType.Copy()})
+			// exp.cast never re-casts an expression already cast to that type (builders.py:488).
+			if !(end.Kind() == expressions.KindCast && asExpression(end.Arg("to")).Equal(targetType)) {
+				end = expressions.New(expressions.KindCast, expressions.Args{"this": end, "to": targetType.Copy()})
+			}
 		} else {
 			start = expressions.New(expressions.KindCast, expressions.Args{"this": start, "to": targetType.Copy()})
 		}

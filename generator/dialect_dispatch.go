@@ -19,6 +19,7 @@ var (
 	dialectParents           = map[string]string{
 		"trino":        "presto",
 		"spark2":       "hive",
+		"spark":        "spark2",
 		"athena-trino": "trino",
 		"athena-hive":  "hive",
 	}

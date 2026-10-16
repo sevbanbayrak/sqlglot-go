@@ -687,3 +687,27 @@ func MoveSchemaColumnsToPartitionedBy(e exp.Expression) exp.Expression {
 	e.Set("this", schema)
 	return e
 }
+
+// MovePartitionedByToSchemaColumns ports move_partitioned_by_to_schema_columns
+// (transforms.py:814-835).
+func MovePartitionedByToSchemaColumns(e exp.Expression) exp.Expression {
+	prop := e.Find(exp.KindPartitionedByProperty)
+	if prop == nil || prop.This() == nil || prop.This().Kind() != exp.KindSchema {
+		return e
+	}
+	cols := prop.This().Expressions()
+	var names []exp.Expression
+	for _, col := range cols {
+		if col.Kind() != exp.KindColumnDef || !truthy(col.Arg("kind")) {
+			return e
+		}
+		names = append(names, exp.ToIdentifier(col.This()))
+	}
+	schema := e.This()
+	if schema == nil {
+		return e
+	}
+	schema.Set("expressions", append(schema.Expressions(), cols...))
+	prop.Set("this", exp.Tuple(exp.Args{"expressions": names}))
+	return e
+}

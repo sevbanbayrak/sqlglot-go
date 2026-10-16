@@ -1256,6 +1256,233 @@
 {"dialect": "presto", "sql": "u&'Hello winter #2603 !' UESCAPE '#'", "want": "U&'Hello winter #2603 !' UESCAPE '#'", "pretty": false, "identify": false}
 {"dialect": "presto", "sql": "u&'Hello winter \\2603 !'", "want": "U&'Hello winter \\2603 !'", "pretty": false, "identify": false}
 {"dialect": "presto", "sql": "x IN ('a', 'a''b')", "want": "x IN ('a', 'a''b')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "'\u6bdb'", "want": "'\u6bdb'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "AGGREGATE(my_arr, 0, (acc, x) -> acc + x, s -> s * 2)", "want": "AGGREGATE(my_arr, 0, (acc, x) -> acc + x, s -> s * 2)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER TABLE StudentInfo ADD COLUMNS (LastName STRING, DOB TIMESTAMP)", "want": "ALTER TABLE StudentInfo ADD COLUMNS (LastName STRING, DOB TIMESTAMP)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER TABLE StudentInfo DROP COLUMNS (LastName, DOB)", "want": "ALTER TABLE StudentInfo DROP COLUMNS (LastName, DOB)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER TABLE db.example ALTER COLUMN col_a TYPE BIGINT", "want": "ALTER TABLE db.example ALTER COLUMN col_a TYPE BIGINT", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER TABLE db.example CHANGE COLUMN col_a col_a BIGINT", "want": "ALTER TABLE db.example ALTER COLUMN col_a TYPE BIGINT", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER TABLE db.example RENAME COLUMN col_a TO col_b", "want": "ALTER TABLE db.example RENAME COLUMN col_a TO col_b", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER TABLE foo ADD IF NOT EXISTS PARTITION(event = 'click')", "want": "ALTER TABLE foo ADD IF NOT EXISTS PARTITION(event = 'click')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER TABLE foo ADD PARTITION(event = 'click')", "want": "ALTER TABLE foo ADD PARTITION(event = 'click')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER VIEW StudentInfoView AS SELECT * FROM StudentInfo", "want": "ALTER VIEW StudentInfoView AS SELECT * FROM StudentInfo", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER VIEW StudentInfoView AS SELECT LastName FROM StudentInfo", "want": "ALTER VIEW StudentInfoView AS SELECT LastName FROM StudentInfo", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER VIEW StudentInfoView RENAME TO StudentInfoViewRenamed", "want": "ALTER VIEW StudentInfoView RENAME TO StudentInfoViewRenamed", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER VIEW StudentInfoView SET TBLPROPERTIES ('key1'='val1', 'key2'='val2')", "want": "ALTER VIEW StudentInfoView SET TBLPROPERTIES ('key1'='val1', 'key2'='val2')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ALTER VIEW StudentInfoView UNSET TBLPROPERTIES ('key1', 'key2')", "want": "ALTER VIEW StudentInfoView UNSET TBLPROPERTIES ('key1', 'key2')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLE ctlg.db.tbl COMPUTE STATISTICS NOSCAN", "want": "ANALYZE TABLE ctlg.db.tbl COMPUTE STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLE ctlg.db.tbl PARTITION(foo = 'foo', bar = 'bar') COMPUTE STATISTICS NOSCAN", "want": "ANALYZE TABLE ctlg.db.tbl PARTITION(foo = 'foo', bar = 'bar') COMPUTE STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLE tbl COMPUTE STATISTICS FOR ALL COLUMNS", "want": "ANALYZE TABLE tbl COMPUTE STATISTICS FOR ALL COLUMNS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLE tbl COMPUTE STATISTICS FOR COLUMNS foo, bar", "want": "ANALYZE TABLE tbl COMPUTE STATISTICS FOR COLUMNS foo, bar", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLE tbl COMPUTE STATISTICS NOSCAN", "want": "ANALYZE TABLE tbl COMPUTE STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLES COMPUTE STATISTICS NOSCAN", "want": "ANALYZE TABLES COMPUTE STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLES FROM db COMPUTE STATISTICS", "want": "ANALYZE TABLES FROM db COMPUTE STATISTICS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ANALYZE TABLES IN db COMPUTE STATISTICS", "want": "ANALYZE TABLES IN db COMPUTE STATISTICS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ARRAY(0, 1, 2)", "want": "ARRAY(0, 1, 2)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ARRAY_SORT(x, (left, right) -> -1)", "want": "ARRAY_SORT(x, (left, right) -> -1)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "BITMAP_OR_AGG(x)", "want": "BITMAP_OR_AGG(x)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "BIT_GET(11, 0)", "want": "GETBIT(11, 0)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "BOOLEAN(x)", "want": "CAST(x AS BOOLEAN)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CACHE TABLE testCache OPTIONS ('storageLevel' 'DISK_ONLY') SELECT * FROM testData", "want": "CACHE TABLE testCache OPTIONS('storageLevel' = 'DISK_ONLY') AS SELECT * FROM testData", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CONCAT_WS(' ', NULL, 'Smith')", "want": "CONCAT_WS(' ', NULL, 'Smith')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE NAMESPACE my_catalog.my_namespace", "want": "CREATE NAMESPACE my_catalog.my_namespace", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE blah (col_a INT) COMMENT \"Test comment: blah\" PARTITIONED BY (date STRING) USING ICEBERG TBLPROPERTIES('x' = '1')", "want": "CREATE TABLE blah (\n  col_a INT,\n  date STRING\n)\nCOMMENT 'Test comment: blah'\nPARTITIONED BY (\n  date\n)\nUSING ICEBERG\nTBLPROPERTIES (\n  'x'='1'\n)", "pretty": true, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE db.example_table (col_a array<int>, col_b array<array<int>>)", "want": "CREATE TABLE db.example_table (col_a ARRAY<INT>, col_b ARRAY<ARRAY<INT>>)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE db.example_table (col_a struct<struct_col_a:int, struct_col_b:string>)", "want": "CREATE TABLE db.example_table (col_a STRUCT<struct_col_a: INT, struct_col_b: STRING>)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE db.example_table (col_a struct<struct_col_a:int, struct_col_b:struct<nested_col_a:string, nested_col_b:string>>)", "want": "CREATE TABLE db.example_table (col_a STRUCT<struct_col_a: INT, struct_col_b: STRUCT<nested_col_a: STRING, nested_col_b: STRING>>)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE foo (col STRING) CLUSTERED BY (col) INTO 10 BUCKETS", "want": "CREATE TABLE foo (col STRING) CLUSTERED BY (col) INTO 10 BUCKETS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE foo (col STRING) CLUSTERED BY (col) SORTED BY (col) INTO 10 BUCKETS", "want": "CREATE TABLE foo (col STRING) CLUSTERED BY (col) SORTED BY (col) INTO 10 BUCKETS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE foo (col STRUCT<struct_col_a: VARCHAR((50))>)", "want": "CREATE TABLE foo (col STRUCT<struct_col_a: VARCHAR((50))>)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE foo (col VARCHAR(50))", "want": "CREATE TABLE foo (col VARCHAR(50))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE foo AS WITH t AS (SELECT 1 AS col) SELECT col FROM t", "want": "CREATE TABLE foo AS WITH t AS (SELECT 1 AS col) SELECT col FROM t", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE test STORED AS PARQUET AS SELECT 1", "want": "CREATE TABLE test STORED AS PARQUET AS SELECT 1", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TABLE x USING ICEBERG PARTITIONED BY (MONTHS(y)) LOCATION 's3://z'", "want": "CREATE TABLE x USING ICEBERG PARTITIONED BY (MONTHS(y)) LOCATION 's3://z'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE TEMPORARY VIEW test AS SELECT 1", "want": "CREATE TEMPORARY VIEW test AS SELECT 1", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE VIEW emp_v WITH SCHEMA BINDING AS SELECT * FROM emp", "want": "CREATE VIEW emp_v WITH SCHEMA BINDING AS SELECT * FROM emp", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE VIEW emp_v WITH SCHEMA COMPENSATION AS SELECT * FROM emp", "want": "CREATE VIEW emp_v WITH SCHEMA COMPENSATION AS SELECT * FROM emp", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE VIEW emp_v WITH SCHEMA EVOLUTION AS SELECT * FROM emp", "want": "CREATE VIEW emp_v WITH SCHEMA EVOLUTION AS SELECT * FROM emp", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CREATE VIEW emp_v WITH SCHEMA TYPE EVOLUTION AS SELECT * FROM emp", "want": "CREATE VIEW emp_v WITH SCHEMA TYPE EVOLUTION AS SELECT * FROM emp", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CURRENT_USER", "want": "CURRENT_USER()", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "CURRENT_USER()", "want": "CURRENT_USER()", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DATE(x)", "want": "CAST(x AS DATE)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DAYOFMONTH(TO_DATE(x))", "want": "DAYOFMONTH(TO_DATE(x))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DAYOFWEEK(TO_DATE(x))", "want": "DAYOFWEEK(TO_DATE(x))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DAYOFYEAR(TO_DATE(x))", "want": "DAYOFYEAR(TO_DATE(x))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE OR REPLACE five = 55", "want": "DECLARE OR REPLACE five = 55", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE VAR x INT", "want": "DECLARE x INT", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE VARIABLE myvar INT DEFAULT 5", "want": "DECLARE myvar INT = 5", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE VARIABLE size DEFAULT 6", "want": "DECLARE size = 6", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE five = 5", "want": "DECLARE five = 5", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE some_var STRING", "want": "DECLARE some_var STRING", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE x INT", "want": "DECLARE x INT", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE x INT = 5", "want": "DECLARE x INT = 5", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DECLARE x, y, z INT DEFAULT 1", "want": "DECLARE x, y, z INT = 1", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DESCRIBE EXTENDED db.tbl", "want": "DESCRIBE EXTENDED db.tbl", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DESCRIBE schema.test PARTITION(ds = '2024-01-01')", "want": "DESCRIBE schema.test PARTITION(ds = '2024-01-01')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DOUBLE(x)", "want": "CAST(x AS DOUBLE)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "DROP NAMESPACE my_catalog.my_namespace", "want": "DROP NAMESPACE my_catalog.my_namespace", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "FLOAT(x)", "want": "CAST(x AS FLOAT)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "IF(cond, foo AS bar, bla AS baz)", "want": "IF(cond, foo AS bar, bla AS baz)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ILIKE(foo, 'pattern')", "want": "foo ILIKE 'pattern'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "ILIKE(foo, 'pattern', '!')", "want": "foo ILIKE 'pattern' ESCAPE '!'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "INSERT OVERWRITE TABLE db1.tb1 TABLE db2.tb2", "want": "INSERT OVERWRITE TABLE db1.tb1 TABLE db2.tb2", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "INSERT OVERWRITE TABLE table WITH cte AS (SELECT cola FROM other_table) SELECT cola FROM cte", "want": "WITH cte AS (SELECT cola FROM other_table) INSERT OVERWRITE TABLE table SELECT cola FROM cte", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "INT(x)", "want": "CAST(x AS INT)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "INTERVAL '-86' DAYS", "want": "INTERVAL '-86' DAYS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "LIKE(foo, 'pattern')", "want": "foo LIKE 'pattern'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "LIKE(foo, 'pattern', '!')", "want": "foo LIKE 'pattern' ESCAPE '!'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "LISTAGG(x, ', ')", "want": "LISTAGG(x, ', ')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "MAP(1, 2, 3, 4)", "want": "MAP(1, 2, 3, 4)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "MAP_FROM_ARRAYS(ARRAY(1), c)", "want": "MAP_FROM_ARRAYS(ARRAY(1), c)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "MONTH('2021-03-01')", "want": "MONTH('2021-03-01')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "PERCENTILE_APPROX(DISTINCT col, 0.3)", "want": "PERCENTILE_APPROX(DISTINCT col, 0.3)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "PERCENTILE_APPROX(DISTINCT col, 0.3, 200)", "want": "PERCENTILE_APPROX(DISTINCT col, 0.3, 200)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "REFRESH 'hdfs://path/to/table'", "want": "REFRESH 'hdfs://path/to/table'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "REFRESH TABLE a.b.c", "want": "REFRESH TABLE a.b.c", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "REFRESH TABLE tempDB.view1", "want": "REFRESH TABLE tempDB.view1", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM ((VALUES 1))", "want": "SELECT * FROM (VALUES (1))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM POSEXPLODE(ARRAY('a'))", "want": "SELECT * FROM POSEXPLODE(ARRAY('a'))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM POSEXPLODE(ARRAY('a')) AS (a, b)", "want": "SELECT * FROM POSEXPLODE(ARRAY('a')) AS _t0(a, b)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM db.table1 MINUS SELECT * FROM db.table2", "want": "SELECT * FROM db.table1 EXCEPT SELECT * FROM db.table2", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM t1 SEMI JOIN t2 ON t1.x = t2.x", "want": "SELECT * FROM t1 SEMI JOIN t2 ON t1.x = t2.x", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM t1, t2", "want": "SELECT * FROM t1 CROSS JOIN t2", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM test TABLESAMPLE (5 ROWS)", "want": "SELECT * FROM test TABLESAMPLE (5 ROWS)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM test TABLESAMPLE (50 PERCENT)", "want": "SELECT * FROM test TABLESAMPLE (50 PERCENT)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM test TABLESAMPLE (BUCKET 4 OUT OF 10)", "want": "SELECT * FROM test TABLESAMPLE (BUCKET 4 OUT OF 10)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM {df}", "want": "SELECT * FROM {df}", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT * FROM {df} WHERE id > :foo", "want": "SELECT * FROM {df} WHERE id > :foo", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ BROADCAST(table) */ cola FROM table", "want": "SELECT /*+ BROADCAST(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ BROADCASTJOIN(table) */ cola FROM table", "want": "SELECT /*+ BROADCASTJOIN(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ COALESCE(3) */ * FROM x", "want": "SELECT /*+ COALESCE(3) */ * FROM x", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ COALESCE(3), REPARTITION(1) */ * FROM x", "want": "SELECT /*+ COALESCE(3), REPARTITION(1) */ * FROM x", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ MAPJOIN(table) */ cola FROM table", "want": "SELECT /*+ MAPJOIN(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ MERGE(table) */ cola FROM table", "want": "SELECT /*+ MERGE(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ MERGEJOIN(table) */ cola FROM table", "want": "SELECT /*+ MERGEJOIN(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ SHUFFLEMERGE(table) */ cola FROM table", "want": "SELECT /*+ SHUFFLEMERGE(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ SHUFFLE_HASH(table) */ cola FROM table", "want": "SELECT /*+ SHUFFLE_HASH(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT /*+ SHUFFLE_REPLICATE_NL(table) */ cola FROM table", "want": "SELECT /*+ SHUFFLE_REPLICATE_NL(table) */ cola FROM table", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT 1 limit", "want": "SELECT 1 AS limit", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT 1 offset", "want": "SELECT 1 AS offset", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT APPROX_COUNT_DISTINCT(a) FROM foo", "want": "SELECT APPROX_COUNT_DISTINCT(a) FROM foo", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT APPROX_TOP_K_ACCUMULATE(col)", "want": "SELECT APPROX_TOP_K_ACCUMULATE(col)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT APPROX_TOP_K_ACCUMULATE(col, 10)", "want": "SELECT APPROX_TOP_K_ACCUMULATE(col, 10)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT ARRAY_AGG(1)", "want": "SELECT COLLECT_LIST(1)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT ARRAY_AGG(DISTINCT STRUCT('a'))", "want": "SELECT COLLECT_LIST(DISTINCT STRUCT('a' AS col1))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT ARRAY_AGG(x) FILTER (WHERE x = 5) FROM (SELECT 1 UNION ALL SELECT NULL) AS t(x)", "want": "SELECT COLLECT_LIST(x) FILTER(WHERE x = 5) FROM (SELECT 1 UNION ALL SELECT NULL) AS t(x)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')", "want": "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT ARRAY_SORT(x)", "want": "SELECT ARRAY_SORT(x)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT BITMAP_BIT_POSITION(10)", "want": "SELECT BITMAP_BIT_POSITION(10)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT BITMAP_CONSTRUCT_AGG(value)", "want": "SELECT BITMAP_CONSTRUCT_AGG(value)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT BIT_COUNT(0)", "want": "SELECT BIT_COUNT(0)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CASE WHEN a = NULL THEN 1 ELSE 2 END", "want": "SELECT CASE WHEN a = NULL THEN 1 ELSE 2 END", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CAST('2023-01-01' AS TIMESTAMP) + INTERVAL '23' HOUR + '59' MINUTE + '59' SECONDS", "want": "SELECT CAST('2023-01-01' AS TIMESTAMP) + INTERVAL '23' HOUR + INTERVAL '59' MINUTE + INTERVAL '59' SECONDS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CAST('2023-01-01' AS TIMESTAMP) + INTERVAL 23 HOUR + 59 MINUTE + 59 SECONDS", "want": "SELECT CAST('2023-01-01' AS TIMESTAMP) + INTERVAL '23' HOUR + INTERVAL '59' MINUTE + INTERVAL '59' SECONDS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CAST('a' AS CHAR(10) COLLATE UTF8_BINARY)", "want": "SELECT CAST('a' AS STRING COLLATE UTF8_BINARY)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CAST('a' AS VARCHAR(10) COLLATE UTF8_BINARY)", "want": "SELECT CAST('a' AS STRING COLLATE UTF8_BINARY)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CAST(123456 AS VARCHAR(3))", "want": "SELECT CAST(123456 AS STRING)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CAST(STRUCT('fooo') AS STRUCT<a: VARCHAR(2)>)", "want": "SELECT CAST(STRUCT('fooo' AS col1) AS STRUCT<a: STRING>)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CAST(col AS TIMESTAMP)", "want": "SELECT CAST(col AS TIMESTAMP)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT CURDATE()", "want": "SELECT CURRENT_DATE", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATEDIFF(MONTH, '2020-01-01', '2020-03-05')", "want": "SELECT DATEDIFF(MONTH, '2020-01-01', '2020-03-05')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATEDIFF(MONTH, CAST('1996-10-30' AS TIMESTAMP), CAST('1997-02-28 10:30:00' AS TIMESTAMP))", "want": "SELECT DATEDIFF(MONTH, CAST('1996-10-30' AS TIMESTAMP), CAST('1997-02-28 10:30:00' AS TIMESTAMP))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATEDIFF(week, '2020-01-01', '2020-12-31')", "want": "SELECT DATEDIFF(WEEK, '2020-01-01', '2020-12-31')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATE_ADD(MONTH, 20, col)", "want": "SELECT DATE_ADD(MONTH, 20, col)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATE_ADD(my_date_column, 1)", "want": "SELECT DATE_ADD(my_date_column, 1)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATE_FORMAT(DATE '2020-01-01', 'EEEE') AS weekday", "want": "SELECT DATE_FORMAT(CAST('2020-01-01' AS DATE), 'EEEE') AS weekday", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATE_FORMAT(x, 'yyyy-MM-dd HH:mm:ss')", "want": "SELECT DATE_FORMAT(x, 'yyyy-MM-dd HH:mm:ss')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT DATE_FORMAT(x, 'yyyy-MM-dd')", "want": "SELECT DATE_FORMAT(x, 'yyyy-MM-dd')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT ELT(2, 'foo', 'bar', 'baz') AS Result", "want": "SELECT ELT(2, 'foo', 'bar', 'baz') AS Result", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT EXPLODE(col) FROM _u", "want": "SELECT EXPLODE(col) FROM _u", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT EXPLODE(x) FROM tbl", "want": "SELECT EXPLODE(x) FROM tbl", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT FROM_UTC_TIMESTAMP('2016-08-31', 'Asia/Seoul')", "want": "SELECT FROM_UTC_TIMESTAMP(CAST('2016-08-31' AS TIMESTAMP), 'Asia/Seoul')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT INTERVAL '5' HOURS '30' MINUTES '5' SECONDS '6' MILLISECONDS '7' MICROSECONDS", "want": "SELECT INTERVAL '5' HOURS + INTERVAL '30' MINUTES + INTERVAL '5' SECONDS + INTERVAL '6' MILLISECONDS + INTERVAL '7' MICROSECONDS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT INTERVAL 5 HOURS 30 MINUTES 5 SECONDS 6 MILLISECONDS 7 MICROSECONDS", "want": "SELECT INTERVAL '5' HOURS + INTERVAL '30' MINUTES + INTERVAL '5' SECONDS + INTERVAL '6' MILLISECONDS + INTERVAL '7' MICROSECONDS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT LEFT(x, 2), RIGHT(x, 2)", "want": "SELECT LEFT(x, 2), RIGHT(x, 2)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT MAKE_INTERVAL(100, 11, 12, 13, 14, 14, 15)", "want": "SELECT MAKE_INTERVAL(100, 11, 12, 13, 14, 14, 15)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT MAKE_TIMESTAMP(2014, 12, 28, 6, 30, 45.887)", "want": "SELECT MAKE_TIMESTAMP(2014, 12, 28, 6, 30, 45.887)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT MODE() WITHIN GROUP (ORDER BY status) FROM orders", "want": "SELECT MODE() WITHIN GROUP (ORDER BY status) FROM orders", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT MODE(category)", "want": "SELECT MODE(category)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT MODE(price, TRUE) AS deterministic_mode FROM products", "want": "SELECT MODE(price, TRUE) AS deterministic_mode FROM products", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT MONTHS_BETWEEN('1997-02-28 10:30:00', '1996-10-30')", "want": "SELECT MONTHS_BETWEEN('1997-02-28 10:30:00', '1996-10-30')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT MONTHS_BETWEEN('1997-02-28 10:30:00', '1996-10-30', FALSE)", "want": "SELECT MONTHS_BETWEEN('1997-02-28 10:30:00', '1996-10-30', FALSE)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT POSEXPLODE(ARRAY('a'))", "want": "SELECT POSEXPLODE(ARRAY('a'))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT POSEXPLODE(x) AS (a, b)", "want": "SELECT POSEXPLODE(x) AS (a, b)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT REGEXP_REPLACE('100-200', R'([^0-9])', '')", "want": "SELECT REGEXP_REPLACE('100-200', '([^0-9])', '')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT REGEXP_REPLACE('100-200', r'([^0-9])', '')", "want": "SELECT REGEXP_REPLACE('100-200', '([^0-9])', '')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT RLIKE('John Doe', 'John.*')", "want": "SELECT 'John Doe' RLIKE 'John.*'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT SPLIT('123|789', '\\\\|')", "want": "SELECT SPLIT('123|789', '\\\\|')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT STRUCT(1, 2)", "want": "SELECT STRUCT(1 AS col1, 2 AS col2)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT STRUCT(x, 1, y AS col3, STRUCT(5)) FROM t", "want": "SELECT STRUCT(x AS x, 1 AS col2, y AS col3, STRUCT(5 AS col1) AS col4) FROM t", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT STR_TO_MAP('a:1,b:2,c:3')", "want": "SELECT STR_TO_MAP('a:1,b:2,c:3', ',', ':')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT STR_TO_MAP('a:1,b:2,c:3', ',', ':')", "want": "SELECT STR_TO_MAP('a:1,b:2,c:3', ',', ':')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT SUBSTR('Spark SQL', 5)", "want": "SELECT SUBSTRING('Spark SQL', 5)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT SUBSTR('Spark' FROM 5 FOR 1)", "want": "SELECT SUBSTRING('Spark', 5, 1)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT SUBSTR(ENCODE('Spark SQL', 'utf-8'), 5)", "want": "SELECT SUBSTRING(ENCODE('Spark SQL', 'utf-8'), 5)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TIMESTAMPDIFF(MONTH, foo, bar)", "want": "SELECT TIMESTAMPDIFF(MONTH, foo, bar)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_DATE(x, 'MM/dd/yyyy')", "want": "SELECT TO_DATE(x, 'MM/dd/yyyy')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_DATE(x, 'yyyy-M-d')", "want": "SELECT TO_DATE(x, 'yyyy-M-d')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_JSON(STRUCT('blah' AS x)) AS y", "want": "SELECT TO_JSON(STRUCT('blah' AS x)) AS y", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('2016-1-1 3:4:5', 'yyyy-M-d H:m:s')", "want": "SELECT TO_TIMESTAMP('2016-1-1 3:4:5', 'yyyy-M-d H:m:s')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('2016-1-1', 'yyyy-M-d')", "want": "SELECT TO_TIMESTAMP('2016-1-1', 'yyyy-M-d')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('2016-12-31 00:12:00')", "want": "SELECT CAST('2016-12-31 00:12:00' AS TIMESTAMP)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('2016-12-31 03:04:05', 'yyyy-MM-dd HH:mm:ss')", "want": "SELECT TO_TIMESTAMP('2016-12-31 03:04:05', 'yyyy-MM-dd HH:mm:ss')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('2016-12-31', 'yyyy-MM-dd')", "want": "SELECT TO_TIMESTAMP('2016-12-31', 'yyyy-MM-dd')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('20161231', 'yyyyMMdd')", "want": "SELECT TO_TIMESTAMP('20161231', 'yyyyMMdd')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('20161231030405', 'yyyyMMddHHmmss')", "want": "SELECT TO_TIMESTAMP('20161231030405', 'yyyyMMddHHmmss')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_TIMESTAMP('3:4:5 PM', 'h:m:s a')", "want": "SELECT TO_TIMESTAMP('3:4:5 PM', 'h:m:s a')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TO_UTC_TIMESTAMP('2016-08-31', 'Asia/Seoul')", "want": "SELECT TO_UTC_TIMESTAMP(CAST('2016-08-31' AS TIMESTAMP), 'Asia/Seoul')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(ARRAY(1, 2, 3), (x, i) -> x + i)", "want": "SELECT TRANSFORM(ARRAY(1, 2, 3), (x, i) -> x + i)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(ARRAY(1, 2, 3), x -> x + 1)", "want": "SELECT TRANSFORM(ARRAY(1, 2, 3), x -> x + 1)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(name, age) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' NULL DEFINED AS 'NULL' USING 'cat' AS (name_age STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY '@' LINES TERMINATED BY '\\n' NULL DEFINED AS 'NULL' FROM person", "want": "SELECT TRANSFORM(name, age) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' NULL DEFINED AS 'NULL' USING 'cat' AS (name_age STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY '@' LINES TERMINATED BY '\\n' NULL DEFINED AS 'NULL' FROM person", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(x) USING 'x' AS (x INT) FROM t", "want": "SELECT TRANSFORM(x) USING 'x' AS (x INT) FROM t", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(zip_code, name, age) ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe' WITH SERDEPROPERTIES ('field.delim'='\\t') USING 'cat' AS (a STRING, b STRING, c STRING) ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe' WITH SERDEPROPERTIES ('field.delim'='\\t') FROM person WHERE zip_code > 94511", "want": "SELECT TRANSFORM(zip_code, name, age) ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe' WITH SERDEPROPERTIES ('field.delim'='\\t') USING 'cat' AS (a STRING, b STRING, c STRING) ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe' WITH SERDEPROPERTIES ('field.delim'='\\t') FROM person WHERE zip_code > 94511", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(zip_code, name, age) USING 'cat' AS (a STRING, b STRING, c STRING) FROM person WHERE zip_code > 94511", "want": "SELECT TRANSFORM(zip_code, name, age) USING 'cat' AS (a STRING, b STRING, c STRING) FROM person WHERE zip_code > 94511", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(zip_code, name, age) USING 'cat' AS (a, b, c) FROM person WHERE zip_code > 94511", "want": "SELECT TRANSFORM(zip_code, name, age) USING 'cat' AS (a, b, c) FROM person WHERE zip_code > 94511", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRANSFORM(zip_code, name, age) USING 'cat' FROM person WHERE zip_code > 94500", "want": "SELECT TRANSFORM(zip_code, name, age) USING 'cat' FROM person WHERE zip_code > 94500", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRY_CAST('a' AS INT)", "want": "SELECT TRY_CAST('a' AS INT)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRY_DIVIDE(a, b)", "want": "SELECT TRY_DIVIDE(a, b)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRY_ELEMENT_AT(ARRAY(1, 2, 3), 2)", "want": "SELECT TRY_ELEMENT_AT(ARRAY(1, 2, 3), 2)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT TRY_ELEMENT_AT(MAP(1, 'a', 2, 'b'), 2)", "want": "SELECT TRY_ELEMENT_AT(MAP(1, 'a', 2, 'b'), 2)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT UNIX_TIMESTAMP('2016-1-1', 'yyyy-M-d')", "want": "SELECT UNIX_TIMESTAMP('2016-1-1', 'yyyy-M-d')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT UNIX_TIMESTAMP('2016-12-31', 'yyyy-MM-dd')", "want": "SELECT UNIX_TIMESTAMP('2016-12-31', 'yyyy-MM-dd')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT UNIX_TIMESTAMP()", "want": "SELECT UNIX_TIMESTAMP(CURRENT_TIMESTAMP())", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT a, LOGICAL_OR(b) FROM table GROUP BY a", "want": "SELECT a, BOOL_OR(b) FROM table GROUP BY a", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT id_column, name, age FROM test_table LATERAL VIEW INLINE(struc_column) explode_view AS name, age", "want": "SELECT id_column, name, age FROM test_table LATERAL VIEW INLINE(struc_column) explode_view AS name, age", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT name, GROUPING_ID() FROM customer GROUP BY ROLLUP (name)", "want": "SELECT name, GROUPING_ID() FROM customer GROUP BY ROLLUP (name)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT named_struct('a', 1, 'b', 'x')", "want": "SELECT STRUCT(1 AS a, 'x' AS b)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT timestamp AS of FROM t", "want": "SELECT timestamp AS of FROM t", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SELECT version AS of FROM t", "want": "SELECT version AS of FROM t", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SET VAR v = 5", "want": "SET VARIABLE v = 5", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SET VARIABLE (v1, v2) = (SELECT 1, 2)", "want": "SET VARIABLE (v1, v2) = (SELECT 1, 2)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SET VARIABLE v = (SELECT MAX(c1) FROM VALUES (1), (2) AS T(c1))", "want": "SET VARIABLE v = (SELECT MAX(c1) FROM VALUES (1), (2) AS T(c1))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SET VARIABLE v = 5", "want": "SET VARIABLE v = 5", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SET VARIABLE v = DEFAULT", "want": "SET VARIABLE v = DEFAULT", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SET VARIABLE v1 = 1, v2 = '2'", "want": "SET VARIABLE v1 = 1, v2 = '2'", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "SPLIT(str, pattern, lim)", "want": "SPLIT(str, pattern, lim)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "STRING(x)", "want": "CAST(x AS STRING)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "STRING_AGG(x, ', ')", "want": "LISTAGG(x, ', ')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TIMESTAMP(x)", "want": "CAST(x AS TIMESTAMP)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TIMESTAMP_LTZ(x)", "want": "CAST(x AS TIMESTAMP_LTZ)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TIMESTAMP_NTZ(x)", "want": "CAST(x AS TIMESTAMP_NTZ)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TO_DATE(x, 'yyyy')", "want": "TO_DATE(x, 'yyyy')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TO_DATE(x, 'yyyy-MM-dd')", "want": "TO_DATE(x)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TRIM('    SparkSQL   ')", "want": "TRIM('    SparkSQL   ')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TRIM('SL', 'SSparkSQLS')", "want": "TRIM('SL' FROM 'SSparkSQLS')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TRIM(BOTH 'SL' FROM 'SSparkSQLS')", "want": "TRIM(BOTH 'SL' FROM 'SSparkSQLS')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TRIM(LEADING 'SL' FROM 'SSparkSQLS')", "want": "TRIM(LEADING 'SL' FROM 'SSparkSQLS')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TRIM(TRAILING 'SL' FROM 'SSparkSQLS')", "want": "TRIM(TRAILING 'SL' FROM 'SSparkSQLS')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TRUNC(date_col, 'MM')", "want": "TRUNC(date_col, 'MM')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "TRUNCATE TABLE t1 PARTITION(age = 10, name = 'test', address)", "want": "TRUNCATE TABLE t1 PARTITION(age = 10, name = 'test', address)", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "UNHEX(MD5(x))", "want": "UNHEX(MD5(x))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "WEEKOFYEAR(TO_DATE(x))", "want": "WEEKOFYEAR(TO_DATE(x))", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl", "want": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "YEAR('2021-03-01')", "want": "YEAR('2021-03-01')", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "any_value(col, true)", "want": "ANY_VALUE(col) IGNORE NULLS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "first(col, true)", "want": "FIRST(col) IGNORE NULLS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "first_value(col, true)", "want": "FIRST_VALUE(col) IGNORE NULLS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "last(col, true)", "want": "LAST(col) IGNORE NULLS", "pretty": false, "identify": false}
+{"dialect": "spark", "sql": "last_value(col, true)", "want": "LAST_VALUE(col) IGNORE NULLS", "pretty": false, "identify": false}
 {"dialect": "trino", "sql": "ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS zip VARCHAR", "want": "ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS zip VARCHAR", "pretty": false, "identify": false}
 {"dialect": "trino", "sql": "ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS zip", "want": "ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS zip", "pretty": false, "identify": false}
 {"dialect": "trino", "sql": "ALTER TABLE IF EXISTS users RENAME COLUMN IF EXISTS id TO user_id", "want": "ALTER TABLE IF EXISTS users RENAME COLUMN IF EXISTS id TO user_id", "pretty": false, "identify": false}

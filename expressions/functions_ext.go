@@ -60,6 +60,15 @@ func init() {
 			return New(KindGenerateDateArray, Args{"start": seq(args, 0), "end": seq(args, 1), "step": step})
 		},
 		"INSTR": func(args []Expression) Expression { return FromArgList(KindStrPosition, args) },
+		// parser.py:434-435,457 (HEX_LOWERCASE is False for every ported dialect).
+		"LOG2": func(args []Expression) Expression {
+			return New(KindLog, Args{"this": LiteralNumber(2), "expression": seq(args, 0)})
+		},
+		"LOG10": func(args []Expression) Expression {
+			return New(KindLog, Args{"this": LiteralNumber(10), "expression": seq(args, 0)})
+		},
+		"TO_HEX":    func(args []Expression) Expression { return New(KindHex, Args{"this": seq(args, 0)}) },
+		"JSON_KEYS": func(args []Expression) Expression { return FromArgList(KindJSONKeys, args) },
 		// parser.py:185-190 build_locate_strposition
 		"LOCATE": func(args []Expression) Expression {
 			return New(KindStrPosition, Args{"this": seq(args, 1), "substr": seq(args, 0), "position": seq(args, 2)})

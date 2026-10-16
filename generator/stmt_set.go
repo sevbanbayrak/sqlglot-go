@@ -50,6 +50,9 @@ func (g *Generator) setItemSQL(e expressions.Expression) string {
 	}
 
 	kind := g.sqlKey(e, "kind")
+	if kind == "VARIABLE" && !g.dialect.SetAssignmentRequiresVariableKeyword {
+		kind = ""
+	}
 	if kind != "" {
 		kind += " "
 	}

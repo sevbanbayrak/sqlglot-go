@@ -9,12 +9,13 @@ import (
 // generators/trino.py:22-53.
 func init() {
 	registerDialectDispatch("trino", map[exp.Kind]func(*Generator, exp.Expression) string{
-		exp.KindCurrentVersion:   prestoRename("VERSION"),
-		exp.KindGroupConcat:      (*Generator).trinoGroupConcatSQL,
-		exp.KindTrim:             (*Generator).trimSQLStandard,
-		exp.KindLocationProperty: func(g *Generator, e exp.Expression) string { return "LOCATION=" + g.sqlKey(e, "this") },
-		exp.KindJSONExtract:      (*Generator).trinoJSONExtractSQL,
-		exp.KindArrayUniqueAgg:   func(g *Generator, e exp.Expression) string { return "ARRAY_AGG(DISTINCT " + g.sqlKey(e, "this") + ")" },
+		exp.KindCurrentVersion:            prestoRename("VERSION"),
+		exp.KindFromISO8601TimestampNanos: prestoRename("FROM_ISO8601_TIMESTAMP_NANOS"),
+		exp.KindGroupConcat:               func(g *Generator, e exp.Expression) string { return g.groupConcatStandardSQL(e, true) },
+		exp.KindTrim:                      (*Generator).trimSQLStandard,
+		exp.KindLocationProperty:          func(g *Generator, e exp.Expression) string { return "LOCATION=" + g.sqlKey(e, "this") },
+		exp.KindJSONExtract:               (*Generator).trinoJSONExtractSQL,
+		exp.KindArrayUniqueAgg:            func(g *Generator, e exp.Expression) string { return "ARRAY_AGG(DISTINCT " + g.sqlKey(e, "this") + ")" },
 		exp.KindDeclare: func(g *Generator, e exp.Expression) string {
 			replace := ""
 			if truthy(e.Arg("replace")) {
@@ -46,15 +47,16 @@ func init() {
 	registerDialectPropertyLocations("trino", map[exp.Kind]propertyLocation{exp.KindLocationProperty: propertyLocationPostWith})
 }
 
-// dialects/dialect.py:2539-2587.
-func (g *Generator) trinoGroupConcatSQL(e exp.Expression) string {
+// groupConcatStandardSQL ports groupconcat_sql (dialects/dialect.py:2539-2587) with the LISTAGG
+// defaults; onOverflow is the on_overflow parameter.
+func (g *Generator) groupConcatStandardSQL(e exp.Expression, onOverflow bool) string {
 	e = e.Copy()
 	this := e.This()
 	separator := g.sqlKey(e, "separator")
 	if separator == "" {
 		separator = "','"
 	}
-	if overflow := g.sqlKey(e, "on_overflow"); overflow != "" {
+	if overflow := g.sqlKey(e, "on_overflow"); onOverflow && overflow != "" {
 		separator += " ON OVERFLOW " + overflow
 	}
 	var limit exp.Expression

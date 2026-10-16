@@ -200,6 +200,14 @@ func (p *Parser) parsePivot() exp.Expression {
 }
 
 func (p *Parser) parsePivotAggregation() exp.Expression {
+	if p.dialect.Is("spark") {
+		// parsers/spark.py:114-118: non-aggregate expressions are allowed in PIVOT too.
+		f := p.parseFunction(nil, false, true, false)
+		if f == nil {
+			f = p.parseDisjunction()
+		}
+		return p.parseAlias(f, false)
+	}
 	f := p.parseFunction(nil, false, true, false)
 	if f == nil {
 		if p.prev.TokenType == tokens.COMMA {

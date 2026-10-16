@@ -356,6 +356,10 @@ func (p *Parser) parseGeneratedAsIdentity() exp.Expression {
 			this = p.expression(exp.ComputedColumnConstraint(exp.Args{"this": this.Expr()}), nil, nil)
 		}
 	}
+	// parsers/spark.py:102-112.
+	if p.dialect.Is("spark") && this != nil && this.Expr() != nil {
+		this = p.expression(exp.ComputedColumnConstraint(exp.Args{"this": this.Expr()}), nil, nil)
+	}
 	return this
 }
 

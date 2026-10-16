@@ -9,6 +9,10 @@ import (
 
 // parsers/spark2.py:86-98 FUNCTION_PARSERS on top of the Hive overlay (no parent chain here).
 func init() {
+	registerDialectParserOverrides("spark2", spark2ParserOverrideSet())
+}
+
+func spark2ParserOverrideSet() dialectParserOverrideSet {
 	overrides := hiveParserOverrideSet()
 	overrides.FunctionParsers["AND"] = func(p *Parser) exp.Expression { return p.parseConnectorFunction(exp.And_) }
 	overrides.FunctionParsers["OR"] = func(p *Parser) exp.Expression { return p.parseConnectorFunction(exp.Or_) }
@@ -19,7 +23,7 @@ func init() {
 		name := hint
 		overrides.FunctionParsers[name] = func(p *Parser) exp.Expression { return p.parseJoinHint(name) }
 	}
-	registerDialectParserOverrides("spark2", overrides)
+	return overrides
 }
 
 // parseConnectorFunction ports _parse_connector_function (parser.py:7180-7186).

@@ -19,6 +19,83 @@ func init() {
 	dispatch[expressions.KindJoinHint] = func(g *Generator, e expressions.Expression) string {
 		return g.sqlKey(e, "this") + "(" + g.expressions(exprsOptions{expression: e, flat: true}) + ")"
 	}
+	// generator.py:4959-4972 querytransform_sql
+	dispatch[expressions.KindQueryTransform] = func(g *Generator, e expressions.Expression) string {
+		args := make([]any, 0, len(e.Expressions()))
+		for _, x := range e.Expressions() {
+			args = append(args, x)
+		}
+		sql := g.funcCall("TRANSFORM", args, "(", ")", true)
+		for _, part := range []struct{ key, prefix string }{{"row_format_before", " "}, {"record_writer", " RECORDWRITER "}} {
+			if s := g.sqlKey(e, part.key); s != "" {
+				sql += part.prefix + s
+			}
+		}
+		sql += " USING " + g.sqlKey(e, "command_script")
+		for _, part := range []struct{ key, prefix string }{{"schema", " AS "}, {"row_format_after", " "}, {"record_reader", " RECORDREADER "}} {
+			if s := g.sqlKey(e, part.key); s != "" {
+				sql += part.prefix + s
+			}
+		}
+		return sql
+	}
+	// generator.py:4061-4068 fromiso8601*_sql
+	dispatch[expressions.KindFromISO8601Date] = func(g *Generator, e expressions.Expression) string {
+		return g.gen(expressions.Cast(expressions.Args{"this": e.This(), "to": expressions.DTypeDate.IntoExpr(nil)}))
+	}
+	for _, kind := range []expressions.Kind{expressions.KindFromISO8601Timestamp, expressions.KindFromISO8601TimestampNanos} {
+		dispatch[kind] = func(g *Generator, e expressions.Expression) string {
+			return g.gen(expressions.Cast(expressions.Args{"this": e.This(), "to": expressions.DTypeTimestampTz.IntoExpr(nil)}))
+		}
+	}
+	// generator.py:6143-6167 decodecase_sql
+	dispatch[expressions.KindDecodeCase] = func(g *Generator, e expressions.Expression) string {
+		exprs := e.Expressions()
+		if !g.dialect.DecodeCaseUnsupported {
+			args := make([]any, 0, len(exprs))
+			for _, x := range exprs {
+				args = append(args, x)
+			}
+			return g.funcCall("DECODE", args, "(", ")", true)
+		}
+		decodeExpr, rest := exprs[0], exprs[1:]
+		var ifs []expressions.Expression
+		for i := 0; i+1 < len(rest); i += 2 {
+			search, result := rest[i], rest[i+1]
+			var cond expressions.Expression
+			switch {
+			case search.Kind() == expressions.KindLiteral:
+				cond = expressions.EQ(expressions.Args{"this": decodeExpr.Copy(), "expression": search})
+			case search.Kind() == expressions.KindNull:
+				cond = expressions.Is(expressions.Args{"this": decodeExpr.Copy(), "expression": expressions.Null()})
+			default:
+				if search.Is(expressions.TraitBinary) {
+					search = expressions.Paren(expressions.Args{"this": search})
+				}
+				cond = expressions.Or(expressions.Args{
+					"this": expressions.EQ(expressions.Args{"this": decodeExpr.Copy(), "expression": search}),
+					"expression": expressions.And(expressions.Args{
+						"this":       expressions.Is(expressions.Args{"this": decodeExpr.Copy(), "expression": expressions.Null()}),
+						"expression": expressions.Is(expressions.Args{"this": search.Copy(), "expression": expressions.Null()}),
+					}),
+				})
+			}
+			ifs = append(ifs, expressions.If(expressions.Args{"this": cond, "true": result}))
+		}
+		args := expressions.Args{"ifs": ifs}
+		if len(rest)%2 == 1 {
+			args["default"] = rest[len(rest)-1]
+		}
+		return g.gen(expressions.Case(args))
+	}
+	// generator.py:4613-4618 try_sql
+	dispatch[expressions.KindTry] = func(g *Generator, e expressions.Expression) string {
+		if g.dialect.TryUnsupported {
+			g.unsupported("Unsupported TRY function")
+			return g.sqlKey(e, "this")
+		}
+		return g.funcCall("TRY", []any{e.This()}, "(", ")", true)
+	}
 	// generator.py:4056-4059 fromtimezone_sql
 	dispatch[expressions.KindFromTimeZone] = func(g *Generator, e expressions.Expression) string {
 		return g.sqlKey(e, "this") + " AT TIME ZONE " + g.sqlKey(e, "zone") + " AT TIME ZONE 'UTC'"

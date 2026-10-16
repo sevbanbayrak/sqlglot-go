@@ -107,7 +107,7 @@ func (p *Parser) functionParser(name string) parserOverrideFunc {
 			return nil
 		}
 	case "SUBSTR", "JSON_VALUE":
-		if dialectName != "mysql" {
+		if dialectName != "mysql" && !(name == "SUBSTR" && p.dialect.Is("spark")) {
 			return nil
 		}
 	case "DATE_PART":

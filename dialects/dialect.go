@@ -326,6 +326,14 @@ type Dialect struct {
 	// LenientTimeMapping is true when TIME_MAPPING["MM"] is lax (dialects/spark2.py:16-24); Hive's
 	// generator then skips its lenient M/d rewrite (generators/hive.py:416).
 	LenientTimeMapping bool
+	// ArrayFuncsPropagatesNulls ports the dialect flag of the same name (dialects/spark.py:16).
+	ArrayFuncsPropagatesNulls bool
+	// SetAssignmentRequiresVariableKeyword ports the generator flag (generator.py:617).
+	SetAssignmentRequiresVariableKeyword bool
+	// TryUnsupported inverts the generator TRY_SUPPORTED flag (generators/hive.py:224).
+	TryUnsupported bool
+	// DecodeCaseUnsupported inverts the generator SUPPORTS_DECODE_CASE flag (generator.py:605).
+	DecodeCaseUnsupported bool
 	// ValuesFollowedByParen ports the parser flag of the same name (parser.py:1801): whether a
 	// bare VALUES keyword not immediately followed by "(" can be reparsed as a plain identifier
 	// (e.g. `SELECT values`, `values.c`). MySQL overrides to False (parsers/mysql.py:303),
@@ -666,7 +674,7 @@ func validIntervalUnits(mapping map[string]string) map[string]bool {
 
 // dialectParents mirrors the upstream class hierarchy for the dialects that subclass another
 // ported dialect, so parser checks written against the parent apply to the child too.
-var dialectParents = map[string]string{"spark2": "hive"}
+var dialectParents = map[string]string{"spark2": "hive", "spark": "spark2"}
 
 // Is reports whether the dialect is name or inherits from it (Spark2 is a Hive).
 func (d *Dialect) Is(name string) bool {
@@ -695,6 +703,8 @@ func dialectByName(name string) (*Dialect, error) {
 		return Hive(), nil
 	case "spark2":
 		return Spark2(), nil
+	case "spark":
+		return Spark(), nil
 	case "athena":
 		return Athena(), nil
 	default:
