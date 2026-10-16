@@ -67,6 +67,9 @@ func (p *Parser) parseProperty() exp.Expression {
 			return p.parseCharacterSet(true)
 		}
 	}
+	if p.matchTextSeq("PARAMETER", "STYLE", "PANDAS") {
+		return p.expression(exp.ParameterStyleProperty(exp.Args{"this": "PANDAS"}), nil, nil)
+	}
 	// A MySQL compound-statement leader here is a routine BODY starting (grammar
 	// extension, mysql_compound.go) — never a key=value property; without this stop the
 	// key parse would route `IF 1 THEN ...` into the IF() function parser and error.

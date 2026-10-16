@@ -33,7 +33,11 @@ func init() {
 			return e.Name() + " " + e.Text("kind") + " " + g.sqlKey(e, "expression")
 		},
 		expressions.KindProperties: (*Generator).hivePropertiesSQL,
+		// property_sql (dialect.py:1317-1318): property_name(string_key=True) keeps a Dot key.
 		expressions.KindProperty: func(g *Generator, e expressions.Expression) string {
+			if this := asExpression(e.Arg("this")); this != nil && this.Kind() == expressions.KindDot {
+				return g.sqlKey(e, "this") + "=" + g.sqlKey(e, "value")
+			}
 			return g.gen(expressions.LiteralString(e.Name())) + "=" + g.sqlKey(e, "value")
 		},
 		expressions.KindExternalProperty:       func(*Generator, expressions.Expression) string { return "EXTERNAL" },

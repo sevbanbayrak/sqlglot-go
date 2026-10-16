@@ -731,6 +731,16 @@ const (
 	KindDeclareItem
 	// KindKwarg ports exp.Kwarg (core.py): a named argument `name => value` in a function call.
 	KindKwarg
+	// Databricks: PRIMARY KEY (ts TIMESERIES) and CREATE TABLE ... CLUSTER BY.
+	KindTimeseriesKey   // constraints.py:224-225
+	KindClusterProperty // properties.py:90-91
+	// Base parser surface the Databricks corpus reaches.
+	KindStream                 // query.py:2085-2086
+	KindEnviromentProperty     // properties.py:234-235 (the upstream class name is misspelled)
+	KindHandlerProperty        // properties.py:160-161
+	KindParameterStyleProperty // properties.py:164-165
+	KindStreamingTableProperty // properties.py:393-394
+	KindClone                  // ddl.py:117-118
 )
 
 type Trait uint32
@@ -1351,6 +1361,15 @@ var argTypes = map[Kind][]argSpec{
 	KindJSONPathSubscript: {{"this", true}},
 	KindJSONPathUnion:     {{"expressions", true}},
 	KindJSONPathWildcard:  {},
+
+	KindTimeseriesKey:          defaultArgTypes,
+	KindClusterProperty:        {{"this", false}, {"expressions", false}},
+	KindStream:                 defaultArgTypes,
+	KindEnviromentProperty:     {{"expressions", true}},
+	KindHandlerProperty:        defaultArgTypes,
+	KindParameterStyleProperty: defaultArgTypes,
+	KindStreamingTableProperty: {},
+	KindClone:                  {{"this", true}, {"shallow", false}, {"copy", false}},
 }
 
 var traitsOf = map[Kind]Trait{
@@ -2132,6 +2151,14 @@ var className = map[Kind]string{
 	KindTimeToStr:              "TimeToStr",
 	KindStarMap:                "StarMap",
 	KindVarMap:                 "VarMap",
+	KindTimeseriesKey:          "TimeseriesKey",
+	KindClusterProperty:        "ClusterProperty",
+	KindStream:                 "Stream",
+	KindEnviromentProperty:     "EnviromentProperty",
+	KindHandlerProperty:        "HandlerProperty",
+	KindParameterStyleProperty: "ParameterStyleProperty",
+	KindStreamingTableProperty: "StreamingTableProperty",
+	KindClone:                  "Clone",
 }
 
 // varLenArgs is the authoritative is_var_len_args=True set (mirroring the upstream Func

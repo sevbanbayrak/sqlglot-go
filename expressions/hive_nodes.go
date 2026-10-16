@@ -72,3 +72,27 @@ func StarMap(args Args) Expression { return newNode(KindStarMap, args) }
 
 // VarMap ports exp.VarMap (.reference/sqlglot-v30.12.0/sqlglot/expressions/array.py:339-341).
 func VarMap(args Args) Expression { return newNode(KindVarMap, args) }
+
+// TimeseriesKey ports exp.TimeseriesKey (constraints.py:224-225).
+func TimeseriesKey(args Args) Expression { return newNode(KindTimeseriesKey, args) }
+
+// ClusterProperty ports exp.ClusterProperty (properties.py:90-91).
+func ClusterProperty(args Args) Expression { return newNode(KindClusterProperty, args) }
+
+// Stream ports exp.Stream (query.py:2085-2086).
+func Stream(args Args) Expression { return newNode(KindStream, args) }
+
+// EnviromentProperty ports exp.EnviromentProperty (properties.py:234-235).
+func EnviromentProperty(args Args) Expression { return newNode(KindEnviromentProperty, args) }
+
+// HandlerProperty ports exp.HandlerProperty (properties.py:160-161).
+func HandlerProperty(args Args) Expression { return newNode(KindHandlerProperty, args) }
+
+// ParameterStyleProperty ports exp.ParameterStyleProperty (properties.py:164-165).
+func ParameterStyleProperty(args Args) Expression { return newNode(KindParameterStyleProperty, args) }
+
+// StreamingTableProperty ports exp.StreamingTableProperty (properties.py:393-394).
+func StreamingTableProperty(args Args) Expression { return newNode(KindStreamingTableProperty, args) }
+
+// Clone ports exp.Clone (ddl.py:117-118).
+func Clone(args Args) Expression { return newNode(KindClone, args) }

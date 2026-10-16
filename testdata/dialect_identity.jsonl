@@ -49,6 +49,182 @@
 {"dialect": "athena", "sql": "USING EXTERNAL FUNCTION some_function(input VARBINARY)\n            RETURNS VARCHAR\n                LAMBDA 'some-name'\n            SELECT\n            some_function(1)", "want": "USING EXTERNAL FUNCTION some_function(input VARBINARY)\n            RETURNS VARCHAR\n                LAMBDA 'some-name'\n            SELECT\n            some_function(1)", "pretty": false, "identify": false}
 {"dialect": "athena", "sql": "WITH foo AS (SELECT a, b FROM bar) SELECT * FROM foo", "want": "WITH \"foo\" AS (SELECT \"a\", \"b\" FROM \"bar\") SELECT * FROM \"foo\"", "pretty": false, "identify": true}
 {"dialect": "athena", "sql": "WITH foo AS (SELECT a, b FROM bar) SELECT * FROM foo", "want": "WITH foo AS (SELECT a, b FROM bar) SELECT * FROM foo", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ALTER TABLE labels ADD COLUMN label_score FLOAT", "want": "ALTER TABLE labels ADD COLUMN label_score FLOAT", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ALTER TABLE t CLUSTER BY NONE", "want": "ALTER TABLE t CLUSTER BY NONE", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLE ctlg.db.tbl COMPUTE DELTA STATISTICS NOSCAN", "want": "ANALYZE TABLE ctlg.db.tbl COMPUTE DELTA STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLE ctlg.db.tbl PARTITION(foo = 'foo', bar = 'bar') COMPUTE STATISTICS NOSCAN", "want": "ANALYZE TABLE ctlg.db.tbl PARTITION(foo = 'foo', bar = 'bar') COMPUTE STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLE tbl COMPUTE DELTA STATISTICS FOR ALL COLUMNS", "want": "ANALYZE TABLE tbl COMPUTE DELTA STATISTICS FOR ALL COLUMNS", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLE tbl COMPUTE DELTA STATISTICS FOR COLUMNS foo, bar", "want": "ANALYZE TABLE tbl COMPUTE DELTA STATISTICS FOR COLUMNS foo, bar", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLE tbl COMPUTE DELTA STATISTICS NOSCAN", "want": "ANALYZE TABLE tbl COMPUTE DELTA STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLES COMPUTE STATISTICS NOSCAN", "want": "ANALYZE TABLES COMPUTE STATISTICS NOSCAN", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLES FROM db COMPUTE STATISTICS", "want": "ANALYZE TABLES FROM db COMPUTE STATISTICS", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "ANALYZE TABLES IN db COMPUTE STATISTICS", "want": "ANALYZE TABLES IN db COMPUTE STATISTICS", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "BITMAP_OR_AGG(x)", "want": "BITMAP_OR_AGG(x)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "BIT_GET(11, 0)", "want": "GETBIT(11, 0)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "COPY INTO target FROM `s3://link` FILEFORMAT = AVRO VALIDATE = ALL FILES = ('file1', 'file2') FORMAT_OPTIONS ('opt1'='true', 'opt2'='test') COPY_OPTIONS ('mergeSchema'='true')", "want": "COPY INTO target FROM `s3://link` FILEFORMAT = AVRO VALIDATE = ALL FILES = ('file1', 'file2') FORMAT_OPTIONS ('opt1'='true', 'opt2'='test') COPY_OPTIONS ('mergeSchema'='true')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE FUNCTION a AS b", "want": "CREATE FUNCTION a AS b", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE FUNCTION a() ENVIRONMENT (dependencies = '[\"foo1==1\", \"foo2==2\"]', environment_version = 'None')", "want": "CREATE FUNCTION a() ENVIRONMENT (dependencies = '[\"foo1==1\", \"foo2==2\"]', environment_version = 'None')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE FUNCTION a() HANDLER 'handler_function'", "want": "CREATE FUNCTION a() HANDLER 'handler_function'", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE FUNCTION a() PARAMETER STYLE PANDAS", "want": "CREATE FUNCTION a() PARAMETER STYLE PANDAS", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE FUNCTION a.b(x INT) RETURNS INT RETURN x + 1", "want": "CREATE FUNCTION a.b(x INT) RETURNS INT RETURN x + 1", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE FUNCTION add_one(x INT) RETURNS INT LANGUAGE PYTHON AS $$def add_one(x):\n  return x+1$$", "want": "CREATE FUNCTION add_one(x INT) RETURNS INT LANGUAGE PYTHON AS $$def add_one(x):\n  return x+1$$", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE FUNCTION add_one(x INT) RETURNS INT LANGUAGE PYTHON AS $FOO$def add_one(x):\n  return x+1$FOO$", "want": "CREATE FUNCTION add_one(x INT) RETURNS INT LANGUAGE PYTHON AS $FOO$def add_one(x):\n  return x+1$FOO$", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE OR REFRESH STREAMING TABLE csv_data (id INT, ts TIMESTAMP, event STRING) AS SELECT * FROM STREAM READ_FILES('s3://bucket/path', format => 'csv', schema => 'id int, ts timestamp, event string')", "want": "CREATE OR REFRESH STREAMING TABLE csv_data (id INT, ts TIMESTAMP, event STRING) AS SELECT * FROM STREAM READ_FILES('s3://bucket/path', format => 'csv', schema => 'id int, ts timestamp, event string')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE OR REPLACE FUNCTION func(a BIGINT, b BIGINT) RETURNS BIGINT RETURN a", "want": "CREATE OR REPLACE FUNCTION func(a BIGINT, b BIGINT) RETURNS BIGINT RETURN a", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE OR REPLACE FUNCTION func(a BIGINT, b BIGINT) RETURNS TABLE (a INT) RETURN SELECT a", "want": "CREATE OR REPLACE FUNCTION func(a BIGINT, b BIGINT) RETURNS TABLE (a INT) RETURN SELECT a", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE STREAMING TABLE raw_data AS SELECT * FROM STREAM READ_FILES('abfss://container@storageAccount.dfs.core.windows.net/base/path')", "want": "CREATE STREAMING TABLE raw_data AS SELECT * FROM STREAM READ_FILES('abfss://container@storageAccount.dfs.core.windows.net/base/path')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE IF NOT EXISTS db.table (a TIMESTAMP, b BOOLEAN GENERATED ALWAYS AS (NOT a IS NULL)) USING DELTA", "want": "CREATE TABLE IF NOT EXISTS db.table (a TIMESTAMP, b BOOLEAN GENERATED ALWAYS AS (NOT a IS NULL)) USING DELTA", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE foo (m MAP<STRING, STRING COLLATE UTF8_BINARY>)", "want": "CREATE TABLE foo (m MAP<STRING, STRING COLLATE UTF8_BINARY>)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE foo (my_arr ARRAY<STRING COLLATE UTF8_BINARY>)", "want": "CREATE TABLE foo (my_arr ARRAY<STRING COLLATE UTF8_BINARY>)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE foo (x DATE GENERATED ALWAYS AS (CAST(y AS DATE)))", "want": "CREATE TABLE foo (x DATE GENERATED ALWAYS AS (CAST(y AS DATE)))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE foo (x INT GENERATED ALWAYS AS (YEAR(y)))", "want": "CREATE TABLE foo (x INT GENERATED ALWAYS AS (YEAR(y)))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE my_table TBLPROPERTIES ('a.b'=15)", "want": "CREATE TABLE my_table TBLPROPERTIES ('a.b'=15)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE my_table TBLPROPERTIES (a.b=15)", "want": "CREATE TABLE my_table TBLPROPERTIES (a.b=15)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t (a INT, b TIMESTAMP, PRIMARY KEY (a, b TIMESERIES))", "want": "CREATE TABLE t (a INT, b TIMESTAMP, PRIMARY KEY (a, b TIMESERIES))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t (a STRUCT<c: MAP<STRING, STRING>>)", "want": "CREATE TABLE t (a STRUCT<c: MAP<STRING, STRING>>)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t (c STRING COMMENT 'Hello World')", "want": "CREATE TABLE t (c STRING COMMENT 'Hello World')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t (c STRUCT<interval: DOUBLE COMMENT 'aaa'>)", "want": "CREATE TABLE t (c STRUCT<interval: DOUBLE COMMENT 'aaa'>)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t (customer_id INT NOT NULL, ts TIMESTAMP NOT NULL, CONSTRAINT customer_features_pk PRIMARY KEY (customer_id, ts TIMESERIES))", "want": "CREATE TABLE t (customer_id INT NOT NULL, ts TIMESTAMP NOT NULL, CONSTRAINT customer_features_pk PRIMARY KEY (customer_id, ts TIMESERIES))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t CLUSTER BY (col1)", "want": "CREATE TABLE t CLUSTER BY (col1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t CLUSTER BY (col1, col2)", "want": "CREATE TABLE t CLUSTER BY (col1, col2)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2 (foo))", "want": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2 (foo))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2 MATCH FULL)", "want": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2 MATCH FULL)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2 NOT ENFORCED)", "want": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2 NOT ENFORCED)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2)", "want": "CREATE TABLE t1 (foo BIGINT NOT NULL CONSTRAINT foo_c FOREIGN KEY REFERENCES t2)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE table1 CLUSTER BY AUTO", "want": "CREATE TABLE table1 CLUSTER BY AUTO", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE target SHALLOW CLONE source", "want": "CREATE TABLE target SHALLOW CLONE source", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE tbl (id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1))", "want": "CREATE TABLE tbl (id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE tbl (id BIGINT NOT NULL GENERATED BY DEFAULT AS IDENTITY (START WITH 1 INCREMENT BY 1))", "want": "CREATE TABLE tbl (id BIGINT NOT NULL GENERATED BY DEFAULT AS IDENTITY (START WITH 1 INCREMENT BY 1))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CREATE TABLE x (SELECT 1)", "want": "CREATE TABLE x AS (SELECT 1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CURDATE", "want": "CURRENT_DATE", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CURDATE()", "want": "CURRENT_DATE", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CURRENT_TIMEZONE()", "want": "CURRENT_TIMEZONE()", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "CURRENT_VERSION()", "want": "CURRENT_VERSION()", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DATE_DIFF(day, created_at, current_date())", "want": "DATEDIFF(DAY, created_at, CURRENT_DATE)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DECLARE OR REPLACE x INT = 1", "want": "DECLARE OR REPLACE x INT = 1", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DECLARE VAR x INT", "want": "DECLARE x INT", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DECLARE VARIABLE myvar INT DEFAULT 1", "want": "DECLARE myvar INT = 1", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DECLARE x INT", "want": "DECLARE x INT", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DECLARE x INT = 1", "want": "DECLARE x INT = 1", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DECLARE x, y, z INT DEFAULT 1", "want": "DECLARE x, y, z INT = 1", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DESCRIBE EXTENDED staging.onetrade_startb AS JSON", "want": "DESCRIBE EXTENDED staging.onetrade_startb AS JSON", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DESCRIBE HISTORY a.b", "want": "DESCRIBE HISTORY a.b", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "DESCRIBE history.tbl", "want": "DESCRIBE history.tbl", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "FROM_UTC_TIMESTAMP(x::TIMESTAMP, tz)", "want": "FROM_UTC_TIMESTAMP(CAST(x AS TIMESTAMP), tz)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "GETDATE()", "want": "CURRENT_TIMESTAMP()", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "GRANT ALL PRIVILEGES ON TABLE forecasts TO finance", "want": "GRANT ALL PRIVILEGES ON TABLE forecasts TO finance", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "GRANT CREATE ON SCHEMA my_schema TO `alf@melmak.et`", "want": "GRANT CREATE ON SCHEMA my_schema TO `alf@melmak.et`", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "GRANT SELECT ON TABLE sample_data TO `alf@melmak.et`", "want": "GRANT SELECT ON TABLE sample_data TO `alf@melmak.et`", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "GRANT SELECT ON TABLE t TO `fab9e00e-ca35-11ec-9d64-0242ac120002`", "want": "GRANT SELECT ON TABLE t TO `fab9e00e-ca35-11ec-9d64-0242ac120002`", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "INSERT INTO a REPLACE WHERE cond VALUES (1), (2)", "want": "INSERT INTO a REPLACE WHERE cond VALUES (1), (2)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "INSERT INTO t REPLACE WHERE a = 1 SELECT * FROM src", "want": "INSERT INTO t REPLACE WHERE a = 1 SELECT * FROM src", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "INSERT INTO t REPLACE WHERE a = 2 (SELECT * FROM src)", "want": "INSERT INTO t REPLACE WHERE a = 2 (SELECT * FROM src)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "INSERT INTO target REPLACE USING (c1, c2) SELECT c1, c2 FROM source", "want": "INSERT INTO target REPLACE USING (c1, c2) SELECT c1, c2 FROM source", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "NOW()", "want": "CURRENT_TIMESTAMP()", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "NTILE() OVER (ORDER BY 1)", "want": "NTILE() OVER (ORDER BY 1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "PARSE_URL('https://example.com/path')", "want": "PARSE_URL('https://example.com/path')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "PARSE_URL('https://example.com/path', 'HOST')", "want": "PARSE_URL('https://example.com/path', 'HOST')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "PARSE_URL('https://example.com/path', 'QUERY', 'param')", "want": "PARSE_URL('https://example.com/path', 'QUERY', 'param')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "REGEXP_LIKE(x, y)", "want": "REGEXP_LIKE(x, y)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "REVOKE ALL PRIVILEGES ON TABLE forecasts FROM finance", "want": "REVOKE ALL PRIVILEGES ON TABLE forecasts FROM finance", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "REVOKE CREATE ON SCHEMA my_schema FROM `alf@melmak.et`", "want": "REVOKE CREATE ON SCHEMA my_schema FROM `alf@melmak.et`", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "REVOKE SELECT ON TABLE sample_data FROM `alf@melmak.et`", "want": "REVOKE SELECT ON TABLE sample_data FROM `alf@melmak.et`", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "REVOKE SELECT ON TABLE t FROM `fab9e00e-ca35-11ec-9d64-0242ac120002`", "want": "REVOKE SELECT ON TABLE t FROM `fab9e00e-ca35-11ec-9d64-0242ac120002`", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT ${x} FROM ${y} WHERE ${z} > 1", "want": "SELECT ${x} FROM ${y} WHERE ${z} > 1", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT '20'?::INTEGER", "want": "SELECT TRY_CAST('20' AS INT)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT * FROM STREAM t", "want": "SELECT * FROM STREAM t", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT * FROM sales UNPIVOT EXCLUDE NULLS (sales FOR quarter IN (q1 AS `Jan-Mar`))", "want": "SELECT * FROM sales UNPIVOT EXCLUDE NULLS (sales FOR quarter IN (q1 AS `Jan-Mar`))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT * FROM sales UNPIVOT INCLUDE NULLS (sales FOR quarter IN (q1 AS `Jan-Mar`))", "want": "SELECT * FROM sales UNPIVOT INCLUDE NULLS (sales FOR quarter IN (q1 AS `Jan-Mar`))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT * FROM stream", "want": "SELECT * FROM stream", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT * FROM t1, t2", "want": "SELECT * FROM t1 CROSS JOIN t2", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT BITMAP_BIT_POSITION(10)", "want": "SELECT BITMAP_BIT_POSITION(10)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT BITMAP_BUCKET_NUMBER(32769)", "want": "SELECT BITMAP_BUCKET_NUMBER(32769)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT BITMAP_CONSTRUCT_AGG(value)", "want": "SELECT BITMAP_CONSTRUCT_AGG(value)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST('11 23:4:0' AS INTERVAL DAY TO HOUR)", "want": "SELECT CAST('11 23:4:0' AS INTERVAL DAY TO HOUR)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST('11 23:4:0' AS INTERVAL DAY TO MINUTE)", "want": "SELECT CAST('11 23:4:0' AS INTERVAL DAY TO MINUTE)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST('11 23:4:0' AS INTERVAL DAY TO SECOND)", "want": "SELECT CAST('11 23:4:0' AS INTERVAL DAY TO SECOND)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST('23:00:00' AS INTERVAL HOUR TO MINUTE)", "want": "SELECT CAST('23:00:00' AS INTERVAL HOUR TO MINUTE)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST('23:00:00' AS INTERVAL HOUR TO SECOND)", "want": "SELECT CAST('23:00:00' AS INTERVAL HOUR TO SECOND)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST('23:00:00' AS INTERVAL MINUTE TO SECOND)", "want": "SELECT CAST('23:00:00' AS INTERVAL MINUTE TO SECOND)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST('a' AS STRING COLLATE UTF8_BINARY)", "want": "SELECT CAST('a' AS STRING COLLATE UTF8_BINARY)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CAST(NULL AS VOID)", "want": "SELECT CAST(NULL AS VOID)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT COSH(1.5)", "want": "SELECT COSH(1.5)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT CURDATE()", "want": "SELECT CURRENT_DATE", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEADD(e, 24) FROM t", "want": "SELECT DATE_ADD(e, 24) FROM t", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEADD(year, 1, '2020-01-01')", "want": "SELECT DATE_ADD(YEAR, 1, '2020-01-01')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF('end', 'start')", "want": "SELECT DATEDIFF(DAY, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(day, 'start', 'end')", "want": "SELECT DATEDIFF(DAY, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(hour, 'start', 'end')", "want": "SELECT DATEDIFF(HOUR, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(microsecond, 'start', 'end')", "want": "SELECT DATEDIFF(MICROSECOND, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(millisecond, 'start', 'end')", "want": "SELECT DATEDIFF(MILLISECOND, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(minute, 'start', 'end')", "want": "SELECT DATEDIFF(MINUTE, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(month, 'start', 'end')", "want": "SELECT DATEDIFF(MONTH, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(quarter, 'start', 'end')", "want": "SELECT DATEDIFF(QUARTER, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(second, 'start', 'end')", "want": "SELECT DATEDIFF(SECOND, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(week, 'start', 'end')", "want": "SELECT DATEDIFF(WEEK, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATEDIFF(year, 'start', 'end')", "want": "SELECT DATEDIFF(YEAR, 'start', 'end')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATE_ADD('2020-01-01', 1)", "want": "SELECT DATE_ADD('2020-01-01', 1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATE_ADD(MONTH, 1, '2020-01-01')", "want": "SELECT DATE_ADD(MONTH, 1, '2020-01-01')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT DATE_FORMAT(CAST(FROM_UTC_TIMESTAMP(foo, 'America/Los_Angeles') AS TIMESTAMP), 'yyyy-MM-dd HH:mm:ss') AS foo FROM t", "want": "SELECT DATE_FORMAT(CAST(FROM_UTC_TIMESTAMP(CAST(foo AS TIMESTAMP), 'America/Los_Angeles') AS TIMESTAMP), 'yyyy-MM-dd HH:mm:ss') AS foo FROM t", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT ELT(2, 'foo', 'bar', 'baz') AS Result", "want": "SELECT ELT(2, 'foo', 'bar', 'baz') AS Result", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT EXP(1)", "want": "SELECT EXP(1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT FROM_JSON(c1:item[*].price, 'ARRAY<DOUBLE>')[0] FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "want": "SELECT FROM_JSON(c1:item[*].price, 'ARRAY<DOUBLE>')[0] FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT GET_JSON_OBJECT(GET_JSON_OBJECT(col, '$[0]'), '$.a')", "want": "SELECT GET_JSON_OBJECT(GET_JSON_OBJECT(col, '$[0]'), '$.a')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT GET_JSON_OBJECT(c1, '$.item[1].price')", "want": "SELECT GET_JSON_OBJECT(c1, '$.item[1].price')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT GET_JSON_OBJECT(c1, '$.price') FROM VALUES ('{ \"price\": 5 }') AS T(c1)", "want": "SELECT GET_JSON_OBJECT(c1, '$.price') FROM VALUES ('{ \"price\": 5 }') AS T(c1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT GET_JSON_OBJECT(col, CONCAT('$.', field_name))", "want": "SELECT GET_JSON_OBJECT(col, CONCAT('$.', field_name))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT GET_JSON_OBJECT(col, path_col)", "want": "SELECT GET_JSON_OBJECT(col, path_col)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT IF(x > 0, 'positive', 'non-positive')", "want": "SELECT IF(x > 0, 'positive', 'non-positive')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT INLINE(FROM_JSON(c1:item[*], 'ARRAY<STRUCT<model STRING, price DOUBLE>>')) FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "want": "SELECT INLINE(FROM_JSON(c1:item[*], 'ARRAY<STRUCT<model STRING, price DOUBLE>>')) FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT MAKE_INTERVAL(100, 11, 12, 13, 14, 14, 15)", "want": "SELECT MAKE_INTERVAL(100, 11, 12, 13, 14, 14, 15)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT MODE(category)", "want": "SELECT MODE(category)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT MODE(price, TRUE) AS deterministic_mode FROM products", "want": "SELECT MODE(price, TRUE) AS deterministic_mode FROM products", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT OVERLAY('Spark SQL' PLACING 'ANSI ' FROM 7 FOR 0)", "want": "SELECT OVERLAY('Spark SQL' PLACING 'ANSI ' FROM 7 FOR 0)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT OVERLAY('Spark SQL' PLACING 'CORE' FROM 7)", "want": "SELECT OVERLAY('Spark SQL' PLACING 'CORE' FROM 7)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT OVERLAY('Spark SQL', 'ANSI ', 7, 0)", "want": "SELECT OVERLAY('Spark SQL' PLACING 'ANSI ' FROM 7 FOR 0)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT OVERLAY(ENCODE('Spark SQL', 'utf-8') PLACING ENCODE('_', 'utf-8') FROM 6)", "want": "SELECT OVERLAY(ENCODE('Spark SQL', 'utf-8') PLACING ENCODE('_', 'utf-8') FROM 6)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT PARSE_JSON('{}')", "want": "SELECT PARSE_JSON('{}')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT RANDSTR(123)", "want": "SELECT RANDSTR(123)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT RANDSTR(123, 456)", "want": "SELECT RANDSTR(123, 456)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT SUBSTR('Spark SQL', 5)", "want": "SELECT SUBSTRING('Spark SQL', 5)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT SUBSTR('Spark' FROM 5 FOR 1)", "want": "SELECT SUBSTRING('Spark', 5, 1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT SUBSTR(ENCODE('Spark SQL', 'utf-8'), 5)", "want": "SELECT SUBSTRING(ENCODE('Spark SQL', 'utf-8'), 5)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)", "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT SUBSTRING_INDEX(str, delim, count)", "want": "SELECT SUBSTRING_INDEX(str, delim, count)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT TIMESTAMP '2025-04-29 18.47.18'::DATE", "want": "SELECT CAST(CAST('2025-04-29 18.47.18' AS DATE) AS TIMESTAMP)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT TRY_CAST(c1:[\"foo bar\"][\"baz qux\"] AS ARRAY<VARIANT>)", "want": "SELECT TRY_CAST(c1:[\"foo bar\"][\"baz qux\"] AS ARRAY<VARIANT>)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT TRY_CAST(c1:price AS ARRAY<VARIANT>)", "want": "SELECT TRY_CAST(c1:price AS ARRAY<VARIANT>)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT TRY_DIVIDE(a, b)", "want": "SELECT TRY_DIVIDE(a, b)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT X'1A2B'", "want": "SELECT X'1A2B'", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT c1:['price'] FROM VALUES ('{ \"price\": 5 }') AS T(c1)", "want": "SELECT c1:[\"price\"] FROM VALUES ('{ \"price\": 5 }') AS T(c1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT c1:item[*].price FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "want": "SELECT c1:item[*].price FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT c1:item[1].price", "want": "SELECT c1:item[1].price", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT c1:item[1].price FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "want": "SELECT c1:item[1].price FROM VALUES ('{ \"item\": [ { \"model\" : \"basic\", \"price\" : 6.12 }, { \"model\" : \"medium\", \"price\" : 9.24 } ] }') AS T(c1)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT c1:price, c1:price.foo, c1:price.bar[1]", "want": "SELECT c1:price, c1:price.foo, c1:price.bar[1]", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT col1 FROM t CLUSTER BY col1", "want": "SELECT col1 FROM t CLUSTER BY col1", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT col1, col2 FROM t CLUSTER BY col1, col2", "want": "SELECT col1, col2 FROM t CLUSTER BY col1, col2", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT col:`fr'uit`", "want": "SELECT col:[\"fr'uit\"]", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT name, GROUPING_ID() FROM customer GROUP BY ROLLUP (name)", "want": "SELECT name, GROUPING_ID() FROM customer GROUP BY ROLLUP (name)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT r\"\\\\foo.bar\\\"", "want": "SELECT '\\\\\\\\foo.bar\\\\'", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT raw:`zip code`, raw:`fb:testid`, raw:store['bicycle'], raw:store[\"zip code\"]", "want": "SELECT raw:[\"zip code\"], raw:[\"fb:testid\"], raw:store[\"bicycle\"], raw:store[\"zip code\"]", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT t.current_time FROM t", "want": "SELECT t.current_time FROM t", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT test, LISTAGG(email, '') AS Email FROM organizations GROUP BY test", "want": "SELECT test, LISTAGG(email, '') AS Email FROM organizations GROUP BY test", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SELECT void FROM t", "want": "SELECT void FROM t", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SET VAR v = 5", "want": "SET VARIABLE v = 5", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SET VARIABLE (v1, v2) = (SELECT 1, 2)", "want": "SET VARIABLE (v1, v2) = (SELECT 1, 2)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SET VARIABLE v = (SELECT MAX(c1) FROM VALUES (1), (2) AS T(c1))", "want": "SET VARIABLE v = (SELECT MAX(c1) FROM VALUES (1), (2) AS T(c1))", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SET VARIABLE v = 5", "want": "SET VARIABLE v = 5", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SET VARIABLE v = DEFAULT", "want": "SET VARIABLE v = DEFAULT", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "SET VARIABLE v1 = 1, v2 = '2'", "want": "SET VARIABLE v1 = 1, v2 = '2'", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "TRUNCATE TABLE t1 PARTITION(age = 10, name = 'test', address)", "want": "TRUNCATE TABLE t1 PARTITION(age = 10, name = 'test', address)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "TRUNCATE TABLE t1 PARTITION(age = 10, name = 'test', city LIKE 'LA')", "want": "TRUNCATE TABLE t1 PARTITION(age = 10, name = 'test', city LIKE 'LA')", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "UNIFORM(1, 10)", "want": "UNIFORM(1, 10)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "UNIFORM(1, 10, 5)", "want": "UNIFORM(1, 10, 5)", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "WITH s AS (SELECT * FROM src) INSERT INTO t REPLACE USING (a) SELECT * FROM s", "want": "WITH s AS (SELECT * FROM src) INSERT INTO t REPLACE USING (a) SELECT * FROM s", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "WITH s AS (SELECT * FROM src) INSERT INTO t REPLACE WHERE a = 1 SELECT * FROM s", "want": "WITH s AS (SELECT * FROM src) INSERT INTO t REPLACE WHERE a = 1 SELECT * FROM s", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "WITH t AS (SELECT '{\"x-y\": \"z\"}' AS c) SELECT get_json_object(c, '$.x-y') FROM t", "want": "WITH t AS (SELECT '{\"x-y\": \"z\"}' AS c) SELECT GET_JSON_OBJECT(c, '$[\"x-y\"]') FROM t", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "WITH t AS (VALUES ('foo_val') AS t(foo1)) SELECT foo1 FROM t", "want": "WITH t AS (SELECT * FROM VALUES ('foo_val') AS t(foo1)) SELECT foo1 FROM t", "pretty": false, "identify": false}
+{"dialect": "databricks", "sql": "WITH x (select 1) SELECT * FROM x", "want": "WITH x AS (SELECT 1) SELECT * FROM x", "pretty": false, "identify": false}
 {"dialect": "hive", "sql": "\"'x'\"", "want": "'\\'x\\''", "pretty": false, "identify": false}
 {"dialect": "hive", "sql": "'\n'", "want": "'\\n'", "pretty": false, "identify": false}
 {"dialect": "hive", "sql": "'\"x\"'", "want": "'\"x\"'", "pretty": false, "identify": false}

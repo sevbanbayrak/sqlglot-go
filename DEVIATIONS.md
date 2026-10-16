@@ -287,6 +287,8 @@ None change `.sql()`:
 - `parseTable` fast-path skip (parse-order optimization).
 - `IsWrapper` uses the `truthy` helper (no nil args stored).
 - `matchTextSeq` retreat has no debug logger.
+- Databricks `create_sql`/`columndef_sql` (RETURN wrapping, identity column BIGINT) rewrite a copy
+  instead of mutating the input tree, so `Generate` stays side-effect free.
 
 ---
 
@@ -295,6 +297,10 @@ None change `.sql()`:
 - Comment bubbling: a trailing comment can attach to a slightly different node.
 - MySQL `PARTITION BY RANGE (YEAR(col))`: upstream wraps/unwraps `TsOrDsToDate`; the port elides
   both (capped in `fidelity_test.go` `maxASTDivergences`).
+- `_parse_wrapped_options` (Databricks `FORMAT_OPTIONS ('a'='1', 'b'='2')`): upstream's separating
+  comma is consumed by `_parse_sequence_properties`, which leaves an empty `SequenceProperties` in
+  the option list; sequence properties are not ported, so the port skips the comma and the list
+  holds only the `Property` nodes.
 
 ---
 
@@ -302,9 +308,12 @@ None change `.sql()`:
 
 - Hive CREATE-DDL property callbacks (kept in Hive's `PropertyParsers` overlay; base/mysql/postgres
   fail them closed).
-- Upstream `_parse_heredoc`'s `$`-textseq fallback (parser.py:9372-9399, for dialects that don't lex
+- Upstream `_parse_heredoc`'s `$`-textseq fallback (parser.py:9665-9695, for dialects that don't lex
   dollar-quotes): pinned upstream's own base/mysql round-trip of it is broken (`… END AS $$`), so
-  only the HEREDOC_STRING branch is ported (Postgres bodies parse to `exp.Heredoc`).
+  base/mysql keep only the HEREDOC_STRING branch (Postgres bodies parse to `exp.Heredoc`). The
+  Hive family (Hive/Spark2/Spark/Databricks) gets the `$`-token branch (`parseDollarHeredoc`), so
+  Databricks `AS $$…$$` / `AS $TAG$…$TAG$` Python UDF bodies parse to `exp.Heredoc`. An unclosed
+  body (`$foo$…$$`) raises a ParseError upstream; here the CREATE degrades to `Command`.
 
 ---
 

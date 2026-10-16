@@ -3,10 +3,12 @@ package generator
 import "github.com/sevbanbayrak/sqlglot-go/expressions"
 
 // parseJSONSQL ports parsejson_sql (generator.py:5548-5552) with the per-dialect
-// PARSE_JSON_NAME: base/hive PARSE_JSON, presto JSON_PARSE, mysql none (bare value), and
-// postgres's CAST(x AS JSON) transform (generators/postgres.py:353).
+// PARSE_JSON_NAME: base/hive/databricks PARSE_JSON, presto JSON_PARSE, mysql and spark2/spark none
+// (bare value), and postgres's CAST(x AS JSON) transform (generators/postgres.py:353).
 func (g *Generator) parseJSONSQL(e expressions.Expression) string {
 	switch {
+	case g.isDialect("databricks"):
+		// generators/databricks.py:21 restores the name Spark2 clears; falls through to PARSE_JSON.
 	case g.dialect.Name == "mysql", g.isDialect("spark2"):
 		return g.sqlKey(e, "this")
 	case g.dialect.Name == "postgres":

@@ -19,6 +19,8 @@ type Options struct {
 	UnescapedSequences              map[string]string
 	NumbersCanBeUnderscoreSeparated bool
 	IdentifiersCanStartWithDigit    bool
+	// Identifiers ports the dialect's JSONPathTokenizer.IDENTIFIERS; nil keeps the base `"`.
+	Identifiers map[rune]string
 }
 
 // tokenizerConfig ports JSONPathTokenizer (jsonpath.py:14-42) on top of the base Tokenizer.
@@ -66,6 +68,9 @@ func Parse(path string, opts Options) (result exp.Expression, err error) {
 	cfg.UnescapedSequences = opts.UnescapedSequences
 	cfg.NumbersCanBeUnderscoreSeparated = opts.NumbersCanBeUnderscoreSeparated
 	cfg.IdentifiersCanStartWithDigit = opts.IdentifiersCanStartWithDigit
+	if opts.Identifiers != nil {
+		cfg.Identifiers = opts.Identifiers
+	}
 	toks, err := tokens.NewTokenizerWithConfig(cfg).Tokenize(path)
 	if err != nil {
 		return nil, err

@@ -44,8 +44,8 @@ const (
 
 // Monotonic floors over the whole corpus: raise them, never lower them.
 const (
-	minTranspilePass  = 1533
-	minTranspileTotal = 1601
+	minTranspilePass  = 1890
+	minTranspileTotal = 1978
 )
 
 func loadTranspileCorpus(t *testing.T) []transpileRecord {

@@ -205,6 +205,9 @@ type Dialect struct {
 	// postgres overrides to "REPEATABLE" (generators/postgres.py:243): the keyword preceding a
 	// TABLESAMPLE clause's seed value.
 	TablesampleSeedKeyword string
+	// CreateFunctionReturnAs ports the generator flag CREATE_FUNCTION_RETURN_AS (generator.py:324):
+	// whether a CREATE FUNCTION body that is a RETURN statement is preceded by AS.
+	CreateFunctionReturnAs bool
 	// TablesampleRequiresParens ports the generator flag TABLESAMPLE_REQUIRES_PARENS
 	// (generator.py:418): whether parentheses are required around the table sample's expression.
 	TablesampleRequiresParens bool
@@ -295,6 +298,8 @@ type Dialect struct {
 	JSONPathVarTokens map[tokens.TokenType]bool
 	// JSONPathSingleDotIsWildcard ports JSON_PATH_SINGLE_DOT_IS_WILDCARD (dialect.py:688).
 	JSONPathSingleDotIsWildcard bool
+	// JSONPathIdentifiers ports the dialect's JSONPathTokenizer.IDENTIFIERS; nil keeps the base `"`.
+	JSONPathIdentifiers map[rune]string
 	// StrictJSONPathSyntax ports STRICT_JSON_PATH_SYNTAX (dialect.py:685): whether an
 	// unparseable JSON path literal logs a warning in ToJSONPath.
 	StrictJSONPathSyntax bool
@@ -318,6 +323,9 @@ type Dialect struct {
 	// LogDefaultsToLn ports parser.py:1765 LOG_DEFAULTS_TO_LN: whether one-argument LOG(x)
 	// canonicalizes to Ln instead of Log.
 	LogDefaultsToLn bool
+	// ColonChainIsSingleExtract ports parser.py:1880 COLON_CHAIN_IS_SINGLE_EXTRACT: whether a
+	// `a:b:c` variant-extract chain builds one JSONExtract (ColonIsVariantExtract dialects only).
+	ColonChainIsSingleExtract bool
 	// JoinsHaveEqualPrecedence ports parser.py:1824-1828: whether keyword and comma joins build
 	// the same left-deep tree instead of keyword JOIN binding more tightly.
 	JoinsHaveEqualPrecedence bool
@@ -533,6 +541,7 @@ func Base() *Dialect {
 		// generator.py:430 TABLESAMPLE_SEED_KEYWORD = "SEED" (base); postgres overrides to
 		// "REPEATABLE" (generators/postgres.py:243).
 		TablesampleSeedKeyword: "SEED",
+		CreateFunctionReturnAs: true,
 		// generator.py:418 TABLESAMPLE_REQUIRES_PARENS = True (base); no dialect override
 		// within base/mysql/postgres.
 		TablesampleRequiresParens: true,
@@ -574,6 +583,8 @@ func Base() *Dialect {
 		StrictCast: true,
 		// parser.py:1765 LOG_DEFAULTS_TO_LN = False (base); Hive overrides to True.
 		LogDefaultsToLn: false,
+		// parser.py:1880 COLON_CHAIN_IS_SINGLE_EXTRACT = True (base); Databricks overrides to False.
+		ColonChainIsSingleExtract: true,
 		// parser.py:1824-1828 JOINS_HAVE_EQUAL_PRECEDENCE = False (base); Hive overrides
 		// to True.
 		JoinsHaveEqualPrecedence: false,
@@ -717,7 +728,7 @@ func validIntervalUnits(mapping map[string]string) map[string]bool {
 
 // dialectParents mirrors the upstream class hierarchy for the dialects that subclass another
 // ported dialect, so parser checks written against the parent apply to the child too.
-var dialectParents = map[string]string{"spark2": "hive", "spark": "spark2"}
+var dialectParents = map[string]string{"spark2": "hive", "spark": "spark2", "databricks": "spark"}
 
 // Is reports whether the dialect is name or inherits from it (Spark2 is a Hive).
 func (d *Dialect) Is(name string) bool {
@@ -748,6 +759,8 @@ func dialectByName(name string) (*Dialect, error) {
 		return Spark2(), nil
 	case "spark":
 		return Spark(), nil
+	case "databricks":
+		return Databricks(), nil
 	case "athena":
 		return Athena(), nil
 	default:
@@ -1287,6 +1300,7 @@ func (d *Dialect) ToJSONPath(path exp.Expression) exp.Expression {
 		UnescapedSequences:              d.TokenizerConfig.UnescapedSequences,
 		NumbersCanBeUnderscoreSeparated: d.TokenizerConfig.NumbersCanBeUnderscoreSeparated,
 		IdentifiersCanStartWithDigit:    d.TokenizerConfig.IdentifiersCanStartWithDigit,
+		Identifiers:                     d.JSONPathIdentifiers,
 	})
 	if err == nil {
 		return parsed

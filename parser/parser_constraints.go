@@ -504,6 +504,14 @@ func (p *Parser) parseForeignKey() exp.Expression {
 // overridden by mysql (parsers/mysql.py:362-369) to support the `col(N)` index-prefix-
 // length form (-> exp.ColumnPrefix).
 func (p *Parser) parsePrimaryKeyPart() exp.Expression {
+	if p.dialect.Is("databricks") {
+		// parsers/databricks.py:66-70.
+		this := p.parseField(false, nil, false)
+		if this != nil && p.matchTextSeq("TIMESERIES") {
+			return p.expression(exp.TimeseriesKey(exp.Args{"this": this}), nil, nil)
+		}
+		return this
+	}
 	if p.dialect.Name != "mysql" {
 		return p.parseField(false, nil, false)
 	}

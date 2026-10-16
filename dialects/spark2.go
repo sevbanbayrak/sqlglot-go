@@ -20,6 +20,8 @@ func Spark2() *Dialect {
 	d.CanImplementArrayAny = true
 	d.AlterSetType = "TYPE"
 	d.WrapDerivedValues = false
+	// generators/spark2.py:214.
+	d.CreateFunctionReturnAs = false
 	// parsers/spark2.py:21-26.
 	d.TrimPatternFirst = true
 	d.LenientTimeMapping = true

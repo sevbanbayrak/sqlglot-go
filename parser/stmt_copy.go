@@ -82,12 +82,48 @@ func (p *Parser) parseCopy() exp.Expression {
 	}), nil, nil)
 }
 
-// parseCopyParameters ports _parse_copy_parameters (parser.py:9551-9588). The generic
-// branch plus the `FORMAT AS AVRO|JSON` branch (parser.py:9573-9579) are ported; that
-// branch is NOT dialect-gated, so postgres reaches it too. The COPY_INTO_VARLEN_OPTIONS
-// and FILE_FORMAT branches (parser.py:9565-9572) are Snowflake/T-SQL-only and unreachable
-// from this port's target dialects; any input needing one of them falls through to
-// parseCopy's trailing-token Command fallback.
+// copyIntoVarlenOptions ports COPY_INTO_VARLEN_OPTIONS (parser.py:1781-1786).
+var copyIntoVarlenOptions = map[string]bool{"FILE_FORMAT": true, "COPY_OPTIONS": true, "FORMAT_OPTIONS": true, "CREDENTIAL": true}
+
+// parseWrappedOptions ports _parse_wrapped_options (parser.py:9823-9842).
+func (p *Parser) parseWrappedOptions() []exp.Expression {
+	p.match(tokens.EQ)
+	p.match(tokens.L_PAREN)
+
+	var opts []exp.Expression
+	for p.curr.IsValid() && !p.match(tokens.R_PAREN) {
+		// Upstream's _parse_property reaches _parse_sequence_properties (parser.py:2733-2767),
+		// which consumes a separating comma and yields an empty SequenceProperties that renders
+		// nothing. Sequence properties are not ported, so the comma is skipped here instead.
+		if p.match(tokens.COMMA) {
+			continue
+		}
+		var option exp.Expression
+		if p.matchTextSeq("FORMAT_NAME", "=") {
+			// The FORMAT_NAME can be set to an identifier for Snowflake and T-SQL
+			option = p.parseFormatName()
+		} else {
+			option = p.parseProperty()
+		}
+		if option == nil {
+			p.raiseError("Unable to parse option")
+			break
+		}
+		opts = append(opts, option)
+	}
+	return opts
+}
+
+// parseFormatName ports _parse_format_name (parser.py:10100-10107).
+func (p *Parser) parseFormatName() exp.Expression {
+	value := p.parseString()
+	if value == nil {
+		value = p.parseTableParts(false, false, false, false)
+	}
+	return p.expression(exp.Property(exp.Args{"this": exp.Var(exp.Args{"this": "FORMAT_NAME"}), "value": value}), nil, nil)
+}
+
+// parseCopyParameters ports _parse_copy_parameters (parser.py:9844-9881).
 func (p *Parser) parseCopyParameters() []exp.Expression {
 	sep := p.dialect.CopyParamsAreCsv
 
@@ -103,7 +139,13 @@ func (p *Parser) parseCopyParameters() []exp.Expression {
 
 		param := p.expression(exp.CopyParameter(exp.Args{"this": option}), nil, nil)
 
-		if prev == "FORMAT" && matchedAlias && p.matchTexts(map[string]bool{"AVRO": true, "JSON": true}) {
+		if copyIntoVarlenOptions[prev] && p.match(tokens.L_PAREN, false) {
+			// Snowflake FILE_FORMAT case, Databricks COPY & FORMAT options
+			param.Set("expressions", p.parseWrappedOptions())
+		} else if prev == "FILE_FORMAT" {
+			// T-SQL's external file format case
+			param.Set("expression", p.parseField(false, nil, false))
+		} else if prev == "FORMAT" && matchedAlias && p.matchTexts(map[string]bool{"AVRO": true, "JSON": true}) {
 			// parser.py:9573-9579: `FORMAT AS AVRO|JSON`. Fold the keyword into `this` as
 			// the var "FORMAT AS <fmt>" and take the following field (if any) as the value,
 			// so it round-trips as `FORMAT AS JSON` / `FORMAT AS JSON 'x'` rather than the

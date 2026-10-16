@@ -20,6 +20,7 @@ var (
 		"trino":        "presto",
 		"spark2":       "hive",
 		"spark":        "spark2",
+		"databricks":   "spark",
 		"athena-trino": "trino",
 		"athena-hive":  "hive",
 	}
