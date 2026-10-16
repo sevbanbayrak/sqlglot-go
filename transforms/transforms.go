@@ -408,3 +408,73 @@ func truthy(v any) bool {
 	}
 	return true
 }
+
+// RemoveWithinGroupForPercentiles ports remove_within_group_for_percentiles (transforms.py:570-581).
+func RemoveWithinGroupForPercentiles(e exp.Expression) exp.Expression {
+	if e.Kind() != exp.KindWithinGroup {
+		return e
+	}
+	this, order := e.This(), e.Expr()
+	if this == nil || (this.Kind() != exp.KindPercentileCont && this.Kind() != exp.KindPercentileDisc) || order == nil || order.Kind() != exp.KindOrder {
+		return e
+	}
+	ordered := e.Find(exp.KindOrdered)
+	if ordered == nil {
+		return e
+	}
+	return e.Replace(exp.New(exp.KindApproxQuantile, exp.Args{"this": ordered.This(), "quantile": this.This()}))
+}
+
+// EpochCastToTs ports epoch_cast_to_ts (transforms.py:603-612).
+func EpochCastToTs(e exp.Expression) exp.Expression {
+	if (e.Kind() == exp.KindCast || e.Kind() == exp.KindTryCast) && strings.EqualFold(e.Name(), "epoch") {
+		if to := asExpression(e.Arg("to")); to != nil {
+			if d, ok := to.Arg("this").(exp.DType); !ok || !exp.TemporalTypes[d] {
+				return e
+			}
+			e.This().Replace(exp.LiteralString("1970-01-01 00:00:00"))
+		}
+	}
+	return e
+}
+
+// EliminateSemiAndAntiJoins ports eliminate_semi_and_anti_joins (transforms.py:615-629).
+func EliminateSemiAndAntiJoins(e exp.Expression) exp.Expression {
+	if e.Kind() != exp.KindSelect {
+		return e
+	}
+	for _, join := range listArg(e, "joins") {
+		on := asExpression(join.Arg("on"))
+		kind := strings.ToUpper(join.Text("kind"))
+		if on == nil || (kind != "SEMI" && kind != "ANTI") {
+			continue
+		}
+		sub := exp.Select(exp.Args{
+			"expressions": []exp.Expression{exp.LiteralNumber(1)},
+			"from_":       exp.New(exp.KindFrom, exp.Args{"this": join.This()}),
+			"where":       exp.New(exp.KindWhere, exp.Args{"this": on}),
+		})
+		var exists exp.Expression = exp.Exists(exp.Args{"this": sub})
+		if kind == "ANTI" {
+			exists = exp.Not(exp.Args{"this": exists})
+		}
+		join.Pop()
+		andWhere(e, exists)
+	}
+	return e
+}
+
+func andWhere(e exp.Expression, cond exp.Expression) {
+	if where := asExpression(e.Arg("where")); where != nil && where.This() != nil {
+		where.Set("this", exp.And_(where.This(), cond))
+		return
+	}
+	e.Set("where", exp.New(exp.KindWhere, exp.Args{"this": cond}))
+}
+
+func asExpression(v any) exp.Expression {
+	if x, ok := v.(exp.Expression); ok && x != nil {
+		return x
+	}
+	return nil
+}

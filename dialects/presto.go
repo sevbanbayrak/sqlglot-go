@@ -14,6 +14,9 @@ func Presto() *Dialect {
 	d.Nvl2Supported = false
 	d.PadFillPatternIsRequired = true
 	d.ArraySizeName = "CARDINALITY"
+	d.LogBaseFirst = nil
+	d.SupportsSingleArgConcat = false
+	d.ExceptIntersectSupportAllClause = false
 	// generators/presto.py:439-500.
 	d.ReservedKeywords = map[string]bool{
 		"alter":             true,

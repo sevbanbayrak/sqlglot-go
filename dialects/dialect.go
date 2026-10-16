@@ -217,6 +217,10 @@ type Dialect struct {
 	ExpressionsWithoutNestedCtes []exp.Kind
 	// ConcatWsCoalesce ports the dialect flag CONCAT_WS_COALESCE (dialects/dialect.py:437).
 	ConcatWsCoalesce bool
+	// LogBaseFirst ports LOG_BASE_FIRST (dialects/dialect.py:412): nil is upstream's None.
+	LogBaseFirst                    *bool
+	SupportsSingleArgConcat         bool
+	ExceptIntersectSupportAllClause bool
 	// TablesampleKeywords ports the generator flag TABLESAMPLE_KEYWORDS (generator.py:424): the
 	// keyword(s) to use when generating a sample clause.
 	TablesampleKeywords string
@@ -366,6 +370,8 @@ type Dialect struct {
 	ConcatCoalesce bool
 }
 
+var trueValue = true
+
 func Base() *Dialect {
 	datePartMapping := baseDatePartMapping()
 	return &Dialect{
@@ -464,11 +470,14 @@ func Base() *Dialect {
 		TablesampleRequiresParens: true,
 		// generator.py:427 TABLESAMPLE_WITH_METHOD = True (base); no dialect override
 		// within base/mysql/postgres.
-		TablesampleWithMethod: true,
-		LimitFetch:            "ALL",
-		IndexOn:               "ON",
-		Nvl2Supported:         true,
-		ArraySizeName:         "ARRAY_LENGTH",
+		TablesampleWithMethod:           true,
+		LimitFetch:                      "ALL",
+		LogBaseFirst:                    &trueValue,
+		SupportsSingleArgConcat:         true,
+		ExceptIntersectSupportAllClause: true,
+		IndexOn:                         "ON",
+		Nvl2Supported:                   true,
+		ArraySizeName:                   "ARRAY_LENGTH",
 		// generator.py:424 TABLESAMPLE_KEYWORDS = "TABLESAMPLE" (base); no dialect override
 		// within base/mysql/postgres.
 		TablesampleKeywords: "TABLESAMPLE",

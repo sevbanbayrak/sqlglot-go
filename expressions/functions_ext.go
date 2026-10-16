@@ -59,6 +59,13 @@ func init() {
 			}
 			return New(KindGenerateDateArray, Args{"start": seq(args, 0), "end": seq(args, 1), "step": step})
 		},
+		// parser.py:185-190 build_locate_strposition
+		"LOCATE": func(args []Expression) Expression {
+			return New(KindStrPosition, Args{"this": seq(args, 1), "substr": seq(args, 0), "position": seq(args, 2)})
+		},
+		"CHARINDEX": func(args []Expression) Expression {
+			return New(KindStrPosition, Args{"this": seq(args, 1), "substr": seq(args, 0), "position": seq(args, 2)})
+		},
 		"LPAD":     pad(true),
 		"LEFTPAD":  pad(true),
 		"RPAD":     pad(false),

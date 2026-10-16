@@ -13,7 +13,9 @@ import (
 func Trino() *Dialect {
 	d := Presto()
 	d.Name = "trino"
-	// dialects/trino.py:12.
+	// dialects/trino.py:11-12.
+	logBaseFirst := true
+	d.LogBaseFirst = &logBaseFirst
 	d.ConcatWsCoalesce = true
 	d.SupportsUserDefinedTypes = false
 	d.Functions["VERSION"] = exp.FromArgListFunc(exp.KindCurrentVersion)

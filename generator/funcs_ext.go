@@ -80,3 +80,10 @@ func (g *Generator) concatWsSQL(e expressions.Expression) string {
 	}
 	return g.funcCall("CONCAT_WS", append([]any{first}, g.convertConcatArgs(e)...), "(", ")", true)
 }
+
+func init() {
+	// varmap_sql (generator.py): MAP(keys, values) in the base dialect.
+	dispatch[expressions.KindVarMap] = func(g *Generator, e expressions.Expression) string {
+		return g.funcCall("MAP", []any{e.Arg("keys"), e.Arg("values")}, "(", ")", true)
+	}
+}
