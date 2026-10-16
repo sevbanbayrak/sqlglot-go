@@ -15,6 +15,14 @@ func init() {
 	dispatch[expressions.KindTsOrDsToDate] = (*Generator).tsOrDsToDateSQL
 	// generator.py:4821 kwarg_sql
 	dispatch[expressions.KindKwarg] = func(g *Generator, e expressions.Expression) string { return g.binary(e, "=>") }
+	// generator.py:4816-4819 joinhint_sql
+	dispatch[expressions.KindJoinHint] = func(g *Generator, e expressions.Expression) string {
+		return g.sqlKey(e, "this") + "(" + g.expressions(exprsOptions{expression: e, flat: true}) + ")"
+	}
+	// generator.py:4056-4059 fromtimezone_sql
+	dispatch[expressions.KindFromTimeZone] = func(g *Generator, e expressions.Expression) string {
+		return g.sqlKey(e, "this") + " AT TIME ZONE " + g.sqlKey(e, "zone") + " AT TIME ZONE 'UTC'"
+	}
 }
 
 // unsupportedArgs ports the unsupported_args decorator (generator.py): warn for each named arg

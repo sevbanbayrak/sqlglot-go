@@ -21,6 +21,7 @@ const (
 	KindSub
 	KindMul
 	KindDiv
+	KindIntDiv // core.py IntDiv(Binary)
 	KindMod
 	KindEQ
 	KindNEQ
@@ -302,6 +303,7 @@ const (
 	// reusing KindDataType). None of the three have a Condition/Predicate/... mixin
 	// upstream, so none get a traitsOf row below.
 	KindAtTimeZone
+	KindFromTimeZone
 	KindPseudoType
 	KindObjectIdentifier
 	// KindStruct is exp.Struct (array.py:355, `class Struct(Expression, Func)`,
@@ -792,6 +794,7 @@ var argTypes = map[Kind][]argSpec{
 	KindSub:        {{"this", true}, {"expression", true}},
 	KindMul:        {{"this", true}, {"expression", true}},
 	KindDiv:        {{"this", true}, {"expression", true}, {"typed", false}, {"safe", false}},
+	KindIntDiv:     {{"this", true}, {"expression", true}},
 	KindMod:        {{"this", true}, {"expression", true}},
 	KindEQ:         {{"this", true}, {"expression", true}},
 	KindNEQ:        {{"this", true}, {"expression", true}},
@@ -1087,6 +1090,7 @@ var argTypes = map[Kind][]argSpec{
 	// AtTimeZone (core.py:2267/2268) and PseudoType/ObjectIdentifier (datatypes.py:
 	// 439-444).
 	KindAtTimeZone:       {{"this", true}, {"zone", true}},
+	KindFromTimeZone:     {{"this", true}, {"zone", true}},
 	KindPseudoType:       defaultArgTypes,
 	KindObjectIdentifier: defaultArgTypes,
 	// Struct (array.py:356): arg_types = {"expressions": False}.
@@ -1335,6 +1339,7 @@ var traitsOf = map[Kind]Trait{
 	KindSub:                TraitCondition | TraitBinary,
 	KindMul:                TraitCondition | TraitBinary,
 	KindDiv:                TraitCondition | TraitBinary,
+	KindIntDiv:             TraitCondition | TraitBinary,
 	KindMod:                TraitCondition | TraitBinary,
 	KindEQ:                 TraitCondition | TraitBinary | TraitPredicate,
 	KindNEQ:                TraitCondition | TraitBinary | TraitPredicate,
@@ -1646,6 +1651,7 @@ var className = map[Kind]string{
 	KindSub:                                 "Sub",
 	KindMul:                                 "Mul",
 	KindDiv:                                 "Div",
+	KindIntDiv:                              "IntDiv",
 	KindMod:                                 "Mod",
 	KindEQ:                                  "EQ",
 	KindNEQ:                                 "NEQ",
@@ -1890,6 +1896,7 @@ var className = map[Kind]string{
 	KindLogicalOr:                           "LogicalOr",
 	KindTableSample:                         "TableSample",
 	KindAtTimeZone:                          "AtTimeZone",
+	KindFromTimeZone:                        "FromTimeZone",
 	KindPseudoType:                          "PseudoType",
 	KindObjectIdentifier:                    "ObjectIdentifier",
 	KindStruct:                              "Struct",

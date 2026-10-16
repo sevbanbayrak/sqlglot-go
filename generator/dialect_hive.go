@@ -81,6 +81,7 @@ func init() {
 		expressions.KindTryCast:        func(g *Generator, e expressions.Expression) string { return g.castSQLWithPrefix(e, "") },
 		expressions.KindApproxDistinct: hiveCall("APPROX_COUNT_DISTINCT", "this"),
 		expressions.KindRegexpLike:     func(g *Generator, e expressions.Expression) string { return g.binary(e, "RLIKE") },
+		expressions.KindIntDiv:         func(g *Generator, e expressions.Expression) string { return g.binary(e, "DIV") },
 		expressions.KindIgnoreNulls: func(g *Generator, e expressions.Expression) string {
 			// hive.py:432-437: FIRST/LAST/FIRST_VALUE/LAST_VALUE take IGNORE NULLS as a TRUE argument.
 			if this := e.This(); this != nil {
@@ -106,13 +107,13 @@ func init() {
 			if this != nil && this.Kind() == expressions.KindTimeStrToTime {
 				this = this.This()
 			}
-			return g.funcCall("DATE_FORMAT", []any{this, hiveFormatTimeLiteral(e)}, "(", ")", true)
+			return g.funcCall("DATE_FORMAT", []any{this, hiveFormatTimeLiteral(g, e)}, "(", ")", true)
 		},
 		expressions.KindUnixToStr: func(g *Generator, e expressions.Expression) string {
-			return g.funcCall("FROM_UNIXTIME", []any{e.This(), hiveNonDefaultTimeFormat(e)}, "(", ")", true)
+			return g.funcCall("FROM_UNIXTIME", []any{e.This(), hiveNonDefaultTimeFormat(g, e)}, "(", ")", true)
 		},
 		expressions.KindStrToUnix: func(g *Generator, e expressions.Expression) string {
-			return g.funcCall("UNIX_TIMESTAMP", []any{e.This(), hiveNonDefaultTimeFormat(e)}, "(", ")", true)
+			return g.funcCall("UNIX_TIMESTAMP", []any{e.This(), hiveNonDefaultTimeFormat(g, e)}, "(", ")", true)
 		},
 		expressions.KindArrayAgg: func(g *Generator, e expressions.Expression) string {
 			this := e.This()
@@ -266,22 +267,26 @@ func hiveCall(name string, keys ...string) func(*Generator, expressions.Expressi
 }
 
 // hiveFormatTimeLiteral is Generator.format_time under Hive's INVERSE_TIME_MAPPING.
-func hiveFormatTimeLiteral(e expressions.Expression) any {
+func hiveFormatTimeLiteral(g *Generator, e expressions.Expression) any {
 	format := asExpression(e.Arg("format"))
 	if format == nil || !format.IsString() {
 		return format
 	}
 	name := format.Name()
-	switch e.Kind() {
-	case expressions.KindStrToTime, expressions.KindStrToDate, expressions.KindStrToUnix, expressions.KindTsOrDsToDate:
-		name = hiveLenientParseFormat(name)
+	// generators/hive.py:416-428: only a strict TIME_MAPPING (Hive, Spark 3+) renders lenient
+	// M/d for single-digit sources; Spark2 parses leniently already.
+	if !g.dialect.LenientTimeMapping {
+		switch e.Kind() {
+		case expressions.KindStrToTime, expressions.KindStrToDate, expressions.KindStrToUnix, expressions.KindTsOrDsToDate:
+			name = hiveLenientParseFormat(name)
+		}
 	}
 	return expressions.LiteralString(dialects.HiveFormatTime(name))
 }
 
 // hiveNonDefaultTimeFormat ports dialect.py:1622-1633 time_format("hive"): nil for TIME_FORMAT.
-func hiveNonDefaultTimeFormat(e expressions.Expression) any {
-	format := hiveFormatTimeLiteral(e)
+func hiveNonDefaultTimeFormat(g *Generator, e expressions.Expression) any {
+	format := hiveFormatTimeLiteral(g, e)
 	if lit, ok := format.(expressions.Expression); ok && lit != nil && lit.Name() == dialects.HiveTimeFormat {
 		return nil
 	}
@@ -291,7 +296,7 @@ func hiveNonDefaultTimeFormat(e expressions.Expression) any {
 // hiveStrToTimeInner ports the shared body of _str_to_date_sql/_str_to_time_sql (hive.py:199-209).
 func hiveStrToTimeInner(g *Generator, e expressions.Expression) string {
 	this := g.sqlKey(e, "this")
-	if format, ok := hiveFormatTimeLiteral(e).(expressions.Expression); ok && format != nil {
+	if format, ok := hiveFormatTimeLiteral(g, e).(expressions.Expression); ok && format != nil {
 		if !hiveIsCastTimeFormat(e, format.Name()) {
 			return "FROM_UNIXTIME(UNIX_TIMESTAMP(" + this + ", " + g.gen(format) + "))"
 		}
@@ -301,7 +306,7 @@ func hiveStrToTimeInner(g *Generator, e expressions.Expression) string {
 
 // hiveToDateSQL ports _to_date_sql (hive.py:211-219).
 func (g *Generator) hiveToDateSQL(e expressions.Expression) string {
-	if format, ok := hiveFormatTimeLiteral(e).(expressions.Expression); ok && format != nil {
+	if format, ok := hiveFormatTimeLiteral(g, e).(expressions.Expression); ok && format != nil {
 		if !hiveIsCastTimeFormat(e, format.Name()) {
 			return g.funcCall("TO_DATE", []any{e.This(), format}, "(", ")", true)
 		}
@@ -310,6 +315,11 @@ func (g *Generator) hiveToDateSQL(e expressions.Expression) string {
 		switch p.Kind() {
 		case expressions.KindDateDiff, expressions.KindDay, expressions.KindMonth, expressions.KindYear:
 			return g.sqlKey(e, "this")
+		case expressions.KindDayOfMonth, expressions.KindDayOfWeek, expressions.KindDayOfYear, expressions.KindWeekOfYear:
+			// generators/spark2.py:143-149 TS_OR_DS_EXPRESSIONS.
+			if g.isDialect("spark2") {
+				return g.sqlKey(e, "this")
+			}
 		}
 	}
 	return g.funcCall("TO_DATE", []any{e.This()}, "(", ")", true)

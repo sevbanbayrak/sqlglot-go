@@ -119,7 +119,12 @@ differential-check against the pinned Python):
   another is not. The per-dialect override tables that make it correct are partial — per-dialect
   parser `FUNCTIONS` ↔ generator `TRANSFORMS`/`TYPE_MAPPING` remaps (must land paired to avoid
   round-trip regressions), MySQL `||`/`&&`/`XOR` logical operators, MySQL `CAST(x AS TIMESTAMP/BLOB)`.
-- DIALECTS beyond base + MySQL + Postgres (upstream ships 30+).
+- DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena and Spark2 (upstream ships
+  30+). Spark2 (dialects/spark2.go, generator/dialect_spark2.go, parser/dialect_spark2_overrides.go)
+  is a 1:1 port except: `EXPRESSION_METADATA` (typing, waits for annotate_types), the PIVOT column
+  naming (`PIVOT_COLUMN_NAMING`/`_pivot_column_names` — pivot column inference is not ported for any
+  dialect yet, see parser/parser_pivot.go), and `bracket_to_element_at_sql`, which shifts only a
+  literal index by `apply_index_offset`.
 - TIME-TRAVEL clauses (`FOR SYSTEM_TIME AS OF`, hive `TIMESTAMP AS OF`): the v30.17.0 bump removed
   the FOR VERSION/TIMESTAMP and hive AS OF compound keywords but did not port `VERSION_PHRASES` +
   `_parse_version` (parser.py:1738-1745, 5120-5146); the constructs now fail closed (parse error)

@@ -35,7 +35,7 @@ from tests.dialects.test_postgres import TestPostgres  # noqa: E402
 from tests.dialects.test_presto import TestPresto  # noqa: E402
 from tests.dialects.test_trino import TestTrino  # noqa: E402
 
-SUPPORTED = {"", "mysql", "postgres", "presto", "trino", "hive", "athena"}
+SUPPORTED = {"", "mysql", "postgres", "presto", "trino", "hive", "athena", "spark2"}
 OUT_PATH = "testdata/transpile_cases.jsonl"
 
 captured = []
