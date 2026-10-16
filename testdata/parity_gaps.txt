@@ -1,3 +1,4 @@
+{"dialect":"spark","category":"parse: Invalid expression / Unexpected token","sql":"INSERT OVERWRITE TABLE db1.tb1 TABLE db2.tb2"}
 {"dialect":"trino","category":"parse: Expecting","sql":"WITH FUNCTION count_evens(n BIGINT) RETURNS BIGINT BEGIN DECLARE total BIGINT DEFAULT 0; DECLARE i BIGINT DEFAULT 0; WHILE i < n DO SET total = total + 1; IF i = 0 THEN SET total = total + 1; END IF; SET i = i + 1; END WHILE; RETURN total; END SELECT COUNT_EVENS(3)"}
 {"dialect":"trino","category":"parse: Expecting","sql":"WITH FUNCTION custom_sqrt(a INTEGER) RETURNS DOUBLE COMMENT 'Custom sqrt function' RETURNS NULL ON NULL INPUT NOT DETERMINISTIC LANGUAGE SQL SECURITY DEFINER WITH (weight=42, cost='low') RETURN a SELECT CUSTOM_SQRT(4)"}
 {"dialect":"trino","category":"parse: Expecting","sql":"WITH FUNCTION declare() RETURNS INTEGER RETURN 1 SELECT DECLARE()"}

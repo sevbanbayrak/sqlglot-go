@@ -1,6 +1,8 @@
 package dialects
 
 import (
+	"strings"
+
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
@@ -136,8 +138,13 @@ func spark2BuildZoneCast(kind exp.Kind) func([]exp.Expression) exp.Expression {
 		if this == nil {
 			this = exp.Var(exp.Args{"this": ""})
 		}
+		// exp.cast skips a re-cast when the existing cast type maps to the same name in the
+		// dialect (builders.py:488-499); Hive and Spark map every timestamp flavour to TIMESTAMP.
+		if this.Kind() != exp.KindCast || !spark2IsTimestampCast(this) {
+			this = exp.Cast(exp.Args{"this": this, "to": exp.DTypeTimestamp.IntoExpr(nil)})
+		}
 		return exp.New(kind, exp.Args{
-			"this": exp.Cast(exp.Args{"this": this, "to": exp.DTypeTimestamp.IntoExpr(nil)}),
+			"this": this,
 			"zone": hiveSeqGet(args, 1),
 		})
 	}
@@ -152,9 +159,25 @@ func spark2BuildDateTrunc(args []exp.Expression) exp.Expression {
 	return exp.FromArgList(exp.KindTimestampTrunc, []exp.Expression{hiveSeqGet(args, 1), unit})
 }
 
-// TRUNC(this, unit) -> DateTrunc (parsers/spark2.py:83).
+// TRUNC(this, unit) -> DateTrunc (parsers/spark2.py:83); TimeUnit upper-cases a literal unit.
 func spark2BuildDateTrunc_(args []exp.Expression) exp.Expression {
-	return exp.New(exp.KindDateTrunc, exp.Args{"this": hiveSeqGet(args, 0), "unit": hiveSeqGet(args, 1)})
+	unit := hiveSeqGet(args, 1)
+	if unit != nil && unit.Kind() == exp.KindLiteral && unit.IsString() {
+		unit = exp.LiteralString(strings.ToUpper(unit.Name()))
+	} else if unit != nil && unit.Kind() == exp.KindVar {
+		unit = exp.TimeUnitVar(unit)
+	}
+	return exp.New(exp.KindDateTrunc, exp.Args{"this": hiveSeqGet(args, 0), "unit": unit})
+}
+
+func spark2IsTimestampCast(cast exp.Expression) bool {
+	to := cast.Arg("to").(exp.Expression)
+	for _, t := range []exp.DType{exp.DTypeTimestamp, exp.DTypeTimestampTz, exp.DTypeTimestampNtz, exp.DTypeTimestampLtz, exp.DTypeDatetime} {
+		if exp.IsType(to, t) {
+			return true
+		}
+	}
+	return false
 }
 
 // ELEMENT_AT(x, i) -> one-based unsafe Bracket (parsers/spark2.py:42-47).

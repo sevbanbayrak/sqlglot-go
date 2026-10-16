@@ -17,6 +17,8 @@ func Hive() *Dialect {
 	d.TablesampleWithMethod = false
 	d.IndexOn = "ON TABLE"
 	d.Nvl2Supported = false
+	d.TryUnsupported = true
+	d.DecodeCaseUnsupported = true
 	d.PadFillPatternIsRequired = true
 	d.ArraySizeName = "SIZE"
 	d.ExpressionsWithoutNestedCtes = []exp.Kind{exp.KindInsert, exp.KindSelect, exp.KindSubquery, exp.KindUnion, exp.KindExcept, exp.KindIntersect}

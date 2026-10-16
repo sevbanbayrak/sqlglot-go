@@ -3087,9 +3087,10 @@ func (p *Parser) advanceAny(ignoreReserved bool) *tokens.Token {
 
 func (p *Parser) parseNull() exp.Expression {
 	if p.curr.TokenType == tokens.NULL || p.curr.TokenType == tokens.UNKNOWN {
+		// parser.py NULL_TOKENS: UNKNOWN builds the same exp.Null as NULL.
 		token := p.curr
 		p.advance()
-		return p.primaryFromToken(token)
+		return p.expression(exp.Null(), &token, nil)
 	}
 	return p.parsePlaceholder()
 }
@@ -3179,6 +3180,12 @@ func (p *Parser) parsePlaceholder() exp.Expression {
 	}
 	if p.dialect.Name == "postgres" && p.match(tokens.MOD) {
 		return p.spanned(p.parseQueryParameter(), start, p.prev)
+	}
+	if p.dialect.Is("spark") && p.match(tokens.L_BRACE) {
+		// parsers/spark.py:93-100: a {name} widget parameter.
+		this := p.parseIdVar(false, nil)
+		p.match(tokens.R_BRACE)
+		return p.spanned(p.expression(exp.Placeholder(exp.Args{"this": this, "widget": true}), nil, nil), start, p.prev)
 	}
 	if p.match(tokens.COLON) {
 		if p.matchSet(idVarTokens) {
@@ -3602,6 +3609,10 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 		// parser.py:1554 FUNCTIONS_WITH_ALIASED_ARGS = {"STRUCT"}.
 		alias := !knownFunction || upper == "STRUCT"
 		args := p.parseFunctionArgs(alias)
+		if alias && knownFunction {
+			// parser.py:7270-7271.
+			args = p.kvToPropEQ(args)
+		}
 		if knownFunction {
 			result = p.validateExpression(function(args), exprArgs(args))
 		} else {
@@ -4313,6 +4324,7 @@ func init() {
 		"IF": func(p *Parser) exp.Expression { return p.parseIf() },
 	}
 	functionParsers = map[string]func(*Parser) exp.Expression{
+		"DECODE":      (*Parser).parseDecode,
 		"CAST":        func(p *Parser) exp.Expression { return p.parseCast(p.strictCast, nil) },
 		"TRY_CAST":    func(p *Parser) exp.Expression { return p.parseCast(false, true) },
 		"SAFE_CAST":   func(p *Parser) exp.Expression { return p.parseCast(false, true) },
@@ -4478,4 +4490,20 @@ func isAlpha(s string) bool {
 		}
 	}
 	return true
+}
+
+// parseDecode ports _parse_decode (parser.py:8308-8314).
+func (p *Parser) parseDecode() exp.Expression {
+	args := p.parseCsv(p.parseDisjunction)
+	if len(args) < 3 {
+		var this, charset exp.Expression
+		if len(args) > 0 {
+			this = args[0]
+		}
+		if len(args) > 1 {
+			charset = args[1]
+		}
+		return p.expression(exp.New(exp.KindDecode, exp.Args{"this": this, "charset": charset}), nil, nil)
+	}
+	return p.expression(exp.New(exp.KindDecodeCase, exp.Args{"expressions": args}), nil, nil)
 }

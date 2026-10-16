@@ -159,6 +159,7 @@ func Presto() *Dialect {
 	cfg.FormatStrings["X'"] = tokens.FormatString{End: "'", TokenType: tokens.HEX_STRING}
 	// HEX_START/HEX_END take the FIRST HEX_STRINGS tuple (dialects/dialect.py:293).
 	d.HexStart, d.HexEnd = "x'", "'"
+	d.DecodeCaseUnsupported = true
 	// dialects/presto.py:46-50 UNICODE_STRINGS = [(prefix + q, q) for q in QUOTES for prefix in
 	// ("U&", "u&")]; base QUOTES = ["'"], so U&'...'/u&'...' delimit a UNICODE_STRING literal.
 	// Both cases are registered because the tokenizer resolves a format string by its

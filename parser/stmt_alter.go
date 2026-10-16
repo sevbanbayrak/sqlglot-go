@@ -426,7 +426,7 @@ func (p *Parser) parseAlterDropAction() exp.Expression {
 	if p.dialect.Name == "mysql" && p.matchPair(tokens.DROP, tokens.PRIMARY_KEY, true) {
 		return p.expression(exp.DropPrimaryKey(nil), nil, nil)
 	}
-	if p.dialect.Name == "spark2" {
+	if p.dialect.Is("spark2") {
 		// parsers/spark2.py:104-109: only DROP COLUMNS (schema) is an ALTER action.
 		if p.matchTextSeq("DROP", "COLUMNS") {
 			return p.expression(exp.Drop(exp.Args{"this": p.parseSchema(nil), "kind": "COLUMNS"}), nil, nil)

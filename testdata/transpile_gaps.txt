@@ -8,13 +8,13 @@
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT_SCALAR(x, '$.y[0].z')"}
 {"read":"","write":"presto","category":"generate: mismatch","sql":"CREATE TABLE a LIKE b"}
 {"read":"","write":"presto","category":"generate: mismatch","sql":"DATE_FROM_UNIX_DATE(1)"}
-{"read":"","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
+{"read":"","write":"spark","category":"generate: expected unsupported","sql":"JSON_EXTRACT(x, '$.y.*')"}
+{"read":"","write":"spark","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$[\"a b\"]')"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"ARRAY_SUM(ARRAY(1, 2))"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"CREATE TABLE a LIKE b"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"DATE_FROM_UNIX_DATE(1)"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED AND target.a <> src.a THEN UPDATE SET target.b = 'FOO'\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED THEN UPDATE SET target.b = COALESCE(src.b, target.b)\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)"}
-{"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')"}
 {"read":"hive","write":"postgres","category":"generate: mismatch","sql":"ROUND(x::DOUBLE, 4)"}
@@ -27,16 +27,12 @@
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"DAYOFWEEK(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"DAYOFYEAR(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"LOG(x)"}
-{"read":"mysql","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
-{"read":"mysql","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"MONTH(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"MONTHNAME(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"SELECT ISNULL(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"WEEK(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"WEEKOFYEAR(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"YEAR(x)"}
-{"read":"mysql","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS NOT UNKNOWN"}
-{"read":"mysql","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS UNKNOWN"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT DATEDIFF(x, y)"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT TO_DAYS(x)"}
@@ -45,8 +41,6 @@
 {"read":"mysql","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"ARRAY_PREPEND(x, arr)"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')"}
-{"read":"postgres","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
-{"read":"postgres","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"STRPOS(haystack, needle)"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"x -> 'y' -> 0 -> 'z'"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"x ->> 'y'"}
@@ -55,8 +49,6 @@
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"x->'y'"}
 {"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
 {"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x # y"}
-{"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS NOT UNKNOWN"}
-{"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS UNKNOWN"}
 {"read":"postgres","write":"athena","category":"generate: mismatch","sql":"SELECT U&'a\nb'"}
 {"read":"postgres","write":"athena","category":"generate: mismatch","sql":"SELECT U&'can''t'"}
 {"read":"postgres","write":"hive","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
@@ -74,15 +66,20 @@
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT UNNEST(ARRAY[1])"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT UNNEST(c) FROM t"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"a || b"}
+{"read":"postgres","write":"spark","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
+{"read":"postgres","write":"spark","category":"generate: mismatch","sql":"JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')"}
 {"read":"postgres","write":"spark2","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES(a, b, '  2   days  ')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"merge into x as x using (select id) as y on a = b WHEN matched then update set X.\"A\" = y.b"}
-{"read":"presto","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
-{"read":"presto","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
 {"read":"presto","write":"","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
 {"read":"presto","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
 {"read":"presto","write":"hive","category":"generate: mismatch","sql":"CREATE TABLE x (w VARCHAR, y INTEGER, z INTEGER) WITH (PARTITIONED_BY=ARRAY['y', 'z'])"}
-{"read":"trino","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
-{"read":"trino","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
+{"read":"presto","write":"spark","category":"generate: mismatch","sql":"SELECT JSON_EXTRACT_SCALAR(TRY(FILTER(CAST(JSON_EXTRACT('{\"k1\": [{\"k2\": \"{\\\"k3\\\": 1}\", \"k4\": \"v\"}]}', '$.k1') AS ARRAY(MAP(VARCHAR, VARCHAR))), x -> x['k4'] = 'v')[1]['k2']), '$.k3')"}
+{"read":"presto","write":"spark","category":"generate: mismatch","sql":"U&'Hello winter #2603 !' UESCAPE '#'"}
+{"read":"presto","write":"spark","category":"generate: mismatch","sql":"U&'Hello winter \\2603 !'"}
+{"read":"presto","write":"spark","category":"generate: mismatch","sql":"u&'Hello winter #2603 !' UESCAPE '#'"}
+{"read":"presto","write":"spark","category":"generate: mismatch","sql":"u&'Hello winter \\2603 !'"}
+{"read":"spark","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
+{"read":"spark","write":"presto","category":"generate: mismatch","sql":"TIMESTAMPADD(MINUTE, FLOOR(EXTRACT(MINUTE FROM CURRENT_TIMESTAMP)/30)*30, col)"}
 {"read":"trino","write":"postgres","category":"generate: mismatch","sql":"\n            WITH t(boxcrate) AS (\n              SELECT JSON '[{\"boxes\": [{\"name\": \"f1\", \"type\": \"plant\", \"color\": \"red\"}]}]'\n            )\n            SELECT\n              JSON_EXTRACT_SCALAR(boxes,'$.name')  AS name,\n              JSON_EXTRACT_SCALAR(boxes,'$.type')  AS type,\n              JSON_EXTRACT_SCALAR(boxes,'$.color') AS color\n            FROM t\n            CROSS JOIN UNNEST(CAST(boxcrate AS array(json))) AS x(tbox)\n            CROSS JOIN UNNEST(CAST(json_extract(tbox, '$.boxes') AS array(json))) AS y(boxes)\n        "}

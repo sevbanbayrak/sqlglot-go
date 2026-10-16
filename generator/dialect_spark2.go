@@ -104,6 +104,20 @@ func init() {
 			}
 			return g.withinGroupSQL(out)
 		},
+		exp.KindSelect: func(g *Generator, e exp.Expression) string {
+			// generators/spark2.py:185-192: unnest_to_explode with the default arrays_zip.
+			out := transforms.EliminateQualify(e)
+			out = transforms.EliminateDistinctOn(out)
+			out, err := transforms.UnnestToExplode(out, true)
+			if err != nil {
+				g.unsupported(err.Error())
+			}
+			out = transforms.AnyToExists(out)
+			if out.Kind() != exp.KindSelect {
+				return g.gen(out)
+			}
+			return g.selectSQL(out)
+		},
 		exp.KindCreate: func(g *Generator, e exp.Expression) string {
 			out := transforms.RemoveUniqueConstraints(e)
 			out = transforms.CtasWithTmpTablesToCreateTmpView(out, spark2TemporaryStorageProvider)

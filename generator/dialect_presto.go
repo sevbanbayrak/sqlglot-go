@@ -16,10 +16,16 @@ func init() {
 		exp.KindTimestampTrunc: func(g *Generator, e exp.Expression) string {
 			return g.funcCall("DATE_TRUNC", []any{prestoUnit(e), e.Arg("this")}, "(", ")", true)
 		},
-		exp.KindRegexpExtract:    (*Generator).prestoRegexpExtractSQL,
-		exp.KindRegexpExtractAll: (*Generator).prestoRegexpExtractSQL,
-		exp.KindApproxQuantile:   prestoCall("APPROX_PERCENTILE", "this", "weight", "quantile", "accuracy"),
-		exp.KindDateAdd:          (*Generator).prestoDateAddSQL,
+		exp.KindRegexpExtract:        (*Generator).prestoRegexpExtractSQL,
+		exp.KindRegexpExtractAll:     (*Generator).prestoRegexpExtractSQL,
+		exp.KindApproxQuantile:       prestoCall("APPROX_PERCENTILE", "this", "weight", "quantile", "accuracy"),
+		exp.KindDateAdd:              (*Generator).prestoDateAddSQL,
+		exp.KindTimestampAdd:         (*Generator).prestoDateAddSQL,
+		exp.KindFromISO8601Date:      prestoRename("FROM_ISO8601_DATE"),
+		exp.KindFromISO8601Timestamp: prestoRename("FROM_ISO8601_TIMESTAMP"),
+		exp.KindDayOfWeek: func(g *Generator, e exp.Expression) string {
+			return "((" + g.funcCall("DAY_OF_WEEK", []any{e.This()}, "(", ")", true) + " % 7) + 1)"
+		},
 		exp.KindDateDiff: func(g *Generator, e exp.Expression) string {
 			return g.funcCall("DATE_DIFF", []any{prestoUnit(e), e.Arg("expression"), e.Arg("this")}, "(", ")", true)
 		},
