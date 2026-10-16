@@ -5,6 +5,82 @@
 {"read": "", "sql": "SELECT CAST(ds AS STRING) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "write": "athena", "want": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "pretty": false, "identify": false}
 {"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "athena", "pretty": false, "identify": false, "want": "STRPOS(haystack, needle)"}
 {"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "athena", "pretty": false, "identify": false, "want": "IF(STRPOS(SUBSTR(haystack, position), needle) = 0, 0, STRPOS(SUBSTR(haystack, position), needle) + position - 1)"}
+{"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "clickhouse", "pretty": false, "identify": false, "want": "(LENGTH(arr) = 0 OR LENGTH(arrayFilter(x -> pred, arr)) <> 0)"}
+{"read": "", "sql": "ARRAY_MAX(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "arrayMax(x)"}
+{"read": "", "sql": "ARRAY_MIN(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "arrayMin(x)"}
+{"read": "", "sql": "ARRAY_REMOVE(the_array, target)", "write": "clickhouse", "pretty": false, "identify": false, "want": "arrayFilter(_u -> _u <> target, the_array)"}
+{"read": "", "sql": "ARRAY_REVERSE(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "arrayReverse(x)"}
+{"read": "", "sql": "ARRAY_SLICE(x, 1, 3)", "write": "clickhouse", "pretty": false, "identify": false, "want": "arraySlice(x, 1, 3)"}
+{"read": "", "sql": "ASCII('A')", "write": "clickhouse", "pretty": false, "identify": false, "want": "ASCII('A')"}
+{"read": "", "sql": "CAST((1, 2, 3, 4) AS STRUCT<a: TINYINT, b: SMALLINT, c: INT, d: BIGINT>)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST((1, 2, 3, 4) AS Tuple(a Nullable(Int8), b Nullable(Int16), c Nullable(Int32), d Nullable(Int64)))"}
+{"read": "", "sql": "CAST(ARRAY(1, 2) AS ARRAY<TINYINT>)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST([1, 2] AS Array(Nullable(Int8)))"}
+{"read": "", "sql": "CAST(MAP('a', '1') AS MAP(TEXT, TEXT))", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST(map('a', '1') AS Map(String, Nullable(String)))"}
+{"read": "", "sql": "CAST(a AS BINARY(4))", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST(a AS Nullable(BINARY(4)))"}
+{"read": "", "sql": "CAST(a AS DOUBLE)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST(a AS Nullable(Float64))"}
+{"read": "", "sql": "CAST(a AS TEXT)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST(a AS Nullable(String))"}
+{"read": "", "sql": "CAST(a AS VARBINARY(4))", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST(a AS Nullable(String))"}
+{"read": "", "sql": "CONCAT(a)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CONCAT(a)"}
+{"read": "", "sql": "CONCAT_WS('-', 'a', 'b')", "write": "clickhouse", "pretty": false, "identify": false, "want": "CONCAT_WS('-', 'a', 'b')"}
+{"read": "", "sql": "CONCAT_WS('-', x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CONCAT_WS('-', x)"}
+{"read": "", "sql": "CREATE TABLE a LIKE b", "write": "clickhouse", "pretty": false, "identify": false, "want": "CREATE TABLE a AS b"}
+{"read": "", "sql": "FARM_FINGERPRINT(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "farmFingerprint64(x)"}
+{"read": "", "sql": "GROUPING(col1, col2, col3)", "write": "clickhouse", "pretty": false, "identify": false, "want": "GROUPING(col1, col2, col3)"}
+{"read": "", "sql": "GROUPING(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "GROUPING(x)"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y')", "write": "clickhouse", "pretty": false, "identify": false, "want": "JSONExtractString(x, 'y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y.*')", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "clickhouse", "pretty": false, "identify": false, "want": "JSONExtractString(x, 'y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[0].z')", "write": "clickhouse", "pretty": false, "identify": false, "want": "JSONExtractString(x, 'y', 1, 'z')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$[\"a b\"]')", "write": "clickhouse", "pretty": false, "identify": false, "want": "JSONExtractString(x, 'a b')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y')", "write": "clickhouse", "pretty": false, "identify": false, "want": "JSONExtractString(x, 'y')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "write": "clickhouse", "pretty": false, "identify": false, "want": "JSONExtractString(x, 'y', 1, 'z')"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2)", "write": "clickhouse", "pretty": false, "identify": false, "want": "editDistance(col1, col2)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3)", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3, 4)", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LOG(10, a)", "write": "clickhouse", "pretty": false, "identify": false, "want": "LOG10(a)"}
+{"read": "", "sql": "LOG(2, a)", "write": "clickhouse", "pretty": false, "identify": false, "want": "LOG2(a)"}
+{"read": "", "sql": "LOG(b, n)", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LTRIM('Hello World')", "write": "clickhouse", "pretty": false, "identify": false, "want": "LTRIM('Hello World')"}
+{"read": "", "sql": "LTRIM('Hello World', 'H')", "write": "clickhouse", "pretty": false, "identify": false, "want": "TRIM(LEADING 'H' FROM 'Hello World')"}
+{"read": "", "sql": "MEDIAN(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "median(x)"}
+{"read": "", "sql": "MEDIAN(x) OVER ()", "write": "clickhouse", "pretty": false, "identify": false, "want": "median(x) OVER ()"}
+{"read": "", "sql": "RAND()", "write": "clickhouse", "pretty": false, "identify": false, "want": "randCanonical()"}
+{"read": "", "sql": "REVERSE(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "REVERSE(x)"}
+{"read": "", "sql": "RTRIM('Hello World')", "write": "clickhouse", "pretty": false, "identify": false, "want": "RTRIM('Hello World')"}
+{"read": "", "sql": "RTRIM('Hello World', 'd')", "write": "clickhouse", "pretty": false, "identify": false, "want": "TRIM(TRAILING 'd' FROM 'Hello World')"}
+{"read": "", "sql": "SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT \"user id\", some_id, 1 AS other_id, 2 AS \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read": "", "sql": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq"}
+{"read": "", "sql": "SELECT * FROM a EXCEPT DISTINCT SELECT * FROM b", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM a EXCEPT DISTINCT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a EXCEPT SELECT * FROM b", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM a EXCEPT DISTINCT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a INTERSECT ALL SELECT * FROM b", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM a INTERSECT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a INTERSECT DISTINCT SELECT * FROM b", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM a INTERSECT DISTINCT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a INTERSECT SELECT * FROM b", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM a INTERSECT DISTINCT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a UNION SELECT * FROM b ORDER BY x LIMIT 1", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT * FROM a UNION DISTINCT SELECT * FROM b) AS _l_0 ORDER BY x NULLS FIRST LIMIT 1"}
+{"read": "", "sql": "SELECT * FROM t QUALIFY COUNT(*) OVER () > 1", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT * FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read": "", "sql": "SELECT 1 AS \"x\"\"\"", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT 1 AS \"x\"\"\""}
+{"read": "", "sql": "SELECT 1 AS \"x`\"", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT 1 AS \"x`\""}
+{"read": "", "sql": "SELECT 1 EXCEPT ALL SELECT 1", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT 1 EXCEPT SELECT 1"}
+{"read": "", "sql": "SELECT ARRAY_DISTINCT(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT arrayDistinct(x)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5)", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT NVL2(a, b)", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT (a IS NULL) THEN b END"}
+{"read": "", "sql": "SELECT NVL2(a, b, c)", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT (a IS NULL) THEN b ELSE c END"}
+{"read": "", "sql": "SELECT RPAD('bar', 5)", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5)"}
+{"read": "", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT x BETWEEN 2 AND 10", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT x BETWEEN 2 AND 10"}
+{"read": "", "sql": "SELECT x BETWEEN ASYMMETRIC 10 AND 2", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT x BETWEEN 10 AND 2"}
+{"read": "", "sql": "SELECT x BETWEEN SYMMETRIC 10 AND 2", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT (x BETWEEN 10 AND 2 OR x BETWEEN 2 AND 10)"}
+{"read": "", "sql": "SOUNDEX(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "SOUNDEX(x)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "clickhouse", "pretty": false, "identify": false, "want": "POSITION(haystack, needle)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "clickhouse", "pretty": false, "identify": false, "want": "POSITION(haystack, needle, position)"}
+{"read": "", "sql": "TIMESTAMP_TRUNC(x, DAY, 'UTC')", "write": "clickhouse", "pretty": false, "identify": false, "want": "dateTrunc('DAY', x, 'UTC')"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14' AS DateTime64(6, 'America/Los_Angeles'))"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01')", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS DateTime64(6))"}
+{"read": "", "sql": "TIME_STR_TO_TIME(col, 'America/Los_Angeles')", "write": "clickhouse", "pretty": false, "identify": false, "want": "CAST(col AS DateTime64(6, 'America/Los_Angeles'))"}
+{"read": "", "sql": "TRANSLATE(x, y, z)", "write": "clickhouse", "pretty": false, "identify": false, "want": "TRANSLATE(x, y, z)"}
+{"read": "", "sql": "[1, 2]", "write": "clickhouse", "pretty": false, "identify": false, "want": "[1, 2]"}
+{"read": "", "sql": "a / b", "write": "clickhouse", "pretty": false, "identify": false, "want": "a / b"}
+{"read": "", "sql": "x ILIKE '%y'", "write": "clickhouse", "pretty": false, "identify": false, "want": "x ILIKE '%y'"}
 {"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "databricks", "pretty": false, "identify": false, "want": "(SIZE(arr) = 0 OR SIZE(FILTER(arr, x -> pred)) <> 0)"}
 {"read": "", "sql": "ARRAY_INTERSECT(x, y)", "write": "databricks", "pretty": false, "identify": false, "want": "ARRAY_INTERSECT(x, y)"}
 {"read": "", "sql": "ARRAY_MAX(x)", "write": "databricks", "pretty": false, "identify": false, "want": "ARRAY_MAX(x)"}
@@ -793,6 +869,112 @@
 {"read": "athena", "sql": "array_min(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
 {"read": "athena", "sql": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT CAST(ds AS STRING) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)"}
 {"read": "athena", "sql": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)"}
+{"read": "clickhouse", "sql": "ASCII('A')", "write": "", "want": "ASCII('A')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "DATE_ADD(DAY, 1, x)", "write": "", "pretty": false, "identify": false, "want": "DATE_ADD(x, 1, 'DAY')"}
+{"read": "clickhouse", "sql": "DATE_DIFF(DAY, a, b)", "write": "", "pretty": false, "identify": false, "want": "DATEDIFF(b, a, DAY)"}
+{"read": "clickhouse", "sql": "GROUPING(col1, col2, col3)", "write": "", "want": "GROUPING(col1, col2, col3)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "GROUPING(x)", "write": "", "want": "GROUPING(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "JSONExtractString(x, 'y')", "write": "", "want": "JSON_EXTRACT_SCALAR(x, '$.y')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "JSONExtractString(x, 'y', 1, 'z')", "write": "", "want": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "LOCATE(needle, haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "LOCATE(needle, haystack, position)", "write": "", "want": "STR_POSITION(haystack, needle, position)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "LOG(x)", "write": "", "want": "LN(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "LOG10(a)", "write": "", "want": "LOG(10, a)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "LOG2(a)", "write": "", "want": "LOG(2, a)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "LTRIM('Hello World')", "write": "", "want": "LTRIM('Hello World')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "POSITION(haystack, needle)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "POSITION(haystack, needle, position)", "write": "", "want": "STR_POSITION(haystack, needle, position)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "POSITION(needle in haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "REVERSE(x)", "write": "", "want": "REVERSE(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "RTRIM('Hello World')", "write": "", "want": "RTRIM('Hello World')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT # comment1\n  x, # comment2\n  y # comment3", "write": "", "want": "/* comment1 */\nSELECT\n  x, /* comment2 */\n  y /* comment3 */", "pretty": true, "identify": false}
+{"read": "clickhouse", "sql": "SELECT $$$$", "write": "", "want": "SELECT ''", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT $$this is a heredoc string$$", "write": "", "want": "SELECT 'this is a heredoc string'", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT $foo$$foo$", "write": "", "want": "SELECT ''", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT $foo$this is also a heredoc string$foo$", "write": "", "want": "SELECT 'this is also a heredoc string'", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT * FROM a EXCEPT ALL SELECT * FROM b", "write": "", "want": "SELECT * FROM a EXCEPT ALL SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT * FROM a EXCEPT DISTINCT SELECT * FROM b", "write": "", "want": "SELECT * FROM a EXCEPT SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT * FROM a INTERSECT DISTINCT SELECT * FROM b", "write": "", "want": "SELECT * FROM a INTERSECT SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT * FROM a UNION ALL SELECT * FROM b", "write": "", "want": "SELECT * FROM a UNION ALL SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT * FROM a UNION DISTINCT SELECT * FROM b", "write": "", "want": "SELECT * FROM a UNION SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT * FROM x PREWHERE y = 1 WHERE z = 2", "write": "", "pretty": false, "identify": false, "want": "SELECT * FROM x WHERE z = 2"}
+{"read": "clickhouse", "sql": "SELECT 1 #! arbitrary content,,, until end-of-line", "write": "", "want": "SELECT 1 /* arbitrary content,,, until end-of-line */", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT 1 AS \"x\"\"\"", "write": "", "want": "SELECT 1 AS \"x\"\"\"", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT 1 AS \"x\\\"\"", "write": "", "want": "SELECT 1 AS \"x\"\"\"", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT 1 AS `x\"`", "write": "", "want": "SELECT 1 AS \"x\"\"\"", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT 1 AS `x\\``", "write": "", "want": "SELECT 1 AS \"x`\"", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT 1 AS `x```", "write": "", "want": "SELECT 1 AS \"x`\"", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT LEFTPAD('bar', 5)", "write": "", "want": "SELECT LPAD('bar', 5)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT LEFTPAD('bar', 5, ' ')", "write": "", "want": "SELECT LPAD('bar', 5, ' ')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT RIGHTPAD('bar', 5)", "write": "", "want": "SELECT RPAD('bar', 5)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT RIGHTPAD('bar', 5, ' ')", "write": "", "want": "SELECT RPAD('bar', 5, ' ')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT x #! comment", "write": "", "pretty": false, "identify": false, "want": "SELECT x /* comment */"}
+{"read": "clickhouse", "sql": "SELECT x BETWEEN 2 AND 10", "write": "", "want": "SELECT x BETWEEN 2 AND 10", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT {abc: UInt32}, {b: String}, {c: DateTime},{d: Map(String, Array(UInt8))}, {e: Tuple(UInt8, String)}", "write": "", "pretty": false, "identify": false, "want": "SELECT :abc, :b, :c, :d, :e"}
+{"read": "clickhouse", "sql": "SOUNDEX(x)", "write": "", "want": "SOUNDEX(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "TRANSLATE(x, y, z)", "write": "", "want": "TRANSLATE(x, y, z)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "TRIM(LEADING 'H' FROM 'Hello World')", "write": "", "want": "LTRIM('Hello World', 'H')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "TRIM(TRAILING 'd' FROM 'Hello World')", "write": "", "want": "RTRIM('Hello World', 'd')", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "`x` + \"y\"", "write": "", "want": "\"x\" + \"y\"", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "arrayMax(x)", "write": "", "want": "ARRAY_MAX(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "arrayMin(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "arrayReverse(x)", "write": "", "want": "ARRAY_REVERSE(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "arraySlice(x, 1, 3)", "write": "", "want": "ARRAY_SLICE(x, 1, 3)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "editDistance(col1, col2)", "write": "", "want": "LEVENSHTEIN(col1, col2)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "farmFingerprint64(x)", "write": "", "want": "FARM_FINGERPRINT(x)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "randCanonical()", "write": "", "want": "RAND()", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "x ILIKE '%y'", "write": "", "want": "x ILIKE '%y'", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
+{"read": "clickhouse", "sql": "SELECT substringIndex('a.b.c.d', '.', 2)", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
+{"read": "clickhouse", "sql": "SELECT toTypeName(1)", "write": "databricks", "want": "SELECT TYPEOF(1)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "dateTrunc('MONTH', x)", "write": "databricks", "pretty": false, "identify": false, "want": "TRUNC(x, 'MONTH')"}
+{"read": "clickhouse", "sql": "toMonday(x)", "write": "databricks", "pretty": false, "identify": false, "want": "DATE_TRUNC('WEEK', x)"}
+{"read": "clickhouse", "sql": "toStartOfDAY(x)", "write": "databricks", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "clickhouse", "sql": "toStartOfMONTH(x)", "write": "databricks", "pretty": false, "identify": false, "want": "DATE_TRUNC('MONTH', x)"}
+{"read": "clickhouse", "sql": "toStartOfSECOND(x)", "write": "databricks", "pretty": false, "identify": false, "want": "DATE_TRUNC('SECOND', x)"}
+{"read": "clickhouse", "sql": "toStartOfYEAR(x)", "write": "databricks", "pretty": false, "identify": false, "want": "DATE_TRUNC('YEAR', x)"}
+{"read": "clickhouse", "sql": "SELECT col[1]", "write": "hive", "pretty": false, "identify": false, "want": "SELECT col[0]"}
+{"read": "clickhouse", "sql": "map(a, b, c, d)", "write": "hive", "want": "MAP(a, b, c, d)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "splitByRegexp('\\\\d+', x)", "write": "hive", "pretty": false, "identify": false, "want": "SPLIT(x, '\\\\d+')"}
+{"read": "clickhouse", "sql": "splitByString('s', x)", "write": "hive", "pretty": false, "identify": false, "want": "SPLIT(x, CONCAT('\\\\Q', 's', '\\\\E'))"}
+{"read": "clickhouse", "sql": "CONCAT(a, b)", "write": "mysql", "pretty": false, "identify": false, "want": "CONCAT(a, b)"}
+{"read": "clickhouse", "sql": "SELECT '\\0'", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT '\u0000'"}
+{"read": "clickhouse", "sql": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
+{"read": "clickhouse", "sql": "SELECT formatDateTime(NOW(), '%Y-%m-%d')", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT DATE_FORMAT(NOW(), '%Y-%m-%d')"}
+{"read": "clickhouse", "sql": "SELECT groupConcat(', ')(part_name) FROM t", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT GROUP_CONCAT(part_name SEPARATOR ', ') FROM t"}
+{"read": "clickhouse", "sql": "SELECT substringIndex('a.b.c.d', '.', 2)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
+{"read": "clickhouse", "sql": "SELECT xor(0, 1, xor(1, 0, 0))", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT 0 XOR 1 XOR (1 XOR 0 XOR 0)"}
+{"read": "clickhouse", "sql": "SELECT xor(1, 0)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT 1 XOR 0"}
+{"read": "clickhouse", "sql": "SELECT xor(xor(1, 0), 1)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT (1 XOR 0) XOR 1"}
+{"read": "clickhouse", "sql": "a / b", "write": "mysql", "pretty": false, "identify": false, "want": "a / b"}
+{"read": "clickhouse", "sql": "CONCAT(a, b)", "write": "postgres", "pretty": false, "identify": false, "want": "a || b"}
+{"read": "clickhouse", "sql": "INSERT INTO t (col1, col2) VALUES ('abcd', 1234)", "write": "postgres", "pretty": false, "identify": false, "want": "INSERT INTO t (col1, col2) VALUES (('abcd'), (1234))"}
+{"read": "clickhouse", "sql": "SELECT CAST('2020-01-01' AS Nullable(DateTime)) + INTERVAL '500' MICROSECOND", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT CAST('2020-01-01' AS TIMESTAMP) + INTERVAL '500 MICROSECOND'"}
+{"read": "clickhouse", "sql": "SELECT CAST(STR_TO_DATE('05 12 2000', '%d %m %Y') AS Nullable(DATE))", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT CAST(CAST(TO_DATE('05 12 2000', 'DD MM YYYY') AS TIMESTAMP) AS DATE)"}
+{"read": "clickhouse", "sql": "SELECT JSONExtractString(x, k1, k2, k3) FROM t", "write": "postgres", "want": "SELECT JSON_EXTRACT_PATH_TEXT(x, k1, k2, k3) FROM t", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "SELECT arrayJoin([1,2,3])", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT UNNEST(ARRAY[1, 2, 3])"}
+{"read": "clickhouse", "sql": "a / b", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE PRECISION) / b"}
+{"read": "clickhouse", "sql": "CAST(x AS DATETIME64)", "write": "presto", "want": "CAST(x AS TIMESTAMP)", "pretty": false, "identify": false}
+{"read": "clickhouse", "sql": "DATE_ADD(DAY, 1, x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, x)"}
+{"read": "clickhouse", "sql": "DATE_DIFF(DAY, a, b)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_DIFF('DAY', a, b)"}
+{"read": "clickhouse", "sql": "SELECT col[1]", "write": "presto", "pretty": false, "identify": false, "want": "SELECT col[1]"}
+{"read": "clickhouse", "sql": "dateTrunc('MONTH', x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('MONTH', x)"}
+{"read": "clickhouse", "sql": "has([1], x)", "write": "presto", "pretty": false, "identify": false, "want": "CONTAINS(ARRAY[1], x)"}
+{"read": "clickhouse", "sql": "toMonday(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('WEEK', x)"}
+{"read": "clickhouse", "sql": "toStartOfDAY(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "clickhouse", "sql": "toStartOfMONTH(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('MONTH', x)"}
+{"read": "clickhouse", "sql": "toStartOfSECOND(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('SECOND', x)"}
+{"read": "clickhouse", "sql": "toStartOfYEAR(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('YEAR', x)"}
+{"read": "clickhouse", "sql": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
+{"read": "clickhouse", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "spark", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname NULLS LAST"}
+{"read": "clickhouse", "sql": "SELECT substringIndex('a.b.c.d', '.', 2)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
+{"read": "clickhouse", "sql": "dateTrunc('MONTH', x)", "write": "spark", "pretty": false, "identify": false, "want": "TRUNC(x, 'MONTH')"}
+{"read": "clickhouse", "sql": "has([1], x)", "write": "spark", "pretty": false, "identify": false, "want": "ARRAY_CONTAINS(ARRAY(1), x)"}
+{"read": "clickhouse", "sql": "toMonday(x)", "write": "spark", "pretty": false, "identify": false, "want": "DATE_TRUNC('WEEK', x)"}
+{"read": "clickhouse", "sql": "toStartOfDAY(x)", "write": "spark", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "clickhouse", "sql": "toStartOfMONTH(x)", "write": "spark", "pretty": false, "identify": false, "want": "DATE_TRUNC('MONTH', x)"}
+{"read": "clickhouse", "sql": "toStartOfSECOND(x)", "write": "spark", "pretty": false, "identify": false, "want": "DATE_TRUNC('SECOND', x)"}
+{"read": "clickhouse", "sql": "toStartOfYEAR(x)", "write": "spark", "pretty": false, "identify": false, "want": "DATE_TRUNC('YEAR', x)"}
 {"read": "databricks", "sql": "ARRAY_INTERSECT(x, y)", "write": "", "want": "ARRAY_INTERSECT(x, y)", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "ASCII('A')", "write": "", "want": "ASCII('A')", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "CHARINDEX(needle, haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
@@ -849,6 +1031,7 @@
 {"read": "databricks", "sql": "array_min(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "x IS NOT UNKNOWN", "write": "", "want": "NOT x IS NULL", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "x IS UNKNOWN", "write": "", "want": "x IS NULL", "pretty": false, "identify": false}
+{"read": "databricks", "sql": "SELECT TYPEOF(1)", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT toTypeName(1)"}
 {"read": "databricks", "sql": "ALTER TABLE db.example_table ADD PARTITION(col_a = 'a') LOCATION 'b'", "write": "hive", "want": "ALTER TABLE db.example_table ADD PARTITION(col_a = 'a') LOCATION 'b'", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "PERCENTILE(ALL x, 0.5)", "write": "hive", "want": "PERCENTILE(x, 0.5)", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "PERCENTILE(DISTINCT x, 0.5)", "write": "hive", "want": "PERCENTILE(DISTINCT x, 0.5)", "pretty": false, "identify": false}
@@ -940,6 +1123,8 @@
 {"read": "hive", "sql": "UNIX_TIMESTAMP(x)", "write": "", "pretty": false, "identify": false, "want": "STR_TO_UNIX(x, '%Y-%mstrict-%dstrict %Hstrict:%Mstrict:%Sstrict')"}
 {"read": "hive", "sql": "UUID()", "write": "", "want": "UUID()", "pretty": false, "identify": false}
 {"read": "hive", "sql": "pow(1.2, 3.4)", "write": "", "want": "POWER(1.2, 3.4)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "MAP(a, b, c, d)", "write": "clickhouse", "pretty": false, "identify": false, "want": "map(a, b, c, d)"}
+{"read": "hive", "sql": "SPLIT(x, '\\\\d+')", "write": "clickhouse", "want": "splitByRegexp('\\\\d+', x)", "pretty": false, "identify": false}
 {"read": "hive", "sql": "ALTER TABLE db.example_table ADD PARTITION(col_a = 'a') LOCATION 'b'", "write": "databricks", "pretty": false, "identify": false, "want": "ALTER TABLE db.example_table ADD PARTITION(col_a = 'a') LOCATION 'b'"}
 {"read": "hive", "sql": "CREATE TABLE test STORED AS INPUTFORMAT 'foo1' OUTPUTFORMAT 'foo2'", "write": "databricks", "pretty": false, "identify": false, "want": "CREATE TABLE test STORED AS INPUTFORMAT 'foo1' OUTPUTFORMAT 'foo2'"}
 {"read": "hive", "sql": "PERCENTILE(DISTINCT x, 0.5)", "write": "databricks", "pretty": false, "identify": false, "want": "PERCENTILE(DISTINCT x, 0.5)"}
@@ -1182,6 +1367,21 @@
 {"read": "mysql", "sql": "YEAR(x)", "write": "", "pretty": false, "identify": false, "want": "YEAR(CAST(x AS DATE))"}
 {"read": "mysql", "sql": "x IS NOT UNKNOWN", "write": "", "want": "NOT x IS NULL", "pretty": false, "identify": false}
 {"read": "mysql", "sql": "x IS UNKNOWN", "write": "", "want": "x IS NULL", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "CONCAT(a, b)", "write": "clickhouse", "want": "CONCAT(a, b)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "CREATE TABLE t (foo BLOB)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CREATE TABLE t (foo Nullable(String))"}
+{"read": "mysql", "sql": "SELECT '\u0000'", "write": "clickhouse", "want": "SELECT '\\0'", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT 0b1011", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT 0b1011"}
+{"read": "mysql", "sql": "SELECT 0x0000CC", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "mysql", "sql": "SELECT 0xCC", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "mysql", "sql": "SELECT 0xCC ", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "mysql", "sql": "SELECT 1 XOR 0", "write": "clickhouse", "want": "SELECT xor(1, 0)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT 1 XOR 0 XOR 1", "write": "clickhouse", "want": "SELECT xor(xor(1, 0), 1)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT(NOW(), '%Y-%m-%d')", "write": "clickhouse", "want": "SELECT formatDateTime(NOW(), '%Y-%m-%d')", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT GROUP_CONCAT(part_name SEPARATOR ', ') FROM t", "write": "clickhouse", "want": "SELECT groupConcat(', ')(part_name) FROM t", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT b'1011'", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT 0b1011"}
+{"read": "mysql", "sql": "SELECT x'0000CC'", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "mysql", "sql": "SELECT x'CC'", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "mysql", "sql": "a / b", "write": "clickhouse", "pretty": false, "identify": false, "want": "a / nullIf(b, 0)"}
 {"read": "mysql", "sql": "GROUP_CONCAT(DISTINCT a, b, c ORDER BY d SEPARATOR '')", "write": "databricks", "pretty": false, "identify": false, "want": "LISTAGG(DISTINCT CONCAT(a, b, c), '') WITHIN GROUP (ORDER BY d)"}
 {"read": "mysql", "sql": "GROUP_CONCAT(DISTINCT a, b, c SEPARATOR '')", "write": "databricks", "pretty": false, "identify": false, "want": "LISTAGG(DISTINCT CONCAT(a, b, c), '')"}
 {"read": "mysql", "sql": "GROUP_CONCAT(DISTINCT x ORDER BY y DESC SEPARATOR '')", "write": "databricks", "pretty": false, "identify": false, "want": "LISTAGG(DISTINCT x, '') WITHIN GROUP (ORDER BY y DESC)"}
@@ -1360,6 +1560,23 @@
 {"read": "postgres", "sql": "x->'y'", "write": "", "want": "JSON_EXTRACT(x, '$.y')", "pretty": false, "identify": false}
 {"read": "postgres", "sql": "SELECT U&'a\nb'", "write": "athena", "pretty": false, "identify": false, "want": "SELECT U&'a\nb'"}
 {"read": "postgres", "sql": "SELECT U&'can''t'", "write": "athena", "pretty": false, "identify": false, "want": "SELECT U&'can''t'"}
+{"read": "postgres", "sql": "ALTER TABLE t ALTER COLUMN c TYPE BIGINT", "write": "clickhouse", "want": "ALTER TABLE t ALTER COLUMN c TYPE Nullable(Int64)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "ARRAY_LENGTH(arr, 1)", "write": "clickhouse", "pretty": false, "identify": false, "want": "LENGTH(arr)"}
+{"read": "postgres", "sql": "ARRAY_LENGTH(arr, foo)", "write": "clickhouse", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "postgres", "sql": "CONCAT(a, b)", "write": "clickhouse", "pretty": false, "identify": false, "want": "CONCAT(COALESCE(a, ''), COALESCE(b, ''))"}
+{"read": "postgres", "sql": "SELECT 'ThOmAs' ~* 'thomas'", "write": "clickhouse", "want": "SELECT match('ThOmAs', CONCAT('(?i)', 'thomas'))", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT 'ThOmAs' ~* x FROM t", "write": "clickhouse", "want": "SELECT match('ThOmAs', CONCAT('(?i)', x)) FROM t", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT CURRENT_DATE", "write": "clickhouse", "want": "SELECT CURRENT_DATE()", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT CURRENT_TIMESTAMP", "write": "clickhouse", "want": "SELECT CURRENT_TIMESTAMP()", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT JSON_EXTRACT_PATH_TEXT(x, k1, k2, k3) FROM t", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT JSONExtractString(x, k1, k2, k3) FROM t"}
+{"read": "postgres", "sql": "SELECT TIMESTAMP '2020-01-01' + INTERVAL '500 us'", "write": "clickhouse", "want": "SELECT CAST('2020-01-01' AS Nullable(DateTime)) + INTERVAL '500' MICROSECOND", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT TO_DATE('05 12 2000', 'DD MM YYYY')", "write": "clickhouse", "want": "SELECT CAST(STR_TO_DATE('05 12 2000', '%d %m %Y') AS Nullable(DATE))", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT foo -> '12'", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT JSONExtractString(foo, '12')"}
+{"read": "postgres", "sql": "SELECT foo ->> '12'", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT JSONExtractString(foo, '12')"}
+{"read": "postgres", "sql": "TRUNC(3.14159, 2)", "write": "clickhouse", "want": "trunc(3.14159, 2)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "a || b", "write": "clickhouse", "pretty": false, "identify": false, "want": "a || b"}
+{"read": "postgres", "sql": "any(array[1]) <> x", "write": "clickhouse", "want": "NOT has([1], x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "x = any(array[1])", "write": "clickhouse", "want": "has([1], x)", "pretty": false, "identify": false}
 {"read": "postgres", "sql": "ARRAY_LENGTH(arr, 1)", "write": "databricks", "pretty": false, "identify": false, "want": "SIZE(arr)"}
 {"read": "postgres", "sql": "ARRAY_LENGTH(arr, foo)", "write": "databricks", "pretty": false, "identify": false, "want": "", "unsupported": true}
 {"read": "postgres", "sql": "GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')", "write": "databricks", "pretty": false, "identify": false, "want": "EXPLODE(SEQUENCE(CAST('2019-01-01' AS TIMESTAMP), CAST(CURRENT_TIMESTAMP() AS TIMESTAMP), INTERVAL '1' DAY))"}
@@ -1506,6 +1723,9 @@
 {"read": "presto", "sql": "YEAR(x)", "write": "", "want": "YEAR(x)", "pretty": false, "identify": false}
 {"read": "presto", "sql": "array_max(x)", "write": "", "want": "ARRAY_MAX(x)", "pretty": false, "identify": false}
 {"read": "presto", "sql": "array_min(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "CONTAINS(ARRAY[1], x)", "write": "clickhouse", "want": "has([1], x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_ADD('DAY', 1, x)", "write": "clickhouse", "want": "DATE_ADD(DAY, 1, x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_DIFF('DAY', a, b)", "write": "clickhouse", "want": "DATE_DIFF(DAY, a, b)", "pretty": false, "identify": false}
 {"read": "presto", "sql": "SELECT FROM_ISO8601_DATE('2020-05-11')", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT CAST('2020-05-11' AS DATE)"}
 {"read": "presto", "sql": "SELECT FROM_ISO8601_TIMESTAMP('2020-05-11T11:15:05')", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT CAST('2020-05-11T11:15:05' AS TIMESTAMP)"}
 {"read": "presto", "sql": "''''", "write": "hive", "pretty": false, "identify": false, "want": "'\\''"}
@@ -1731,6 +1951,9 @@
 {"read": "spark", "sql": "x IS NOT UNKNOWN", "write": "", "want": "NOT x IS NULL", "pretty": false, "identify": false}
 {"read": "spark", "sql": "x IS UNKNOWN", "write": "", "want": "x IS NULL", "pretty": false, "identify": false}
 {"read": "spark", "sql": "CREATE TABLE test STORED AS PARQUET AS SELECT 1", "write": "athena", "pretty": false, "identify": false, "want": "CREATE TABLE test WITH (format='PARQUET') AS SELECT 1"}
+{"read": "spark", "sql": "ARRAY_CONTAINS(ARRAY(1), x)", "write": "clickhouse", "want": "has([1], x)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC, lname NULLS FIRST"}
+{"read": "spark", "sql": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl", "write": "clickhouse", "pretty": false, "identify": false, "want": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl"}
 {"read": "spark", "sql": "ILIKE(foo, 'pattern')", "write": "databricks", "pretty": false, "identify": false, "want": "foo ILIKE 'pattern'"}
 {"read": "spark", "sql": "ILIKE(foo, 'pattern', '!')", "write": "databricks", "pretty": false, "identify": false, "want": "foo ILIKE 'pattern' ESCAPE '!'"}
 {"read": "spark", "sql": "INSERT OVERWRITE TABLE table WITH cte AS (SELECT cola FROM other_table) SELECT cola FROM cte", "write": "databricks", "pretty": false, "identify": false, "want": "WITH cte AS (SELECT cola FROM other_table) INSERT OVERWRITE TABLE table SELECT cola FROM cte"}

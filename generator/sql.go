@@ -290,12 +290,9 @@ func (g *Generator) escapeStrOpts(text string, opts escapeStrOptions) string {
 		supportsEscapeSequences = g.byteStringsSupportEscapedSequences
 	}
 	if supportsEscapeSequences {
-		// Mirrors the default ESCAPED_SEQUENCES dialect table (dialects/dialect.py:66-90,
-		// 302-312): the inverse of UNESCAPED_SEQUENCES, filtered down to non-printable
-		// control characters plus backslash itself (printable characters round-trip as-is).
-		// No target dialect here overrides UNESCAPED_SEQUENCES (only clickhouse/snowflake
-		// do, out of scope), so the table is hardcoded rather than threading a new
-		// per-dialect field just for this.
+		// Mirrors the dialect's ESCAPED_SEQUENCES table (dialects/dialect.py:338-342): the
+		// inverse of UNESCAPED_SEQUENCES, filtered down to non-printable control characters
+		// plus backslash itself (printable characters round-trip as-is).
 		var b strings.Builder
 		for i := 0; i < len(text); i++ {
 			c := text[i]
@@ -303,7 +300,7 @@ func (g *Generator) escapeStrOpts(text string, opts escapeStrOptions) string {
 				b.WriteByte(c)
 				continue
 			}
-			if esc, ok := escapedSequences[c]; ok {
+			if esc, ok := g.escapedSequences[c]; ok {
 				b.WriteString(esc)
 			} else {
 				b.WriteByte(c)
@@ -322,18 +319,21 @@ func (g *Generator) escapeStrOpts(text string, opts escapeStrOptions) string {
 	return strings.ReplaceAll(g.replaceLineBreaks(text), delimiter, escapedDelimiter)
 }
 
-// escapedSequences is the default ESCAPED_SEQUENCES table (dialects/dialect.py:66-90,
-// 302-312 UNESCAPED_SEQUENCES inverted, filtered to `not v.isprintable() or v == "\\"`).
-// See escapeStr for why this is hardcoded rather than a per-dialect field.
-var escapedSequences = map[byte]string{
-	'\a': `\a`,
-	'\b': `\b`,
-	'\f': `\f`,
-	'\n': `\n`,
-	'\r': `\r`,
-	'\t': `\t`,
-	'\v': `\v`,
-	'\\': `\\`,
+// escapedSequencesFor builds ESCAPED_SEQUENCES (dialects/dialect.py:338-342): the dialect's
+// UNESCAPED_SEQUENCES inverted, filtered to `not v.isprintable() or v == "\\"`. Every value is
+// a single byte in the ported tables.
+func escapedSequencesFor(unescaped map[string]string) map[byte]string {
+	out := map[byte]string{}
+	for escaped, raw := range unescaped {
+		if len(raw) != 1 {
+			continue
+		}
+		c := raw[0]
+		if c < 0x20 || c == 0x7f || c == '\\' {
+			out[c] = escaped
+		}
+	}
+	return out
 }
 
 // placeholderSQL ports placeholder_sql (generator.py:3417-3418) and postgres's override
@@ -608,7 +608,19 @@ func (g *Generator) afterLimitModifiers(e expressions.Expression) []string {
 	if locks != "" {
 		locks = " " + locks
 	}
-	return []string{locks, g.sqlKey(e, "sample")}
+	out := []string{locks, g.sqlKey(e, "sample")}
+	if g.isDialect("clickhouse") {
+		// after_limit_modifiers (generators/clickhouse.py:542-554).
+		settings, format := "", ""
+		if truthy(e.Arg("settings")) {
+			settings = g.seg("SETTINGS ") + g.expressions(exprsOptions{expression: e, key: "settings", flat: true})
+		}
+		if e.Arg("format") != nil {
+			format = g.seg("FORMAT ") + g.sqlKey(e, "format")
+		}
+		out = append(out, settings, format)
+	}
+	return out
 }
 
 func (g *Generator) optionsModifier(e expressions.Expression) string {
@@ -629,9 +641,20 @@ func (g *Generator) selectSQL(e expressions.Expression) string {
 	top := ""
 	expressionsSQL := g.expressions(exprsOptions{expression: e})
 	if kind != "" {
-		if kind == "STRUCT" || kind == "VALUE" {
+		// generator.py:3357-3376 SELECT_KINDS.
+		if g.dialect.SelectKinds[kind] {
 			kind = " AS " + kind
 		} else {
+			if kind == "STRUCT" {
+				fields := []expressions.Expression{}
+				for _, item := range e.Expressions() {
+					if item.Kind() == expressions.KindAlias {
+						item = expressions.PropertyEQ(expressions.Args{"this": item.Arg("alias"), "expression": item.This()})
+					}
+					fields = append(fields, item)
+				}
+				expressionsSQL = g.expressions(exprsOptions{sqls: []any{g.gen(expressions.New(expressions.KindStruct, expressions.Args{"expressions": fields}))}})
+			}
 			kind = ""
 		}
 	}
@@ -756,7 +779,7 @@ func (g *Generator) groupSQL(e expressions.Expression) string {
 	groupingSets := g.expressions(exprsOptions{expression: e, key: "grouping_sets"})
 	cube := g.expressions(exprsOptions{expression: e, key: "cube"})
 	rollup := g.expressions(exprsOptions{expression: e, key: "rollup"})
-	groupings := joinNonEmpty(",",
+	groupings := joinNonEmpty(g.dialect.GroupingsSep,
 		func() string {
 			if groupingSets != "" {
 				return g.seg(groupingSets)
@@ -785,7 +808,7 @@ func (g *Generator) groupSQL(e expressions.Expression) string {
 	if len(listFromValue(e.Arg("expressions"))) > 0 && groupings != "" {
 		trimmed := strings.TrimSpace(groupings)
 		if trimmed != "WITH CUBE" && trimmed != "WITH ROLLUP" {
-			groupBy += ","
+			groupBy += g.dialect.GroupingsSep
 		}
 	}
 	return groupBy + groupings
@@ -962,11 +985,16 @@ func (g *Generator) joinSQL(e expressions.Expression) string {
 	side := e.Text("side")
 	kind := e.Text("kind")
 	opSQL := joinNonEmpty(" ", e.Text("method"), func() string {
-		if boolValue(e.Arg("global_")) {
+		if truthy(e.Arg("global_")) {
 			return "GLOBAL"
 		}
 		return ""
-	}(), side, kind, e.Text("hint"))
+	}(), side, kind, func() string {
+		if g.dialect.JoinHints {
+			return e.Text("hint")
+		}
+		return ""
+	}())
 	matchCond := g.sqlKey(e, "match_condition")
 	if matchCond != "" {
 		matchCond = " MATCH_CONDITION (" + matchCond + ")"
@@ -1070,16 +1098,25 @@ func (g *Generator) lockSQL(e expressions.Expression) string {
 func (g *Generator) setOperationSQL(e expressions.Expression) string {
 	opNames := map[expressions.Kind]string{expressions.KindUnion: "UNION", expressions.KindExcept: "EXCEPT", expressions.KindIntersect: "INTERSECT"}
 	opName := opNames[e.Kind()]
-	distinctArg := e.Arg("distinct")
-	distinct, hasDistinct := distinctArg.(bool)
-	if !hasDistinct && distinctArg == nil {
-		distinct = true
+	// generator.py:1857-1875.
+	distinct, hasDistinct := e.Arg("distinct").(bool)
+	if hasDistinct && !distinct && e.Kind() != expressions.KindUnion && !g.dialect.ExceptIntersectSupportAllClause {
+		g.unsupported(opName + " ALL is not supported")
+	}
+	defaultDistinct := g.dialect.SetOpDistinctDefault(e.Kind())
+	if !hasDistinct {
+		if defaultDistinct == nil {
+			g.unsupported(opName + " requires DISTINCT or ALL to be specified")
+		} else {
+			distinct, hasDistinct = *defaultDistinct, true
+		}
 	}
 	distinctOrAll := ""
-	if hasDistinct && !distinct {
-		distinctOrAll = " ALL"
-		if e.Kind() != expressions.KindUnion && !g.dialect.ExceptIntersectSupportAllClause {
-			g.unsupported(opName + " ALL is not supported")
+	if hasDistinct && (defaultDistinct == nil || distinct != *defaultDistinct) {
+		if distinct {
+			distinctOrAll = " DISTINCT"
+		} else {
+			distinctOrAll = " ALL"
 		}
 	}
 	sideKind := joinNonEmpty(" ", e.Text("side"), e.Text("kind"))
@@ -1098,6 +1135,27 @@ func (g *Generator) setOperationSQL(e expressions.Expression) string {
 }
 
 func (g *Generator) setOperationsSQL(e expressions.Expression) string {
+	if !g.dialect.SetOpModifiers {
+		// generator.py:1887-1900: dialects without set-operation modifiers move ORDER BY/LIMIT
+		// to an outer SELECT over the set operation.
+		limit, order := asExpression(e.Arg("limit")), asExpression(e.Arg("order"))
+		if limit != nil || order != nil {
+			if limit != nil {
+				limit.Pop()
+			}
+			if order != nil {
+				order.Pop()
+			}
+			subquery := expressions.Subquery(expressions.Args{"this": e, "alias": expressions.TableAlias(expressions.Args{"this": expressions.ToIdentifier("_l_0")})})
+			sel := expressions.Select(expressions.Args{
+				"expressions": []expressions.Expression{expressions.Star(nil)},
+				"from_":       expressions.From(expressions.Args{"this": subquery}),
+				"limit":       limit,
+				"order":       order,
+			})
+			return g.gen(g.preprocess(sel))
+		}
+	}
 	sqls := []string{}
 	stack := []any{e}
 	for len(stack) > 0 {
@@ -1734,6 +1792,13 @@ func (g *Generator) createSQL(e expressions.Expression) string {
 		return g.gen(body)
 	}
 	kind := g.sqlKey(e, "kind")
+	// generator.py:1320 INVERSE_CREATABLE_KIND_MAPPING.
+	for from, to := range g.dialect.CreatableKindMapping {
+		if to == kind {
+			kind = from
+			break
+		}
+	}
 	properties := asExpression(e.Arg("properties"))
 
 	// generator.py:1306-1313: a CONSTRAINT TRIGGER stores the modifier on the first
@@ -1751,7 +1816,7 @@ func (g *Generator) createSQL(e expressions.Expression) string {
 	if properties != nil {
 		propertyLocations = g.locateProperties(properties)
 	}
-	this := g.sqlKey(e, "this")
+	this := g.createableSQL(e, propertyLocations)
 
 	propertiesSQL := ""
 	postSchema := propertyLocations[propertyLocationPostSchema]
@@ -1852,6 +1917,14 @@ func (g *Generator) createSQL(e expressions.Expression) string {
 
 	sql := "CREATE" + modifiers + " " + kind + concurrently + exists + " " + this + propertiesSQL + expressionSQL + postExpressionSQL + indexSQL + noSchemaBinding + clone
 	return g.prependCtes(e, sql)
+}
+
+// createableSQL ports createable_sql (generator.py:1315-1316) and its clickhouse override.
+func (g *Generator) createableSQL(e expressions.Expression, locations map[propertyLocation][]expressions.Expression) string {
+	if g.isDialect("clickhouse") {
+		return g.clickHouseCreateableSQL(e, locations)
+	}
+	return g.sqlKey(e, "this")
 }
 
 func (g *Generator) schemaSQL(e expressions.Expression) string {
@@ -2029,7 +2102,7 @@ func (g *Generator) dataTypeSQL(e expressions.Expression) string {
 	}
 	if interior != "" {
 		if exprNested {
-			nested = "<" + interior + ">"
+			nested = g.dialect.StructDelimiter[0] + interior + g.dialect.StructDelimiter[1]
 			if e.Arg("values") != nil {
 				delims := [2]string{"(", ")"}
 				if typeValue == expressions.DTypeArray {
@@ -2280,6 +2353,29 @@ func (g *Generator) trimSQLStandard(e expressions.Expression) string {
 	return "TRIM(" + trimType + removeChars + fromPart + target + collation + ")"
 }
 
+// trimSQLWithDefault ports trim_sql (dialect.py:1822-1838) with a default_trim_type.
+func (g *Generator) trimSQLWithDefault(e expressions.Expression, defaultTrimType string) string {
+	removeChars := g.sqlKey(e, "expression")
+	// Use TRIM/LTRIM/RTRIM syntax if the expression isn't database-specific
+	if removeChars == "" {
+		return g.trimSQL(e)
+	}
+	target := g.sqlKey(e, "this")
+	trimType := g.sqlKey(e, "position")
+	if trimType == "" {
+		trimType = defaultTrimType
+	}
+	collation := g.sqlKey(e, "collation")
+	if trimType != "" {
+		trimType += " "
+	}
+	removeChars += " "
+	if collation != "" {
+		collation = " COLLATE " + collation
+	}
+	return "TRIM(" + trimType + removeChars + "FROM " + target + collation + ")"
+}
+
 func (g *Generator) ceilFloorSQL(e expressions.Expression) string {
 	toClause := g.sqlKey(e, "to")
 	if toClause != "" {
@@ -2300,7 +2396,38 @@ func (g *Generator) hexSQL(e expressions.Expression) string {
 	return g.funcCall("HEX", []any{e.Arg("this")}, "(", ")", true)
 }
 
-func (g *Generator) arrayAggSQL(e expressions.Expression) string { return g.functionFallbackSQL(e) }
+// arrayAggSQL ports arrayagg_sql and _add_arrayagg_null_filter (generator.py:5707-5753): a
+// NULL filter mimics a nulls-excluding source ARRAY_AGG (e.g. Spark) on a dialect whose
+// ARRAY_AGG includes nulls.
+func (g *Generator) arrayAggSQL(e expressions.Expression) string {
+	arrayAgg := g.functionFallbackSQL(e)
+	column := e.This()
+	if column != nil && column.Kind() == expressions.KindOrder {
+		column = column.This()
+	}
+	if !g.dialect.ArrayAggIncludesNulls || !truthy(e.Arg("nulls_excluded")) || column == nil {
+		return arrayAgg
+	}
+	if parent := e.Parent(); parent != nil && parent.Kind() == expressions.KindFilter {
+		if where := parent.Expr(); where != nil {
+			cond := where.This()
+			notNull := expressions.Not(expressions.Args{"this": expressions.Is(expressions.Args{"this": column.Copy(), "expression": expressions.Null()})})
+			cond.Replace(expressions.And_(cond.Copy(), notNull))
+		}
+		return arrayAgg
+	}
+	if column.Kind() == expressions.KindColumn || column.Find(expressions.KindColumn) != nil {
+		// DISTINCT is already present in the agg function, do not propagate it to FILTER as well
+		var thisSQL string
+		if column.Kind() == expressions.KindDistinct {
+			thisSQL = g.expressions(exprsOptions{expression: column})
+		} else {
+			thisSQL = g.gen(column)
+		}
+		arrayAgg += " FILTER(WHERE " + thisSQL + " IS NOT NULL)"
+	}
+	return arrayAgg
+}
 
 // arraySizeSQL ports arraysize_sql (generator.py:5798-5811). ARRAY_SIZE_DIM_REQUIRED
 // (generator.py:588, generators/postgres.py:254) is nil/false for base (drop a `1`
@@ -2578,11 +2705,13 @@ func (g *Generator) lateralSQL(e expressions.Expression) string {
 	return g.lateralOp(e) + " " + this + alias + ordinality
 }
 
-func (g *Generator) valuesSQL(e expressions.Expression) string {
+func (g *Generator) valuesSQL(e expressions.Expression) string { return g.valuesSQLWith(e, true) }
+
+func (g *Generator) valuesSQLWith(e expressions.Expression, valuesAsTable bool) string {
 	// generator.py:2676-2718 values_sql. A VALUES node stays a table constructor when the
 	// dialect sets VALUES_AS_TABLE, or when it is an INSERT source (not under FROM/JOIN);
 	// otherwise (MySQL, generators/mysql.py:139) it is rewritten into SELECT unions.
-	if g.dialect.ValuesAsTable || e.FindAncestor(expressions.KindFrom, expressions.KindJoin) == nil {
+	if (valuesAsTable && g.dialect.ValuesAsTable) || e.FindAncestor(expressions.KindFrom, expressions.KindJoin) == nil {
 		args := g.expressions(exprsOptions{expression: e})
 		alias := g.sqlKey(e, "alias")
 		values := "VALUES" + g.seg("") + args
@@ -2735,17 +2864,32 @@ func (g *Generator) intervalSQL(e expressions.Expression) string {
 		return "INTERVAL" + unit
 	}
 
+	// generator.py:3956-3959 AUTO_REFRESH_BARE_INTERVALS: inside an AutoRefreshProperty the
+	// INTERVAL keyword (and the string quoting of the value) is dropped.
+	includeKeyword := !g.dialect.AutoRefreshBareIntervals
+	if !includeKeyword {
+		ancestor := e.FindAncestor(expressions.KindAutoRefreshProperty, expressions.KindSelect)
+		includeKeyword = ancestor == nil || ancestor.Kind() != expressions.KindAutoRefreshProperty
+	}
+	intervalKeyword := ""
+	if includeKeyword {
+		intervalKeyword = "INTERVAL"
+	}
 	this := g.sqlKey(e, "this")
 	if this != "" {
 		thisExpr := asExpression(e.Arg("this"))
+		if !includeKeyword && thisExpr != nil && thisExpr.IsString() {
+			this = thisExpr.Name()
+		}
 		unwrapped := thisExpr != nil && (thisExpr.Kind() == expressions.KindColumn || thisExpr.Kind() == expressions.KindLiteral || thisExpr.Kind() == expressions.KindNeg || thisExpr.Kind() == expressions.KindParen)
-		if unwrapped {
+		if !unwrapped {
+			this = "(" + this + ")"
+		}
+		if includeKeyword {
 			this = " " + this
-		} else {
-			this = " (" + this + ")"
 		}
 	}
-	return "INTERVAL" + this + unit
+	return intervalKeyword + this + unit
 }
 
 func (g *Generator) tableParts(e expressions.Expression) string {
@@ -2792,8 +2936,10 @@ func (g *Generator) tableSQL(e expressions.Expression) string {
 		postAlias += version
 	}
 	hints := g.expressions(exprsOptions{expression: e, key: "hints", sep: " "})
-	if hints != "" {
+	if hints != "" && g.dialect.TableHints {
 		hints = " " + hints
+	} else {
+		hints = ""
 	}
 	pivots := g.expressions(exprsOptions{expression: e, key: "pivots", emptySep: true, flat: true})
 	joins := g.indent(g.expressions(exprsOptions{expression: e, key: "joins", emptySep: true, flat: true}), 0, nil, true, false)
@@ -2889,6 +3035,10 @@ func (g *Generator) whileBlockSQL(e expressions.Expression) string {
 }
 
 func (g *Generator) hintSQL(e expressions.Expression) string {
+	if !g.dialect.QueryHints {
+		g.unsupported("Hints are not supported")
+		return ""
+	}
 	// QUERY_HINT_SEP: mysql joins hint items with a space (generators/mysql.py:138),
 	// base/postgres with ", " (generator.py:368).
 	sep := ", "

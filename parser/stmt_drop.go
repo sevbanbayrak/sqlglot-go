@@ -13,8 +13,7 @@ func init() {
 // COLUMN/CONSTRAINT/FOREIGN_KEY/FUNCTION/INDEX/PROCEDURE/TRIGGER/TYPE/DB_CREATABLES
 // (DATABASE/.../TABLE/VIEW/...); a MATERIALIZED prefix is a separate boolean flag (not part
 // of "kind"), matching upstream's `materialized = self._match_text_seq("MATERIALIZED")`
-// preceding the kind match. CREATABLE_KIND_MAPPING is empty for base/mysql/postgres
-// (dialects/dialect.py), so kind is used verbatim.
+// preceding the kind match; the kind goes through CREATABLE_KIND_MAPPING (parser.py:2347).
 func (p *Parser) parseDrop() exp.Expression {
 	start := p.prev
 	temporary := p.match(tokens.TEMPORARY)
@@ -48,7 +47,10 @@ func (p *Parser) parseDrop() exp.Expression {
 	}
 
 	var cluster exp.Expression
-	if p.match(tokens.ON) {
+	if p.dialect.Is("clickhouse") && p.match(tokens.ON) {
+		// _parse_on_property (parser.py:2411) is the ClickHouse ON CLUSTER override here.
+		cluster = p.parseClickHouseOnProperty()
+	} else if p.match(tokens.ON) {
 		// `DROP INDEX <idx> ON <table>` (MySQL): the ON-clause target is an OnProperty carrying the
 		// table (upstream Drop.cluster, parser.py:2325). divergence: upstream's shared _parse_on_property
 		// parses only a single id (_parse_schema(_parse_id_var), parser.py:3345), so it rejects the
@@ -78,7 +80,7 @@ func (p *Parser) parseDrop() exp.Expression {
 		"exists":       ifExists,
 		"this":         this,
 		"expressions":  expressions,
-		"kind":         kind,
+		"kind":         mappedCreatableKind(p.dialect.CreatableKindMapping, kind),
 		"temporary":    temporary,
 		"materialized": materialized,
 		"cascade":      cascadeOrRestrict == "CASCADE",
@@ -91,4 +93,11 @@ func (p *Parser) parseDrop() exp.Expression {
 		"force":        p.matchTextSeq("FORCE"),
 		"iceberg":      iceberg,
 	}), nil, nil)
+}
+
+func mappedCreatableKind(mapping map[string]string, kind string) string {
+	if mapped, ok := mapping[kind]; ok {
+		return mapped
+	}
+	return kind
 }

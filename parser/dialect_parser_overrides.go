@@ -37,6 +37,20 @@ type dialectParserOverrideSet struct {
 	ColumnOperators     map[tokens.TokenType]columnOpFunc
 	CastColumnOperators map[tokens.TokenType]bool
 	FactorTokens        map[tokens.TokenType]func(exp.Args) exp.Expression
+	// Removals from the shared tables (parsers/clickhouse.py:327-400).
+	DisabledNoParenFunctionParsers map[string]bool
+	DisabledColumnOperators        map[tokens.TokenType]bool
+	DisabledPropertyParsers        map[string]bool
+	// FuncTokensAdded extends FUNC_TOKENS (parsers/clickhouse.py:260-266).
+	FuncTokensAdded map[tokens.TokenType]bool
+	// Full replacements of the shared token sets, precomputed from the base sets.
+	ReservedTokensSet   map[tokens.TokenType]bool
+	IDVarTokensSet      map[tokens.TokenType]bool
+	JoinKindsSet        map[tokens.TokenType]bool
+	TableAliasTokensSet map[tokens.TokenType]bool
+	AliasTokensSet      map[tokens.TokenType]bool
+	// QueryModifierParsers adds QUERY_MODIFIER_PARSERS entries (parsers/clickhouse.py:351-358).
+	QueryModifierParsers map[tokens.TokenType]func(*Parser) (string, any)
 }
 
 var dialectParserOverrides = map[string]dialectParserOverrideSet{}
@@ -134,8 +148,12 @@ func (p *Parser) statementParser(tokenType tokens.TokenType) parserOverrideFunc 
 // while the shared PROPERTY_PARSERS singleton remains the fallback for every dialect.
 func (p *Parser) propertyParser(name string) propertyParserFunc {
 	name = strings.ToUpper(name)
-	if parser := dialectParserOverrides[p.parserOverrideKey()].PropertyParsers[name]; parser != nil {
+	overrides := dialectParserOverrides[p.parserOverrideKey()]
+	if parser := overrides.PropertyParsers[name]; parser != nil {
 		return parser
+	}
+	if overrides.DisabledPropertyParsers[name] {
+		return nil
 	}
 	return propertyParsers[name]
 }
@@ -143,10 +161,13 @@ func (p *Parser) propertyParser(name string) propertyParserFunc {
 // propertyParserKeys returns a fresh union because matchTexts needs every overlay key even when the
 // same dialect continues to inherit the rest of the shared registry.
 func (p *Parser) propertyParserKeys() map[string]bool {
-	overlay := dialectParserOverrides[p.parserOverrideKey()].PropertyParsers
+	overrides := dialectParserOverrides[p.parserOverrideKey()]
+	overlay := overrides.PropertyParsers
 	keys := make(map[string]bool, len(propertyParsers)+len(overlay))
 	for name := range propertyParsers {
-		keys[name] = true
+		if !overrides.DisabledPropertyParsers[name] {
+			keys[name] = true
+		}
 	}
 	for name := range overlay {
 		keys[name] = true
@@ -159,8 +180,12 @@ func (p *Parser) typeParserOverride() typeParserOverrideFunc {
 }
 
 func (p *Parser) noParenFunctionParserFor(name string) parserOverrideFunc {
-	if parser := dialectParserOverrides[p.parserOverrideKey()].NoParenFunctionParsers[name]; parser != nil {
+	overrides := dialectParserOverrides[p.parserOverrideKey()]
+	if parser := overrides.NoParenFunctionParsers[name]; parser != nil {
 		return parser
+	}
+	if overrides.DisabledNoParenFunctionParsers[name] {
+		return nil
 	}
 
 	parser := noParenFunctionParsers[name]
@@ -184,6 +209,9 @@ func (p *Parser) noParenFunctionFor(tokenType tokens.TokenType) func(exp.Args) e
 
 // tableAliasTokensFor is TABLE_ALIAS_TOKENS plus the dialect overlay's additions.
 func (p *Parser) tableAliasTokensFor() map[tokens.TokenType]bool {
+	if set := dialectParserOverrides[p.parserOverrideKey()].TableAliasTokensSet; set != nil {
+		return set
+	}
 	extra := dialectParserOverrides[p.parserOverrideKey()].AliasTokens
 	if len(extra) == 0 {
 		return tableAliasTokens
@@ -199,11 +227,62 @@ func (p *Parser) tableAliasTokensFor() map[tokens.TokenType]bool {
 }
 
 func (p *Parser) columnOperator(tokenType tokens.TokenType) (columnOpFunc, bool) {
-	if op, ok := dialectParserOverrides[p.parserOverrideKey()].ColumnOperators[tokenType]; ok {
+	overrides := dialectParserOverrides[p.parserOverrideKey()]
+	if op, ok := overrides.ColumnOperators[tokenType]; ok {
 		return op, true
+	}
+	if overrides.DisabledColumnOperators[tokenType] {
+		return nil, false
 	}
 	op, ok := columnOperators[tokenType]
 	return op, ok
+}
+
+// aliasTokensFor is ALIAS_TOKENS, or the dialect's replacement set.
+func (p *Parser) aliasTokensFor() map[tokens.TokenType]bool {
+	if set := dialectParserOverrides[p.parserOverrideKey()].AliasTokensSet; set != nil {
+		return set
+	}
+	return aliasTokens
+}
+
+// idVarTokensFor is ID_VAR_TOKENS, or the dialect's replacement set.
+func (p *Parser) idVarTokensFor() map[tokens.TokenType]bool {
+	if set := dialectParserOverrides[p.parserOverrideKey()].IDVarTokensSet; set != nil {
+		return set
+	}
+	return idVarTokens
+}
+
+// reservedTokensFor is RESERVED_TOKENS, or the dialect's replacement set.
+func (p *Parser) reservedTokensFor() map[tokens.TokenType]bool {
+	if set := dialectParserOverrides[p.parserOverrideKey()].ReservedTokensSet; set != nil {
+		return set
+	}
+	return reservedTokens
+}
+
+// joinKindsFor is JOIN_KINDS, or the dialect's replacement set.
+func (p *Parser) joinKindsFor() map[tokens.TokenType]bool {
+	if set := dialectParserOverrides[p.parserOverrideKey()].JoinKindsSet; set != nil {
+		return set
+	}
+	return joinKinds
+}
+
+// queryModifierParser is QUERY_MODIFIER_PARSERS plus the dialect overlay's additions.
+func (p *Parser) queryModifierParser(tokenType tokens.TokenType) func(*Parser) (string, any) {
+	if parse := dialectParserOverrides[p.parserOverrideKey()].QueryModifierParsers[tokenType]; parse != nil {
+		return parse
+	}
+	if queryModifierTokens[tokenType] {
+		return queryModifierParsers[tokenType]
+	}
+	return nil
+}
+
+func (p *Parser) isFuncToken(tokenType tokens.TokenType) bool {
+	return funcTokens[tokenType] || p.dialect.FuncTokens[tokenType] || dialectParserOverrides[p.parserOverrideKey()].FuncTokensAdded[tokenType]
 }
 
 func (p *Parser) isCastColumnOperator(tokenType tokens.TokenType) bool {

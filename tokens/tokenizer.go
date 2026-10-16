@@ -472,18 +472,19 @@ func compileConfig(cfg TokenizerConfig) TokenizerConfig {
 	// ByteStringEscapes['\\'] - the Go analogues of STRINGS_SUPPORT_ESCAPED_SEQUENCES /
 	// BYTE_STRINGS_SUPPORT_ESCAPED_SEQUENCES) gets the default UNESCAPED_SEQUENCES table
 	// merged in, so e.g. mysql's `\\` collapses to one backslash and postgres's `e'\n'`
-	// scans to an actual newline. No dialect here (base/mysql/postgres) sets its own
-	// UnescapedSequences, so a plain copy (guarded by len==0, since this can run twice -
-	// once inside BaseConfig, again via the per-dialect CompileConfig call) suffices;
-	// a real per-dialect override table would need the same `{**default, **override}`
-	// merge dialect.py does, deferred until a dialect needs it.
-	if (cfg.StringEscapes['\\'] || cfg.ByteStringEscapes['\\']) && len(cfg.UnescapedSequences) == 0 {
-		if cfg.UnescapedSequences == nil {
-			cfg.UnescapedSequences = map[string]string{}
-		}
+	// scans to an actual newline. A dialect's own UnescapedSequences (clickhouse `\0`) is
+	// merged over the defaults, like dialect.py does; the merge is idempotent, since this can
+	// run twice (once inside BaseConfig, again via the per-dialect CompileConfig call).
+	if cfg.StringEscapes['\\'] || cfg.ByteStringEscapes['\\'] {
+		// {**UNESCAPED_SEQUENCES, **klass.UNESCAPED_SEQUENCES}: the dialect's own entries win.
+		merged := make(map[string]string, len(defaultUnescapedSequences)+len(cfg.UnescapedSequences))
 		for k, v := range defaultUnescapedSequences {
-			cfg.UnescapedSequences[k] = v
+			merged[k] = v
 		}
+		for k, v := range cfg.UnescapedSequences {
+			merged[k] = v
+		}
+		cfg.UnescapedSequences = merged
 	}
 	for start, end := range cfg.Quotes {
 		cfg.FormatStrings["n"+start] = FormatString{End: end, TokenType: NATIONAL_STRING}

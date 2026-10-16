@@ -368,6 +368,7 @@ const (
 	PREWHERE
 	PRIMARY_KEY
 	PROCEDURE
+	PROJECTION
 	PROPERTIES
 	PSEUDO_TYPE
 	PUT
@@ -816,6 +817,7 @@ var tokenTypeNames = map[TokenType]string{
 	PREWHERE:                "PREWHERE",
 	PRIMARY_KEY:             "PRIMARY_KEY",
 	PROCEDURE:               "PROCEDURE",
+	PROJECTION:              "PROJECTION",
 	PROPERTIES:              "PROPERTIES",
 	PSEUDO_TYPE:             "PSEUDO_TYPE",
 	PUT:                     "PUT",

@@ -47,6 +47,20 @@ func init() {
 		exp.KindJSONPathKey:       (*Generator).jsonPathKeyOnlyName,
 		exp.KindJSONPathRoot:      func(*Generator, exp.Expression) string { return "" },
 		exp.KindJSONPathSubscript: func(g *Generator, e exp.Expression) string { return g.jsonPathPart(e.Arg("this")) },
+		// generators/postgres.py:335
+		exp.KindExplode: rename("UNNEST"),
+		// arraycontains_sql (generators/postgres.py:576-600).
+		exp.KindArrayContains: func(g *Generator, e exp.Expression) string {
+			value, array := e.Expr(), e.This()
+			coalesce := exp.New(exp.KindCoalesce, exp.Args{
+				"this":        exp.EQ(exp.Args{"this": value.Copy(), "expression": exp.Any(exp.Args{"this": exp.Paren(exp.Args{"this": array})})}),
+				"expressions": []exp.Expression{exp.Boolean(exp.Args{"this": false})},
+			})
+			return g.gen(exp.Case(exp.Args{
+				"ifs":     []exp.Expression{exp.If(exp.Args{"this": exp.Is(exp.Args{"this": value, "expression": exp.Null()}), "true": exp.Null()})},
+				"default": coalesce,
+			}))
+		},
 		// generators/postgres.py:408
 		exp.KindUuid: func(*Generator, exp.Expression) string { return "GEN_RANDOM_UUID()" },
 		// dialect.py:2626-2644 getbit_sql; the integer-typed branch needs annotate_types, which

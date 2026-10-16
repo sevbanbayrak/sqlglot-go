@@ -10,6 +10,9 @@ import (
 // generators/presto.py:303; cross-dialect Select preprocessing is intentionally omitted.
 func init() {
 	table := map[exp.Kind]func(*Generator, exp.Expression) string{
+		// generators/presto.py:314-315.
+		exp.KindArgMax:    prestoRename("MAX_BY"),
+		exp.KindArgMin:    prestoRename("MIN_BY"),
 		exp.KindTimeToStr: (*Generator).prestoTimeToStrSQL,
 		exp.KindStrToTime: (*Generator).prestoStrToTimeSQL,
 		exp.KindStrToDate: func(g *Generator, e exp.Expression) string { return "CAST(" + g.prestoStrToTimeSQL(e) + " AS DATE)" },

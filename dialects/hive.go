@@ -12,6 +12,8 @@ import (
 // mappings, INITCAP behavior, and typing metadata remain intentionally out of scope.
 func Hive() *Dialect {
 	d := Base()
+	// dialects/hive.py:24 ARRAY_AGG_INCLUDES_NULLS = None.
+	d.ArrayAggIncludesNulls = false
 	d.Name = "hive"
 	// generators/hive.py:227-251 and dialects/hive.py:23.
 	d.LimitFetch = "LIMIT"

@@ -158,6 +158,12 @@ func MySQL() *Dialect {
 		"TIME_STR_TO_UNIX": exp.FromArgListFunc(exp.KindTimeStrToUnix),
 		// parsers/mysql.py:122 build_formatted_time(exp.UnixToTime); MySQL and Presto share TIME_MAPPING.
 		"FROM_UNIXTIME": prestoBuildFormattedTime(exp.KindUnixToTime, false),
+		// parsers/mysql.py:112-115.
+		"DATE_FORMAT": func(args []exp.Expression) exp.Expression {
+			node := prestoBuildFormattedTime(exp.KindTimeToStr, false)(args)
+			node.Set("this", exp.New(exp.KindTsOrDsToTimestamp, exp.Args{"this": hiveSeqGet(args, 0)}))
+			return node
+		},
 		// parsers/mysql.py:108-110 (v30.17.0): MySQL DATEDIFF counts date-part boundaries.
 		"DATEDIFF": func(args []exp.Expression) exp.Expression {
 			return exp.New(exp.KindDateDiff, exp.Args{

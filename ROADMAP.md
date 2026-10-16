@@ -119,8 +119,8 @@ differential-check against the pinned Python):
   another is not. The per-dialect override tables that make it correct are partial — per-dialect
   parser `FUNCTIONS` ↔ generator `TRANSFORMS`/`TYPE_MAPPING` remaps (must land paired to avoid
   round-trip regressions), MySQL `||`/`&&`/`XOR` logical operators, MySQL `CAST(x AS TIMESTAMP/BLOB)`.
-- DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena, Spark2, Spark and Databricks (upstream
-  ships 30+). Spark2 (dialects/spark2.go, generator/dialect_spark2.go,
+- DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena, Spark2, Spark, Databricks and
+  ClickHouse (upstream ships 30+; ClickHouse is described in its own section below). Spark2 (dialects/spark2.go, generator/dialect_spark2.go,
   parser/dialect_spark2_overrides.go) is a 1:1 port except: `EXPRESSION_METADATA` (typing, waits for
   annotate_types), the PIVOT column naming (`PIVOT_COLUMN_NAMING`/`_pivot_column_names` — pivot
   column inference is not ported for any dialect yet, see parser/parser_pivot.go), and
@@ -625,3 +625,40 @@ testdata/fidelity_cases.txt + fidelity_test.go; corpus stays 955/424/468 base/my
   `CREATE FUNCTION ... AS $$ ... $$` dollar-quoted UDF bodies now parse to exp.Heredoc, and
   procedure BEGIN...END bodies to exp.Block (+ exp.WhileBlock/EndStatement), matching upstream
   parser.py:2114-2135/2463/9368-9370. See procedure_block_test.go + the fidelity oracle rows.
+
+## ClickHouse dialect — DONE (branch feat/clickhouse-dialect)
+
+`dialects/clickhouse.go`, `generator/dialect_clickhouse.go`, `parser/dialect_clickhouse_overrides.go`
+and `parser/dialect_clickhouse_ddl.go` port dialects/clickhouse.py, parsers/clickhouse.py and
+generators/clickhouse.py (a direct `Dialect` subclass, so no parent chain). The identity corpus
+(TestClickhouse, 468 records) passes completely; 222 of the 223 ClickHouse transpile pairs pass.
+
+- Ported: every dialect flag (INDEX_OFFSET, NULL_ORDERING, PRESERVE_ORIGINAL_NAMES, the `\0`
+  UNESCAPED_SEQUENCES entry, CREATABLE_KIND_MAPPING, SET_OP_DISTINCT_BY_DEFAULT,
+  generate_values_aliases), the tokenizer, the FUNCTIONS overlay, the parametric/combinator
+  aggregates (`_AGG_FUNCTIONS` x suffixes, `quantile(0.5)(x)`, `sumMergeIfMerge`), FUNCTION_PARSERS,
+  RANGE_PARSERS (GLOBAL IN), COLUMN_OPERATORS (`.^`, no `?`), JOIN_KINDS and the GLOBAL/ANY/ASOF/ARRAY
+  join parts, the alias token deltas, SETTINGS/FORMAT query modifiers, CONSTRAINT/ALTER/PLACEHOLDER/
+  STATEMENT parsers, the ternary, `{name: Type}` query parameters, bracket JSON casts, `{'k': v}` maps,
+  scalar CTEs, FINAL, APPLY, COLUMNS, VALUES tuple wrapping, DETACH, ON CLUSTER, REFRESH, projections,
+  and every generator flag, TYPE_MAPPING entry (Nullable wrapping), TRANSFORM and method.
+- Base pieces ported on the way (shared files, faithful to upstream): ArgMax/ArgMin parsing (plus
+  the Presto/Hive MAX_BY/MIN_BY renderings), WITH FILL / INTERPOLATE, the ORDER BY / PRIMARY KEY /
+  SETTINGS / TTL / TO / EMPTY / SAMPLE / SECURE / dictionary (SOURCE/LAYOUT/LIFETIME/RANGE) property
+  parsers and renderers, POST_NAME property location, TTL and EPHEMERAL column constraints, the
+  ALIAS/MATERIALIZED computed-column branch of `_parse_column_def`, ClickHouse JSON(...) type
+  arguments, `IN [...]`, bracket table sources, INSERT ... PARTITION BY/SETTINGS, DELETE/DROP/
+  TRUNCATE ... ON CLUSTER, CTE `USING KEY` + OPTIONAL_ALIAS_TOKEN_CTE, the TimeUnit unit
+  normalization of intervals and date deltas, DateTrunc unit normalization in FromArgList,
+  STRUCT_DELIMITER, SELECT_KINDS, QUERY/TABLE/JOIN_HINTS, GROUPINGS_SEP, SET_OP_MODIFIERS,
+  LAST_DAY_SUPPORTS_DATE_PART, SUPPORTS_TO_NUMBER, AUTO_REFRESH_BARE_INTERVALS, the per-dialect
+  ESCAPED_SEQUENCES table, the multi-char heredoc escaped-delimiter rule of `_extract_string`,
+  ARRAY_AGG's NULL filter (ARRAY_AGG_INCLUDES_NULLS), UtcTimestamp, TsOrDsToTimestamp, the dialect
+  `version` setting, MySQL `DATE_FORMAT`, Postgres `UNNEST`/`ArrayContains` and the MySQL
+  `UTC_TIMESTAMP` rename.
+- Deferred: `typing/clickhouse.py` (EXPRESSION_METADATA, waits for annotate_types);
+  `apply_index_offset` (INDEX_OFFSET=1 shifts literal bracket indexes only after annotate_types, so
+  `col[1]` is written unchanged to Hive — the same gap Postgres has); `unicodestring_sql` for
+  dialects without UNICODE_START (SUPPORTS_UESCAPE), so Postgres `U&'...'` strings are not rewritten
+  for ClickHouse. `ALTER ... MODIFY COLUMN c REMOVE DEFAULT`, `ATTACH`, `EXCHANGE`, `SYSTEM` and a
+  bare `REFRESH` stay `Command`, as upstream.

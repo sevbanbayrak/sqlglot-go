@@ -14,6 +14,7 @@ type propertyLocation uint8
 const (
 	propertyLocationUnsupported propertyLocation = iota
 	propertyLocationPostCreate
+	propertyLocationPostName
 	propertyLocationPostSchema
 	propertyLocationPostWith
 	propertyLocationPostAlias
@@ -66,6 +67,19 @@ var propertyLocations = map[expressions.Kind]propertyLocation{
 	expressions.KindOnProperty:                 propertyLocationPostSchema,
 	expressions.KindTriggerProperties:          propertyLocationPostExpression,
 	expressions.KindWithDataProperty:           propertyLocationPostExpression,
+	expressions.KindAutoRefreshProperty:        propertyLocationPostSchema,
+	expressions.KindCluster:                    propertyLocationPostSchema,
+	expressions.KindDictRange:                  propertyLocationPostSchema,
+	expressions.KindDictProperty:               propertyLocationPostSchema,
+	expressions.KindEmptyProperty:              propertyLocationPostSchema,
+	expressions.KindOrder:                      propertyLocationPostSchema,
+	expressions.KindPrimaryKey:                 propertyLocationPostSchema,
+	expressions.KindSampleProperty:             propertyLocationPostSchema,
+	expressions.KindSecureProperty:             propertyLocationPostCreate,
+	expressions.KindSettingsProperty:           propertyLocationPostSchema,
+	expressions.KindToTableProperty:            propertyLocationPostSchema,
+	expressions.KindMergeTreeTTL:               propertyLocationPostSchema,
+	expressions.KindVolatileProperty:           propertyLocationPostCreate,
 }
 
 // propertyNames is the worklist-scoped port of Properties.PROPERTY_TO_NAME. Kinds with
@@ -83,6 +97,108 @@ var propertyNames = map[expressions.Kind]string{
 }
 
 func init() {
+	// withfill_sql (generator.py:3085-3101).
+	dispatch[expressions.KindWithFill] = func(g *Generator, e expressions.Expression) string {
+		out := "WITH FILL"
+		if from := g.sqlKey(e, "from_"); from != "" {
+			out += " FROM " + from
+		}
+		if to := g.sqlKey(e, "to"); to != "" {
+			out += " TO " + to
+		}
+		if step := g.sqlKey(e, "step"); step != "" {
+			out += " STEP " + step
+		}
+		var values []string
+		for _, item := range listFromValue(e.Arg("interpolate")) {
+			ie, _ := item.(expressions.Expression)
+			if ie == nil {
+				continue
+			}
+			if ie.Kind() == expressions.KindAlias {
+				values = append(values, g.sqlKey(ie, "alias")+" AS "+g.sqlKey(ie, "this"))
+			} else {
+				values = append(values, g.sqlKey(ie, "this"))
+			}
+		}
+		if len(values) > 0 {
+			out += " INTERPOLATE (" + strings.Join(values, ", ") + ")"
+		}
+		return out
+	}
+	// skipjsoncolumn_sql (generator.py:5644-5646).
+	dispatch[expressions.KindSkipJSONColumn] = func(g *Generator, e expressions.Expression) string {
+		regexp := ""
+		if truthy(e.Arg("regexp")) {
+			regexp = " REGEXP"
+		}
+		return "SKIP" + regexp + " " + g.gen(e.Expr())
+	}
+	dispatch[expressions.KindAutoRefreshProperty] = func(g *Generator, e expressions.Expression) string {
+		return "AUTO REFRESH " + g.sqlKey(e, "this")
+	}
+	dispatch[expressions.KindEmptyProperty] = func(*Generator, expressions.Expression) string { return "EMPTY" }
+	dispatch[expressions.KindSampleProperty] = func(g *Generator, e expressions.Expression) string {
+		return "SAMPLE BY " + g.sqlKey(e, "this")
+	}
+	dispatch[expressions.KindSecureProperty] = func(*Generator, expressions.Expression) string { return "SECURE" }
+	dispatch[expressions.KindSettingsProperty] = func(g *Generator, e expressions.Expression) string {
+		return "SETTINGS" + g.seg("") + g.expressions(exprsOptions{expression: e})
+	}
+	dispatch[expressions.KindToTableProperty] = func(g *Generator, e expressions.Expression) string {
+		return "TO " + g.gen(e.This())
+	}
+	dispatch[expressions.KindVolatileProperty] = func(*Generator, expressions.Expression) string { return "VOLATILE" }
+	// oncluster_sql (generator.py:4940-4941).
+	dispatch[expressions.KindOnCluster] = func(*Generator, expressions.Expression) string { return "" }
+	// uuidproperty_sql (generator.py:2120-2121).
+	dispatch[expressions.KindUuidProperty] = func(g *Generator, e expressions.Expression) string {
+		return "UUID " + g.sqlKey(e, "this")
+	}
+	// mergetreettlaction_sql / mergetreettl_sql (generator.py:4179-4199).
+	dispatch[expressions.KindMergeTreeTTLAction] = func(g *Generator, e expressions.Expression) string {
+		out := g.sqlKey(e, "this")
+		if truthy(e.Arg("delete")) {
+			out += " DELETE"
+		}
+		if recompress := g.sqlKey(e, "recompress"); recompress != "" {
+			out += " RECOMPRESS " + recompress
+		}
+		if toDisk := g.sqlKey(e, "to_disk"); toDisk != "" {
+			out += " TO DISK " + toDisk
+		}
+		if toVolume := g.sqlKey(e, "to_volume"); toVolume != "" {
+			out += " TO VOLUME " + toVolume
+		}
+		return out
+	}
+	dispatch[expressions.KindMergeTreeTTL] = func(g *Generator, e expressions.Expression) string {
+		where := g.sqlKey(e, "where")
+		group := g.sqlKey(e, "group")
+		aggregates := g.expressions(exprsOptions{expression: e, key: "aggregates"})
+		if aggregates != "" {
+			aggregates = g.seg("SET") + g.seg(aggregates)
+		}
+		if where == "" && group == "" && aggregates == "" && len(e.Expressions()) == 1 {
+			return "TTL " + g.expressions(exprsOptions{expression: e, flat: true})
+		}
+		return "TTL" + g.seg(g.expressions(exprsOptions{expression: e})) + where + group + aggregates
+	}
+	// dictproperty_sql / dictrange_sql / dictsubproperty_sql (generator.py:4905-4919).
+	dispatch[expressions.KindDictProperty] = func(g *Generator, e expressions.Expression) string {
+		settings := g.expressions(exprsOptions{expression: e, key: "settings", sep: " "})
+		args := "()"
+		if settings != "" {
+			args = "(" + g.sep("") + settings + g.seg(")", "")
+		}
+		return g.sqlKey(e, "this") + "(" + g.sqlKey(e, "kind") + args + ")"
+	}
+	dispatch[expressions.KindDictRange] = func(g *Generator, e expressions.Expression) string {
+		return g.sqlKey(e, "this") + "(MIN " + g.sqlKey(e, "min") + " MAX " + g.sqlKey(e, "max") + ")"
+	}
+	dispatch[expressions.KindDictSubProperty] = func(g *Generator, e expressions.Expression) string {
+		return g.sqlKey(e, "this") + " " + g.sqlKey(e, "value")
+	}
 	dispatch[expressions.KindProperty] = (*Generator).propertySQL
 	dispatch[expressions.KindAlgorithmProperty] = (*Generator).propertySQL
 	dispatch[expressions.KindAutoIncrementProperty] = (*Generator).propertySQL
@@ -232,6 +348,15 @@ func (g *Generator) withPropertiesSQL(properties expressions.Expression) string 
 	return g.renderProperties(properties, g.seg("WITH", ""), ", ", "", true)
 }
 
+// nakedPropertySQL ports naked_property (generator.py:4787-4791).
+func (g *Generator) nakedPropertySQL(e expressions.Expression) string {
+	name, ok := propertyNames[e.Kind()]
+	if !ok {
+		g.unsupported("Unsupported property " + expressions.ClassName(e.Kind()))
+	}
+	return name + " " + g.sqlKey(e, "this")
+}
+
 // propertyName ports property_name (generator.py:2078-2081).
 func (g *Generator) propertyName(e expressions.Expression, stringKey bool) string {
 	if this := asExpression(e.Arg("this")); this != nil && this.Kind() == expressions.KindDot {
@@ -368,4 +493,135 @@ func (g *Generator) withDataPropertySQL(e expressions.Expression) string {
 		sql += " AND " + statisticsNo + "STATISTICS"
 	}
 	return sql
+}
+
+// Generator methods for nodes the ClickHouse parser builds (generator.py).
+func init() {
+	// assume (generator.py:147).
+	dispatch[expressions.KindAssumeColumnConstraint] = func(g *Generator, e expressions.Expression) string {
+		return "ASSUME (" + g.sqlKey(e, "this") + ")"
+	}
+	// parameterizedagg_sql / anonymousaggfunc_sql / combinedaggfunc_sql /
+	// combinedparameterizedagg_sql (generator.py:6102-6113).
+	parameterized := func(g *Generator, e expressions.Expression) string {
+		params := g.expressions(exprsOptions{expression: e, key: "params", flat: true})
+		return g.funcCall(e.Name(), anySlice(e.Expressions()), "(", ")", true) + "(" + params + ")"
+	}
+	anonymousAgg := func(g *Generator, e expressions.Expression) string {
+		return g.funcCall(e.Name(), anySlice(e.Expressions()), "(", ")", true)
+	}
+	dispatch[expressions.KindParameterizedAgg] = parameterized
+	dispatch[expressions.KindCombinedParameterizedAgg] = parameterized
+	dispatch[expressions.KindAnonymousAggFunc] = anonymousAgg
+	dispatch[expressions.KindCombinedAggFunc] = anonymousAgg
+	// apply_sql (generator.py:5763-5767).
+	dispatch[expressions.KindApply] = func(g *Generator, e expressions.Expression) string {
+		return g.sqlKey(e, "this") + " APPLY(" + g.sqlKey(e, "expression") + ")"
+	}
+	// columns_sql (generator.py:5827-5832).
+	dispatch[expressions.KindColumns] = func(g *Generator, e expressions.Expression) string {
+		fn := g.functionFallbackSQL(e)
+		if truthy(e.Arg("unpack")) {
+			fn = "*" + fn
+		}
+		return fn
+	}
+	// detach_sql (generator.py:5909-5924).
+	dispatch[expressions.KindDetach] = func(g *Generator, e expressions.Expression) string {
+		kind := g.sqlKey(e, "kind")
+		if kind != "" {
+			kind = " " + kind
+		}
+		exists := ""
+		if truthy(e.Arg("exists")) {
+			exists = " IF EXISTS"
+			if kind == "" {
+				kind = " DATABASE"
+			}
+		}
+		this := g.sqlKey(e, "this")
+		if this != "" {
+			this = " " + this
+		}
+		cluster := g.sqlKey(e, "cluster")
+		if cluster != "" {
+			cluster = " " + cluster
+		}
+		permanent, sync := "", ""
+		if truthy(e.Arg("permanent")) {
+			permanent = " PERMANENTLY"
+		}
+		if truthy(e.Arg("sync")) {
+			sync = " SYNC"
+		}
+		return "DETACH" + kind + exists + this + cluster + permanent + sync
+	}
+	// altermodifysqlsecurity_sql (generator.py:6350-6352).
+	dispatch[expressions.KindAlterModifySqlSecurity] = func(g *Generator, e expressions.Expression) string {
+		return "MODIFY " + g.expressions(exprsOptions{expression: e, sep: " "})
+	}
+}
+
+func anySlice(list []expressions.Expression) []any {
+	out := make([]any, len(list))
+	for i, e := range list {
+		out[i] = e
+	}
+	return out
+}
+
+func init() {
+	// generator.py:188-190.
+	dispatch[expressions.KindEphemeralColumnConstraint] = func(g *Generator, e expressions.Expression) string {
+		if this := g.sqlKey(e, "this"); this != "" {
+			return "EPHEMERAL " + this
+		}
+		return "EPHEMERAL"
+	}
+	// generator.py:284-286.
+	dispatch[expressions.KindUtcTimestamp] = func(g *Generator, e expressions.Expression) string {
+		return g.gen(expressions.New(expressions.KindCurrentTimestamp, expressions.Args{"this": expressions.LiteralString("UTC")}))
+	}
+}
+
+func init() {
+	// tsordstotimestamp_sql (generator.py:5188-5193); the is_type(TIMESTAMP) test is reduced
+	// to an explicit TIMESTAMP cast, since annotate_types never runs here.
+	dispatch[expressions.KindTsOrDsToTimestamp] = func(g *Generator, e expressions.Expression) string {
+		this := e.This()
+		if this != nil && (this.Kind() == expressions.KindTsOrDsToTimestamp ||
+			(this.Kind() == expressions.KindCast && expressions.IsType(asExpression(this.Arg("to")), expressions.DTypeTimestamp))) {
+			return g.gen(this)
+		}
+		return g.gen(expressions.Cast(expressions.Args{"this": this, "to": expressions.DTypeTimestamp.IntoExpr(nil)}))
+	}
+}
+
+func init() {
+	// lastday_sql (generator.py:5232-5240).
+	dispatch[expressions.KindLastDay] = func(g *Generator, e expressions.Expression) string {
+		if g.dialect.LastDaySupportsDatePart {
+			return g.functionFallbackSQL(e)
+		}
+		if unit := asExpression(e.Arg("unit")); unit != nil && strings.ToUpper(unit.Name()) != "MONTH" {
+			g.unsupported("Date parts are not supported in LAST_DAY.")
+		}
+		return g.funcCall("LAST_DAY", []any{e.This()}, "(", ")", true)
+	}
+	// tonumber_sql (generator.py:4893-4903).
+	dispatch[expressions.KindToNumber] = func(g *Generator, e expressions.Expression) string {
+		toDouble := func() string {
+			return g.gen(expressions.Cast(expressions.Args{"this": e.This(), "to": expressions.DTypeDouble.IntoExpr(nil)}))
+		}
+		if !g.dialect.SupportsToNumber {
+			g.unsupported("Unsupported TO_NUMBER function")
+			return toDouble()
+		}
+		format := e.Arg("format")
+		if format == nil {
+			g.unsupported("Conversion format is required for TO_NUMBER")
+			return toDouble()
+		}
+		return g.funcCall("TO_NUMBER", []any{e.This(), format}, "(", ")", true)
+	}
 }

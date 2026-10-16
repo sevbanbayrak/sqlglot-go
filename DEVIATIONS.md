@@ -278,6 +278,11 @@ source nodes only other dialects build are not. Several Presto functions still p
 (`DATE_FORMAT`, `DATE_PARSE`, `TO_CHAR`, `DATE_TRUNC`, `REGEXP_*`, `LOCALTIME[STAMP]`, `CONCAT_WS`)
 — lineage still sees column args; same-dialect `.sql()` echoes them.
 
+- ClickHouse `ON CLUSTER` written to another dialect: upstream looks the property up in a
+  `PROPERTIES_LOCATION` table that has no `OnCluster` entry and raises `KeyError`; the port reports
+  it as an unsupported property and drops it (`CREATE TABLE t ON CLUSTER c (a Int32) ...` written to
+  postgres yields `CREATE TABLE t (a INT) ...` plus an unsupported warning).
+
 ---
 
 ## 3. Output-preserving, Go-necessitated divergences

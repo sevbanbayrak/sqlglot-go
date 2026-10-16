@@ -63,6 +63,8 @@ type Generator struct {
 	// (dialects/dialect.py:298-300, 434): "\\" in the dialect's BYTE_STRING_ESCAPES. Only
 	// postgres sets ByteStringEscapes['\\'] among base/mysql/postgres.
 	byteStringsSupportEscapedSequences bool
+	// escapedSequences ports the dialect's ESCAPED_SEQUENCES (see escapedSequencesFor).
+	escapedSequences map[byte]string
 
 	// singleStringInterval ports SINGLE_STRING_INTERVAL (generator.py:335, postgres.py:233):
 	// whether intervalSQL renders as a single quoted "<value> <unit>" string (postgres) rather
@@ -150,6 +152,7 @@ func New(d *dialects.Dialect, o Options) *Generator {
 		stringsSupportEscapedSequences:     d.TokenizerConfig.StringEscapes['\\'],
 		escapedByteQuoteEnd:                escapedByteQuoteEnd,
 		byteStringsSupportEscapedSequences: d.TokenizerConfig.ByteStringEscapes['\\'],
+		escapedSequences:                   escapedSequencesFor(d.TokenizerConfig.UnescapedSequences),
 		singleStringInterval:               d.SingleStringInterval,
 		intervalAllowsPluralForm:           d.IntervalAllowsPluralForm,
 		parameterToken:                     d.ParameterToken,
@@ -555,6 +558,9 @@ func listFromValue(value any) []any {
 
 func (g *Generator) opExpressions(op string, e expressions.Expression, flat ...bool) string {
 	isFlat := len(flat) > 0 && flat[0]
+	if parent := e.Parent(); parent != nil && parent.Kind() == expressions.KindProperties {
+		isFlat = true
+	}
 	expressionsSQL := g.expressions(exprsOptions{expression: e, flat: isFlat})
 	if isFlat {
 		return op + " " + expressionsSQL
@@ -625,7 +631,14 @@ func (g *Generator) normalizeFunc(name string) string {
 }
 
 func (g *Generator) functionFallbackSQL(e expressions.Expression) string {
-	return g.funcCall(g.sqlName(e.Kind()), g.fallbackArgs(e), "(", ")", true)
+	name := g.sqlName(e.Kind())
+	// generator.py:4681-4684 PRESERVE_ORIGINAL_NAMES.
+	if g.dialect.PreserveOriginalNames {
+		if original, ok := e.MetaGet("name").(string); ok && original != "" {
+			name = original
+		}
+	}
+	return g.funcCall(name, g.fallbackArgs(e), "(", ")", true)
 }
 
 // fallbackArgs gathers an expression's argument values in ArgKeys (declared) order,

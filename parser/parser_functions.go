@@ -21,6 +21,12 @@ var opaqueDroppedFunctionParsers = map[string]bool{
 	"CONCAT":    true,
 	"CONCAT_WS": true,
 	"DATE_PART": true,
+	"ARG_MAX":   true,
+	"ARGMAX":    true,
+	"MAX_BY":    true,
+	"ARG_MIN":   true,
+	"ARGMIN":    true,
+	"MIN_BY":    true,
 }
 
 // captureOpaqueName snapshots the current call's as-written name at form-split parser ENTRY,
@@ -41,6 +47,9 @@ func (p *Parser) opaqueAnonymous(name string, args []exp.Expression) exp.Express
 func dialectFunction(d *dialects.Dialect, name string) func([]exp.Expression) exp.Expression {
 	if function := d.Functions[name]; function != nil {
 		return function
+	}
+	if d.DisabledFunctions[name] {
+		return nil
 	}
 	return exp.FunctionByName[name]
 }
@@ -112,6 +121,11 @@ func (p *Parser) parseCeilFloor(kind exp.Kind) exp.Expression {
 }
 
 func (p *Parser) parseExtract() exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		if extract := p.parseClickHouseExtract(); extract != nil {
+			return extract
+		}
+	}
 	opaqueName := p.captureOpaqueName()
 	// Mirror upstream `self._parse_function() or self._parse_var_or_string(...)`:
 	// short-circuit so the second alternative never runs (and never advances past
@@ -155,6 +169,10 @@ func (p *Parser) parsePosition() exp.Expression {
 	}
 	if p.dialect.OpaqueFunctions {
 		return p.opaqueAnonymous(opaqueName, args)
+	}
+	if p.dialect.Is("clickhouse") {
+		// _parse_position(haystack_first=True) (parsers/clickhouse.py:568-569).
+		return p.expression(exp.StrPosition(exp.Args{"this": seqGet(args, 0), "substr": seqGet(args, 1), "position": seqGet(args, 2)}), nil, nil)
 	}
 	return p.expression(exp.StrPosition(exp.Args{"this": seqGet(args, 1), "substr": seqGet(args, 0), "position": seqGet(args, 2)}), nil, nil)
 }

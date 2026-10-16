@@ -777,7 +777,7 @@ func (p *Parser) parseSetOperations(this exp.Expression) exp.Expression {
 		}
 		this = setop
 	}
-	if this != nil && isSetOperation(this.Kind()) {
+	if this != nil && isSetOperation(this.Kind()) && p.dialect.ModifiersAttachedToSetOp {
 		expression := this.Expr()
 		if expression != nil {
 			for _, arg := range []string{"order", "limit", "offset"} {
@@ -819,11 +819,15 @@ func (p *Parser) parseSetOperation(this exp.Expression, consumePipe bool) exp.Ex
 		constructor = exp.Intersect
 	}
 	comments := p.prev.Comments
-	distinct := true // TODO(slice 5): dialect SET_OP_DISTINCT_BY_DEFAULT overrides.
+	var distinct bool
 	if p.match(tokens.DISTINCT) {
 		distinct = true
 	} else if p.match(tokens.ALL) {
 		distinct = false
+	} else if def := p.dialect.SetOpDistinctDefault(constructor(nil).Kind()); def != nil {
+		distinct = *def
+	} else {
+		p.raiseError("Expected DISTINCT or ALL for " + exp.ClassName(constructor(nil).Kind()))
 	}
 	// Upstream stores by_name only when matched (parser.py:5738-5742 uses `... or None`),
 	// so leave it nil when absent (like symmetric/siblings) rather than storing False.
@@ -1014,7 +1018,8 @@ func (p *Parser) parseQueryModifiers(this exp.Expression) exp.Expression {
 			this.Append("laterals", lateral)
 		}
 		for {
-			if !queryModifierTokens[p.curr.TokenType] {
+			parse := p.queryModifierParser(p.curr.TokenType)
+			if parse == nil {
 				// v30.17.0 (parser.py:4371-4382): a leading START (text) may begin a
 				// START WITH ... CONNECT BY clause.
 				if stringsUpper(p.curr.Text) == "START" && !textMatchExcludedTokens[p.curr.TokenType] {
@@ -1029,7 +1034,6 @@ func (p *Parser) parseQueryModifiers(this exp.Expression) exp.Expression {
 				}
 				break
 			}
-			parse := queryModifierParsers[p.curr.TokenType]
 			modTok := p.curr
 			key, expression := parse(p)
 			if expression == nil {
@@ -1280,6 +1284,25 @@ func (p *Parser) parseFrom(joins bool, skipFromToken bool, consumePipe bool) exp
 }
 
 func (p *Parser) parseTable(schema bool, joins bool, aliasTokens map[tokens.TokenType]bool, parseBracket bool, isDBReference bool, parsePartition bool, consumePipe bool) exp.Expression {
+	if !p.dialect.Is("clickhouse") {
+		return p.parseTableBase(schema, joins, aliasTokens, parseBracket, isDBReference, parsePartition, consumePipe)
+	}
+	// parsers/clickhouse.py:536-566: parse_partition is not forwarded to the base parser.
+	this := p.parseTableBase(schema, joins, aliasTokens, parseBracket, isDBReference, false, consumePipe)
+	if this != nil && this.Kind() == exp.KindTable {
+		inner := this.This()
+		alias := asExpr(this.Arg("alias"))
+		if inner != nil && inner.Kind() == exp.KindGenerateSeries && alias != nil && len(listArg(alias, "columns")) == 0 {
+			alias.Set("columns", []exp.Expression{exp.ToIdentifier("generate_series")})
+		}
+	}
+	if p.match(tokens.FINAL) {
+		this = p.expression(exp.Final(exp.Args{"this": this}), nil, nil)
+	}
+	return this
+}
+
+func (p *Parser) parseTableBase(schema bool, joins bool, aliasTokens map[tokens.TokenType]bool, parseBracket bool, isDBReference bool, parsePartition bool, consumePipe bool) exp.Expression {
 	// Divergence from upstream: skip _parse_table's fast path in this slice so
 	// subquery detection always runs before table-part parsing.
 	if stream := p.parseStream(); stream != nil {
@@ -1328,7 +1351,14 @@ func (p *Parser) parseTable(schema bool, joins bool, aliasTokens map[tokens.Toke
 	// table-valued function's alias is). this is populated here so the ONLY/STAR/PARTITION/
 	// alias/hints/pivots/joins/ORDINALITY handling below applies uniformly.
 	var this exp.Expression
-	if p.matchTextSeq("ROWS", "FROM") {
+	// parser.py:5038-5039: with parse_bracket a bracket (e.g. an ARRAY JOIN array literal)
+	// becomes the table's `this`.
+	if parseBracket {
+		if bracket := p.parseBracket(nil); bracket != nil {
+			this = p.expression(exp.Table(exp.Args{"this": bracket}), nil, nil)
+		}
+	}
+	if this == nil && p.matchTextSeq("ROWS", "FROM") {
 		rowsFromTables := p.parseWrappedCsv(func() exp.Expression {
 			return p.parseTable(false, false, nil, false, false, false, false)
 		})
@@ -1391,7 +1421,7 @@ func (p *Parser) parseTable(schema bool, joins bool, aliasTokens map[tokens.Toke
 		}
 	}
 	mysqlIndexHint := p.dialect.Name == "mysql" && tableIndexHintTokens[p.curr.TokenType]
-	if p.curr.TokenType == tokens.ALIAS || (!mysqlIndexHint && !joinKinds[p.curr.TokenType] && !joinMethods[p.curr.TokenType] && !joinSides[p.curr.TokenType]) {
+	if p.curr.TokenType == tokens.ALIAS || (!mysqlIndexHint && !p.joinKindsFor()[p.curr.TokenType] && !joinMethods[p.curr.TokenType] && !joinSides[p.curr.TokenType]) {
 		if alias := p.parseTableAlias(aliasTokens); alias != nil {
 			this.Set("alias", alias)
 		}
@@ -1604,6 +1634,34 @@ var joinSides = map[tokens.TokenType]bool{tokens.FULL: true, tokens.LEFT: true, 
 var joinKinds = map[tokens.TokenType]bool{tokens.ANTI: true, tokens.CROSS: true, tokens.INNER: true, tokens.OUTER: true, tokens.SEMI: true, tokens.STRAIGHT_JOIN: true}
 
 func (p *Parser) parseJoinParts() (method, side, kind *tokens.Token) {
+	if p.dialect.Is("clickhouse") {
+		// parsers/clickhouse.py:584-593: GLOBAL takes the method slot, and the kind may come
+		// before or after the side (ANY LEFT JOIN / LEFT ANY JOIN).
+		var isGlobal, kindPre *tokens.Token
+		if p.match(tokens.GLOBAL) {
+			prev := p.prev
+			isGlobal = &prev
+		}
+		if p.matchSet(p.joinKindsFor()) {
+			prev := p.prev
+			kindPre = &prev
+		}
+		if p.matchSet(joinSides) {
+			prev := p.prev
+			side = &prev
+		}
+		if p.matchSet(p.joinKindsFor()) {
+			prev := p.prev
+			kind = &prev
+		}
+		if side == nil {
+			side = kind
+		}
+		if kindPre != nil {
+			kind = kindPre
+		}
+		return isGlobal, side, kind
+	}
 	if p.matchSet(joinMethods) {
 		prev := p.prev
 		method = &prev
@@ -1612,7 +1670,7 @@ func (p *Parser) parseJoinParts() (method, side, kind *tokens.Token) {
 		prev := p.prev
 		side = &prev
 	}
-	if p.matchSet(joinKinds) {
+	if p.matchSet(p.joinKindsFor()) {
 		prev := p.prev
 		kind = &prev
 	}
@@ -1620,6 +1678,59 @@ func (p *Parser) parseJoinParts() (method, side, kind *tokens.Token) {
 }
 
 func (p *Parser) parseJoin(skipJoinToken bool, parseBracket bool, aliasTokensArg map[tokens.TokenType]bool) exp.Expression {
+	if !p.dialect.Is("clickhouse") {
+		return p.parseJoinBase(skipJoinToken, parseBracket, aliasTokensArg)
+	}
+	// parsers/clickhouse.py:595-615.
+	join := p.parseJoinBase(skipJoinToken, true, aliasTokensArg)
+	if join != nil {
+		method := join.Arg("method")
+		join.Set("method", nil)
+		join.Set("global_", method)
+		// tbl ARRAY JOIN arr <-- this should be a `Column` reference, not a `Table`
+		// https://clickhouse.com/docs/en/sql-reference/statements/select/array-join
+		if join.Text("kind") == "ARRAY" {
+			for _, table := range join.FindAll(exp.KindTable) {
+				table.Replace(tableToColumn(table))
+			}
+		}
+	}
+	return join
+}
+
+// tableToColumn ports Table.to_column (expressions/query.py:1004-1018).
+func tableToColumn(table exp.Expression) exp.Expression {
+	parts := table.Parts()
+	if len(parts) == 0 {
+		return table
+	}
+	last := parts[len(parts)-1]
+	var col exp.Expression
+	if last.Kind() == exp.KindIdentifier {
+		head := parts
+		if len(head) > 4 {
+			head = head[:4]
+		}
+		reversed := make([]any, 4)
+		for i := range head {
+			reversed[i] = head[len(head)-1-i]
+		}
+		var fields []any
+		for _, field := range parts[min(len(parts), 4):] {
+			fields = append(fields, field)
+		}
+		col = exp.Column_(reversed[0], reversed[1], reversed[2], reversed[3], fields)
+	} else {
+		// This branch will be reached if a function or array is wrapped in a `Table`
+		col = last
+	}
+	if alias := asExpr(table.Arg("alias")); alias != nil {
+		col = exp.AliasExpr(col, alias.This(), false)
+	}
+	return col
+}
+
+func (p *Parser) parseJoinBase(skipJoinToken bool, parseBracket bool, aliasTokensArg map[tokens.TokenType]bool) exp.Expression {
 	if p.match(tokens.COMMA) {
 		table := p.tryParse(func() exp.Expression { return p.parseTable(false, false, aliasTokensArg, false, false, false, false) }, false)
 		if table == nil {
@@ -1647,6 +1758,11 @@ func (p *Parser) parseJoin(skipJoinToken bool, parseBracket bool, aliasTokensArg
 		return nil
 	}
 	kwargs := exp.Args{"this": p.parseTable(false, false, aliasTokensArg, parseBracket, false, false, false)}
+	if kind != nil && kind.TokenType == tokens.ARRAY && p.match(tokens.COMMA) {
+		kwargs["expressions"] = p.parseCsv(func() exp.Expression {
+			return p.parseTable(false, false, aliasTokensArg, parseBracket, false, false, false)
+		})
+	}
 	if method != nil {
 		kwargs["method"] = stringsUpper(method.Text)
 	}
@@ -1661,7 +1777,7 @@ func (p *Parser) parseJoin(skipJoinToken bool, parseBracket bool, aliasTokensArg
 		kwargs["on"] = p.parseDisjunction()
 	} else if p.match(tokens.USING) {
 		kwargs["using"] = p.parseUsingIdentifiers()
-	} else if method == nil && !outerApply && !crossApply && (joinThis == nil || joinThis.Kind() != exp.KindUnnest) && !(kind != nil && kind.TokenType == tokens.CROSS) {
+	} else if method == nil && !outerApply && !crossApply && (joinThis == nil || joinThis.Kind() != exp.KindUnnest) && !(kind != nil && (kind.TokenType == tokens.CROSS || kind.TokenType == tokens.ARRAY)) {
 		// Nested-join fallback (parser.py:4524-4541): a trailing ON/USING may belong to an
 		// outer join wrapping further joins nested on this join's `this`, e.g.
 		// `a JOIN b JOIN c USING (id) USING (id)` attaches the second USING to the `a JOIN b`
@@ -1775,7 +1891,18 @@ func (p *Parser) parseSort(kind exp.Kind, tok tokens.TokenType) exp.Expression {
 	return p.expression(exp.New(kind, exp.Args{"expressions": p.parseCsv(func() exp.Expression { return p.parseOrdered(nil) })}), nil, nil)
 }
 
-func (p *Parser) parseExpression() exp.Expression { return p.parseAlias(p.parseAssignment(), false) }
+func (p *Parser) parseExpression() exp.Expression {
+	this := p.parseAlias(p.parseAssignment(), false)
+	if p.dialect.Is("clickhouse") {
+		// Clickhouse allows "SELECT <expr> [APPLY(func)] [...]]" modifier
+		// (parsers/clickhouse.py:887-895).
+		for p.matchPair(tokens.APPLY, tokens.L_PAREN, true) {
+			this = exp.New(exp.KindApply, exp.Args{"this": this, "expression": p.parseVar(true, nil, false)})
+			p.match(tokens.R_PAREN)
+		}
+	}
+	return this
+}
 
 var assignmentTokens = map[tokens.TokenType]func(exp.Args) exp.Expression{
 	tokens.COLON_EQ: exp.PropertyEQ,
@@ -1799,6 +1926,9 @@ func (p *Parser) parseAssignment() exp.Expression {
 		p.advance()
 		comments := p.prevComments
 		this = p.expression(constructor(exp.Args{"this": this, "expression": p.parseAssignment()}), nil, comments)
+	}
+	if p.dialect.Is("clickhouse") {
+		return p.parseClickHouseTernary(this)
 	}
 	return this
 }
@@ -2020,6 +2150,14 @@ func (p *Parser) parseRange(this exp.Expression) exp.Expression {
 			// elsewhere.
 			p.advance()
 			this = p.expression(exp.JSONArrayContains(exp.Args{"this": this, "expression": p.parseWrapped(p.parseExpression, false)}), nil, nil)
+		case tokens.GLOBAL:
+			// RANGE_PARSERS[TokenType.GLOBAL] (parsers/clickhouse.py:337-340).
+			if !p.dialect.Is("clickhouse") {
+				matched = false
+				break
+			}
+			p.advance()
+			this = p.parseClickHouseGlobalIn(this)
 		case tokens.IS:
 			// RANGE_PARSERS[TokenType.IS] = lambda self, this: self._parse_is(this)
 			// (parser.py:1192): matched here in addition to the unconditional `if
@@ -2088,6 +2226,8 @@ func (p *Parser) isRangeChainToken(tt tokens.TokenType) bool {
 		return true
 	}
 	switch tt {
+	case tokens.GLOBAL:
+		return p.dialect.Is("clickhouse")
 	case tokens.DAMP, tokens.DAT:
 		return p.dialect.Name == "postgres"
 	case tokens.MEMBER_OF:
@@ -2186,7 +2326,8 @@ func (p *Parser) parseIn(this exp.Expression, alias bool) exp.Expression {
 	if unnest := p.parseUnnest(false); unnest != nil {
 		return p.expression(exp.In(exp.Args{"this": this, "unnest": unnest}), nil, nil)
 	}
-	if p.match(tokens.L_PAREN) {
+	if p.matchSet(map[tokens.TokenType]bool{tokens.L_PAREN: true, tokens.L_BRACKET: true}) {
+		matchedLParen := p.prev.TokenType == tokens.L_PAREN
 		expressions := p.parseCsv(func() exp.Expression { return p.parseSelectOrExpression(alias) })
 		if len(expressions) == 1 && expressions[0] != nil && expressions[0].Is(exp.TraitQuery) {
 			query := p.parseQueryModifiers(expressions[0])
@@ -2194,7 +2335,13 @@ func (p *Parser) parseIn(this exp.Expression, alias bool) exp.Expression {
 		} else {
 			this = p.expression(exp.In(exp.Args{"this": this, "expressions": expressions}), nil, nil)
 		}
-		p.matchRParen(this)
+		if matchedLParen {
+			p.matchRParen(this)
+		} else if !p.match(tokens.R_BRACKET) {
+			p.raiseError("Expecting ]")
+		} else {
+			p.addComments(this)
+		}
 	} else {
 		this = p.expression(exp.In(exp.Args{"this": this, "field": p.parseColumn()}), nil, nil)
 	}
@@ -2908,6 +3055,11 @@ func (p *Parser) parseField(anyToken bool, toks map[tokens.TokenType]bool, anony
 }
 
 func (p *Parser) parseAlias(this exp.Expression, explicit bool) exp.Expression {
+	// In clickhouse "SELECT <expr> APPLY(...)" is a query modifier, so "APPLY" shouldn't be
+	// parsed as <expr>'s alias (parsers/clickhouse.py:879-885).
+	if p.dialect.Is("clickhouse") && p.matchPair(tokens.APPLY, tokens.L_PAREN, false) {
+		return this
+	}
 	if p.canParseLimitOrOffset() {
 		return this
 	}
@@ -2924,7 +3076,7 @@ func (p *Parser) parseAlias(this exp.Expression, explicit bool) exp.Expression {
 		p.matchRParen(aliases)
 		return aliases
 	}
-	alias := p.parseIdVar(anyToken, aliasTokens)
+	alias := p.parseIdVar(anyToken, p.aliasTokensFor())
 	if alias == nil && p.dialect.StringAliases {
 		// STRING_ALIASES (parser.py:8490-8492): only dialects with the flag set fold a trailing
 		// string constant into an identifier alias here. Base/postgres leave it false, so a
@@ -3075,7 +3227,7 @@ func (p *Parser) parsePGTypedLiteralValue() exp.Expression {
 func (p *Parser) parseIdVar(anyToken bool, toks map[tokens.TokenType]bool) exp.Expression {
 	expression := p.parseIdentifier()
 	if expression == nil {
-		if (anyToken && p.advanceAny(false) != nil) || p.matchSet(tokensOrDefault(toks, idVarTokens)) {
+		if (anyToken && p.advanceAny(false) != nil) || p.matchSet(tokensOrDefault(toks, p.idVarTokensFor())) {
 			quoted := p.prev.TokenType == tokens.STRING
 			expression = p.identifierExpression(quoted)
 		}
@@ -3102,7 +3254,7 @@ func (p *Parser) identifierExpression(quoted bool) exp.Expression {
 }
 
 func (p *Parser) advanceAny(ignoreReserved bool) *tokens.Token {
-	if p.curr.IsValid() && (ignoreReserved || !reservedTokens[p.curr.TokenType]) {
+	if p.curr.IsValid() && (ignoreReserved || !p.reservedTokensFor()[p.curr.TokenType]) {
 		p.advance()
 		return &p.prev
 	}
@@ -3204,6 +3356,14 @@ func (p *Parser) parsePlaceholder() exp.Expression {
 	}
 	if p.dialect.Name == "postgres" && p.match(tokens.MOD) {
 		return p.spanned(p.parseQueryParameter(), start, p.prev)
+	}
+	if p.dialect.Is("clickhouse") && p.match(tokens.L_BRACE) {
+		// PLACEHOLDER_PARSERS[TokenType.L_BRACE] (parsers/clickhouse.py:378-381).
+		if placeholder := p.parseClickHouseQueryParameter(); placeholder != nil {
+			return p.spanned(placeholder, start, p.prev)
+		}
+		p.advance(-1)
+		return nil
 	}
 	if p.dialect.Is("spark") && p.match(tokens.L_BRACE) {
 		// parsers/spark.py:93-100: a {name} widget parameter.
@@ -3338,7 +3498,16 @@ func (p *Parser) statementSpanned(this exp.Expression, start, end tokens.Token) 
 // (inside any alias) so the original spelling of an unaliased computed projection is
 // recoverable — e.g. MySQL labels such a column with its verbatim source text.
 func (p *Parser) parseProjection() exp.Expression {
-	return p.parseAlias(p.parseSpanned(p.parseAssignment), false)
+	this := p.parseAlias(p.parseSpanned(p.parseAssignment), false)
+	if p.dialect.Is("clickhouse") {
+		// The projections are _parse_expression upstream, which ClickHouse extends with the
+		// APPLY(func) column transformer (parsers/clickhouse.py:887-895).
+		for p.matchPair(tokens.APPLY, tokens.L_PAREN, true) {
+			this = exp.New(exp.KindApply, exp.Args{"this": this, "expression": p.parseVar(true, nil, false)})
+			p.match(tokens.R_PAREN)
+		}
+	}
+	return this
 }
 
 func (p *Parser) parseWith(skipWithToken bool) exp.Expression {
@@ -3373,11 +3542,26 @@ func (p *Parser) parseWith(skipWithToken bool) exp.Expression {
 }
 
 func (p *Parser) parseCTE() exp.Expression {
-	alias := p.parseTableAlias(idVarTokens)
+	if p.dialect.Is("clickhouse") {
+		return p.parseClickHouseCTE()
+	}
+	return p.parseCTEBase()
+}
+
+func (p *Parser) parseCTEBase() exp.Expression {
+	index := p.index
+	alias := p.parseTableAlias(p.idVarTokensFor())
 	if alias == nil || alias.This() == nil {
 		p.raiseError("Expected CTE to have alias")
 	}
-	p.match(tokens.ALIAS)
+	var keyExpressions []exp.Expression
+	if p.matchTextSeq("USING", "KEY") {
+		keyExpressions = p.parseWrappedIdVars()
+	}
+	if !p.match(tokens.ALIAS) && !p.dialect.OptionalAliasTokenCTE {
+		p.retreat(index)
+		return nil
+	}
 	comments := p.prevComments
 	var materialized any
 	if p.matchTextSeq("NOT", "MATERIALIZED") {
@@ -3386,9 +3570,10 @@ func (p *Parser) parseCTE() exp.Expression {
 		materialized = true
 	}
 	cte := p.expression(exp.CTE(exp.Args{
-		"this":         p.parseWrapped(func() exp.Expression { return p.parseStatement() }, false),
-		"alias":        alias,
-		"materialized": materialized,
+		"this":            p.parseWrapped(func() exp.Expression { return p.parseStatement() }, false),
+		"alias":           alias,
+		"materialized":    materialized,
+		"key_expressions": nonEmpty(keyExpressions),
 	}), nil, comments)
 	// CTE canonicalization (parser.py:4241-4243, v30.17.0): a bare VALUES body becomes
 	// SELECT * FROM (VALUES ...) AS _values.
@@ -3461,6 +3646,25 @@ func (p *Parser) parseWrappedCsv(parseMethod func() exp.Expression, optional ...
 }
 
 func (p *Parser) parseValue(values bool) exp.Expression {
+	value := p.parseValueBase(values)
+	if value == nil || !p.dialect.Is("clickhouse") {
+		return value
+	}
+	// parsers/clickhouse.py:960-982: "SELECT * FROM VALUES (1, 2, 3)" is a single-column
+	// table in ClickHouse, so the values are canonicalized into a tuple-of-tuples, unless
+	// the last value already is a tuple (VALUES([structure], value, ...)).
+	expressions := value.Expressions()
+	if values && len(expressions) > 0 && expressions[len(expressions)-1].Kind() != exp.KindTuple {
+		wrapped := make([]exp.Expression, 0, len(expressions))
+		for _, e := range expressions {
+			wrapped = append(wrapped, p.expression(exp.Tuple(exp.Args{"expressions": []exp.Expression{e}}), nil, nil))
+		}
+		value.Set("expressions", wrapped)
+	}
+	return value
+}
+
+func (p *Parser) parseValueBase(values bool) exp.Expression {
 	if p.match(tokens.L_PAREN) {
 		expressions := p.parseCsv(p.parseValueExpression)
 		p.matchRParen(nil)
@@ -3537,6 +3741,9 @@ func (p *Parser) parseFunction(functions map[string]func([]exp.Expression) exp.E
 	if fnSyntax {
 		p.match(tokens.R_BRACE)
 	}
+	if fn != nil && p.dialect.Is("clickhouse") {
+		fn = p.parseClickHouseFunction(fn)
+	}
 	return fn
 }
 
@@ -3574,7 +3781,7 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 		return nil
 	}
 	if anyToken {
-		if reservedTokens[tokenType] {
+		if p.reservedTokensFor()[tokenType] {
 			return nil
 		}
 		// MySQL FUNC_TOKENS += TokenType.VALUES (parsers/mysql.py:63-70): see
@@ -3588,7 +3795,7 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 		// MOD/DATABASE/SCHEMA) - everywhere else the token is already tokens.VAR and funcTokens
 		// (which includes VAR) already covers it, so this is a no-op for the vast majority of
 		// FunctionByName/Functions entries.
-	} else if !funcTokens[tokenType] && !p.dialect.FuncTokens[tokenType] && !(tokenType == tokens.VALUES && p.dialect.ValuesIsFunction) &&
+	} else if !p.isFuncToken(tokenType) && !(tokenType == tokens.VALUES && p.dialect.ValuesIsFunction) &&
 		!(tokenType == tokens.CHARACTER_SET && p.dialect.CharsetIsFunction) &&
 		!skipNoParen &&
 		p.dialect.Functions[upper] == nil && exp.FunctionByName[upper] == nil {
@@ -3641,6 +3848,9 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 		}
 		if knownFunction {
 			result = p.validateExpression(function(args), exprArgs(args))
+			if p.dialect.PreserveOriginalNames && result != nil {
+				result.Meta()["name"] = this
+			}
 		} else {
 			var name any = this
 			if tokenType == tokens.IDENTIFIER {
@@ -3652,7 +3862,12 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 	if result != nil && len(comments) > 0 {
 		result.AddComments(comments, false)
 	}
-	p.matchRParen(result)
+	if parser != nil && !anonymous {
+		p.match(tokens.R_PAREN)
+		p.addComments(result)
+	} else {
+		p.matchRParen(result)
+	}
 	return p.parseWindow(result, false)
 }
 
@@ -3934,8 +4149,25 @@ func (p *Parser) parseOrdered(parseMethod func() exp.Expression) exp.Expression 
 	if !explicitlyNullOrdered && ((!descSet || !descBool) && p.dialect.NullOrdering == "nulls_are_small" || (descSet && descBool) && p.dialect.NullOrdering != "nulls_are_small") && p.dialect.NullOrdering != "nulls_are_last" {
 		nullsFirst = true
 	}
-	// TODO(1d): WITH FILL.
-	return p.expression(exp.Ordered(exp.Args{"this": this, "desc": desc, "nulls_first": nullsFirst}), nil, nil)
+	var withFill exp.Expression
+	if p.matchTextSeq("WITH", "FILL") {
+		// parser.py:5706-5714.
+		args := exp.Args{}
+		if p.match(tokens.FROM) {
+			args["from_"] = p.parseBitwise()
+		}
+		if p.matchTextSeq("TO") {
+			args["to"] = p.parseBitwise()
+		}
+		if p.matchTextSeq("STEP") {
+			args["step"] = p.parseBitwise()
+		}
+		if p.matchTextSeq("INTERPOLATE") {
+			args["interpolate"] = p.parseWrappedCsv(p.parseNameAsExpression)
+		}
+		withFill = p.expression(exp.New(exp.KindWithFill, args), nil, nil)
+	}
+	return p.expression(exp.Ordered(exp.Args{"this": this, "desc": desc, "nulls_first": nullsFirst, "with_fill": withFill}), nil, nil)
 }
 
 func (p *Parser) parseLimit(this exp.Expression, top bool, skipLimitToken bool) exp.Expression {
@@ -4350,6 +4582,13 @@ func init() {
 		"IF": func(p *Parser) exp.Expression { return p.parseIf() },
 	}
 	functionParsers = map[string]func(*Parser) exp.Expression{
+		// parser.py:1559-1566: ArgMax/ArgMin over their sql_names.
+		"ARG_MAX":     func(p *Parser) exp.Expression { return p.parseDistinctArgFunction(exp.KindArgMax, 0) },
+		"ARGMAX":      func(p *Parser) exp.Expression { return p.parseDistinctArgFunction(exp.KindArgMax, 0) },
+		"MAX_BY":      func(p *Parser) exp.Expression { return p.parseDistinctArgFunction(exp.KindArgMax, 0) },
+		"ARG_MIN":     func(p *Parser) exp.Expression { return p.parseDistinctArgFunction(exp.KindArgMin, 0) },
+		"ARGMIN":      func(p *Parser) exp.Expression { return p.parseDistinctArgFunction(exp.KindArgMin, 0) },
+		"MIN_BY":      func(p *Parser) exp.Expression { return p.parseDistinctArgFunction(exp.KindArgMin, 0) },
 		"DECODE":      (*Parser).parseDecode,
 		"CAST":        func(p *Parser) exp.Expression { return p.parseCast(p.strictCast, nil) },
 		"TRY_CAST":    func(p *Parser) exp.Expression { return p.parseCast(false, true) },

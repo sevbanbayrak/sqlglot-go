@@ -31,6 +31,10 @@ func pyNumberString(v any) string {
 }
 
 func (p *Parser) parseIntervalSpan(this exp.Expression) exp.Expression {
+	return p.parseIntervalSpanWith(this, true)
+}
+
+func (p *Parser) parseIntervalSpanWith(this exp.Expression, parseFunctionUnit bool) exp.Expression {
 	// is_unit gate (parser.py:4054-4060, v30.17.0): only attempt a unit when the current
 	// token can actually be one (VAR or a dialect-valid unit word), so keyword-token
 	// pseudo-functions no longer swallow the position — `INTERVAL '-1' CURRENT_DATE`
@@ -39,7 +43,9 @@ func (p *Parser) parseIntervalSpan(this exp.Expression) exp.Expression {
 	isUnit := p.curr.IsValid() && (p.curr.TokenType == tokens.VAR || p.dialect.ValidIntervalUnits[stringsUpper(p.curr.Text)])
 	var unit exp.Expression
 	if isUnit {
-		unit = p.parseFunction(nil, false, true, false)
+		if parseFunctionUnit {
+			unit = p.parseFunction(nil, false, true, false)
+		}
 		if unit == nil {
 			unit = p.parseVar(true, nil, true)
 		}
@@ -72,10 +78,17 @@ func (p *Parser) parseIntervalSpan(this exp.Expression) exp.Expression {
 		unit = p.expression(exp.IntervalSpan(exp.Args{"this": unit, "expression": expression}), nil, nil)
 	}
 
-	return p.expression(exp.Interval(exp.Args{"this": this, "unit": unit}), nil, nil)
+	// Interval is a TimeUnit, whose constructor normalizes a Var/Column/Literal unit
+	// (expressions/core.py:2055-2068).
+	return p.expression(exp.Interval(exp.Args{"this": this, "unit": exp.TimeUnitVar(unit)}), nil, nil)
 }
 
 func (p *Parser) parseInterval(requireInterval bool) exp.Expression {
+	return p.parseIntervalWith(requireInterval, true)
+}
+
+// parseIntervalWith is _parse_interval with its parse_function_unit flag (parser.py:6244-6283).
+func (p *Parser) parseIntervalWith(requireInterval, parseFunctionUnit bool) exp.Expression {
 	index := p.index
 	if !p.match(tokens.INTERVAL) && requireInterval {
 		return nil
@@ -93,12 +106,12 @@ func (p *Parser) parseInterval(requireInterval bool) exp.Expression {
 		return nil
 	}
 
-	interval := p.parseIntervalSpan(this)
+	interval := p.parseIntervalSpanWith(this, parseFunctionUnit)
 
 	index = p.index
 	p.match(tokens.PLUS)
 	if p.matchSet(map[tokens.TokenType]bool{tokens.STRING: true, tokens.NUMBER: true}, false) {
-		return p.expression(exp.Add(exp.Args{"this": interval, "expression": p.parseInterval(false)}), nil, nil)
+		return p.expression(exp.Add(exp.Args{"this": interval, "expression": p.parseIntervalWith(false, parseFunctionUnit)}), nil, nil)
 	}
 
 	p.retreat(index)
