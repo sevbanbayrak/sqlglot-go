@@ -118,6 +118,10 @@ func MySQL() *Dialect {
 	d.JSONTypeRequiredForExtraction = true
 	// parsers/mysql.py:303 VALUES_FOLLOWED_BY_PAREN = False.
 	d.ValuesFollowedByParen = false
+	// generators/mysql.py:150 UPDATE_STATEMENT_SUPPORTS_FROM = False.
+	d.UpdateStatementSupportsFrom = false
+	// generators/mysql.py:124 NULL_ORDERING_SUPPORTED = None.
+	d.NullOrderingSupported = nil
 	// parsers/mysql.py:304 SUPPORTS_PARTITION_SELECTION = True: allow `FROM t PARTITION(p0)`.
 	d.SupportsPartitionSelection = true
 	// parsers/mysql.py:302 STRING_ALIASES = True: fold a trailing string into an identifier
@@ -288,4 +292,10 @@ func MySQL() *Dialect {
 	delete(cfg.Commands, tokens.SHOW)
 	d.TokenizerConfig = tokens.CompileConfig(cfg)
 	return d
+}
+
+// MySQLFormatTime ports Generator.format_time under MySQL's inverse TIME_MAPPING. Presto shares
+// the table verbatim (dialects/presto.py:30 TIME_MAPPING = MySQL.TIME_MAPPING).
+func MySQLFormatTime(format string) string {
+	return PrestoFormatTime(format)
 }

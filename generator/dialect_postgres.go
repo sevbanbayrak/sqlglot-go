@@ -15,5 +15,13 @@ func init() {
 		expressions.KindGetbit: func(g *Generator, e expressions.Expression) string {
 			return g.funcCall("GET_BIT", []any{e.This(), e.Expr()}, "(", ")", true)
 		},
+		// generators/postgres.py: exp.UnixToTime -> TO_TIMESTAMP(this, format_time)
+		expressions.KindUnixToTime: func(g *Generator, e expressions.Expression) string {
+			return g.funcCall("TO_TIMESTAMP", []any{e.This(), e.Arg("format")}, "(", ")", true)
+		},
+		// generators/postgres.py: timestamptrunc_sql(zone=True) (dialect.py:1700-1709)
+		expressions.KindTimestampTrunc: func(g *Generator, e expressions.Expression) string {
+			return g.funcCall("DATE_TRUNC", []any{unitToStr(e), e.This(), e.Arg("zone")}, "(", ")", true)
+		},
 	})
 }

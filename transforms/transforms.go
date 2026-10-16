@@ -180,7 +180,7 @@ func EliminateQualify(e exp.Expression) exp.Expression {
 				}
 			}
 			alias := findNewName(namedSelects(e), "_w")
-			e.Append("expressions", exp.AliasExpr(candidate, alias, false))
+			e.Append("expressions", exp.AliasExpr(candidate.Copy(), alias, false))
 			col := column(alias, nil)
 			if p := candidate.Parent(); p != nil && p.Kind() == exp.KindQualify {
 				qualifyFilters = col
@@ -477,4 +477,113 @@ func asExpression(v any) exp.Expression {
 		return x
 	}
 	return nil
+}
+
+// EliminateFullOuterJoin ports eliminate_full_outer_join (transforms.py:632-669): a single FULL
+// OUTER join becomes LEFT JOIN ... UNION ALL ... RIGHT JOIN ... WHERE NOT EXISTS(left match).
+func EliminateFullOuterJoin(e exp.Expression) exp.Expression {
+	if e.Kind() != exp.KindSelect {
+		return e
+	}
+	fullIndex, count := -1, 0
+	var fullJoin exp.Expression
+	for i, join := range listArg(e, "joins") {
+		if strings.EqualFold(join.Text("side"), "FULL") {
+			fullIndex, fullJoin = i, join
+			count++
+		}
+	}
+	if count != 1 {
+		return e
+	}
+	expressionCopy := e.Copy()
+	e.Set("limit", nil)
+	from := asExpression(e.Arg("from_"))
+	tables := [2]string{from.This().AliasOrName(), fullJoin.This().AliasOrName()}
+	joinConditions := asExpression(fullJoin.Arg("on"))
+	if joinConditions == nil {
+		var conds []exp.Expression
+		for _, col := range listArg(fullJoin, "using") {
+			conds = append(conds, exp.EQ(exp.Args{
+				"this":       exp.Column_(col.Name(), tables[0], nil, nil, nil),
+				"expression": exp.Column_(col.Name(), tables[1], nil, nil, nil),
+			}))
+		}
+		joinConditions = exp.And_(conds...)
+	}
+	fullJoin.Set("side", "LEFT")
+	antiJoin := selectFromWhere([]exp.Expression{exp.LiteralNumber(1)}, from.This().Copy(), joinConditions.Copy())
+	listArg(expressionCopy, "joins")[fullIndex].Set("side", "RIGHT")
+	andWhere(expressionCopy, exp.Not(exp.Args{"this": exp.Exists(exp.Args{"this": antiJoin})}))
+	expressionCopy.Set("with_", nil)
+	e.Set("order", nil)
+	return exp.Union(exp.Args{"this": e, "expression": expressionCopy, "distinct": false})
+}
+
+// UnnestGenerateDateArrayUsingRecursiveCte ports
+// unnest_generate_date_array_using_recursive_cte (transforms.py:72-128).
+func UnnestGenerateDateArrayUsingRecursiveCte(e exp.Expression) exp.Expression {
+	if e.Kind() != exp.KindSelect {
+		return e
+	}
+	castDate := func(x exp.Expression) exp.Expression {
+		// builders.py cast(): an existing cast to the same type is kept as is.
+		if x.Kind() == exp.KindCast && exp.IsType(asExpression(x.Arg("to")), exp.DTypeDate) {
+			return x
+		}
+		return exp.New(exp.KindCast, exp.Args{"this": x, "to": exp.DTypeDate.IntoExpr(nil)})
+	}
+	count := 0
+	var recursiveCtes []exp.Expression
+	for _, unnest := range e.FindAll(exp.KindUnnest) {
+		parent := unnest.Parent()
+		exprs := unnest.Expressions()
+		if parent == nil || (parent.Kind() != exp.KindFrom && parent.Kind() != exp.KindJoin) || len(exprs) != 1 || exprs[0].Kind() != exp.KindGenerateDateArray {
+			continue
+		}
+		gda := exprs[0]
+		start, end, step := asExpression(gda.Arg("start")), asExpression(gda.Arg("end")), asExpression(gda.Arg("step"))
+		if start == nil || end == nil || step == nil || step.Kind() != exp.KindInterval {
+			continue
+		}
+		columnName := "date_value"
+		if alias := asExpression(unnest.Arg("alias")); alias != nil && alias.Kind() == exp.KindTableAlias {
+			if cols := listArg(alias, "columns"); len(cols) > 0 {
+				columnName = cols[0].Name()
+			}
+		}
+		dateAdd := exp.New(exp.KindDateAdd, exp.Args{"this": column(columnName, nil), "expression": exp.LiteralNumber(step.Name()), "unit": asExpression(step.Arg("unit")).Copy()})
+		castDateAdd := castDate(dateAdd)
+		cteName := "_generated_dates"
+		if count > 0 {
+			cteName = fmt.Sprintf("%s_%d", cteName, count)
+		}
+		baseQuery := exp.Select(exp.Args{"expressions": []exp.Expression{exp.AliasExpr(castDate(start.Copy()), columnName, false)}})
+		recursiveQuery := selectFromWhere(
+			[]exp.Expression{castDateAdd},
+			exp.Table_(cteName, nil, nil, nil, nil),
+			exp.New(exp.KindLTE, exp.Args{"this": castDateAdd.Copy(), "expression": castDate(end.Copy())}),
+		)
+		cteQuery := exp.Union(exp.Args{"this": baseQuery, "expression": recursiveQuery, "distinct": false})
+		generateDates := exp.Select(exp.Args{
+			"expressions": []exp.Expression{column(columnName, nil)},
+			"from_":       exp.New(exp.KindFrom, exp.Args{"this": exp.Table_(cteName, nil, nil, nil, nil)}),
+		})
+		unnest.Replace(subquery(generateDates, cteName))
+		recursiveCtes = append(recursiveCtes, exp.CTE(exp.Args{
+			"this":  cteQuery,
+			"alias": exp.New(exp.KindTableAlias, exp.Args{"this": exp.ToIdentifier(cteName), "columns": []exp.Expression{exp.ToIdentifier(columnName)}}),
+		}))
+		count++
+	}
+	if len(recursiveCtes) > 0 {
+		with := asExpression(e.Arg("with_"))
+		if with == nil {
+			with = exp.With(nil)
+		}
+		with.Set("recursive", true)
+		with.Set("expressions", append(recursiveCtes, with.Expressions()...))
+		e.Set("with_", with)
+	}
+	return e
 }

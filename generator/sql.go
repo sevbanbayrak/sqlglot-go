@@ -822,11 +822,75 @@ func (g *Generator) orderedSQL(e expressions.Expression) string {
 	} else if nullsLast && ((asc && nullsAreSmall) || (desc && nullsAreLarge)) && !nullsAreLast {
 		nullsSortChange = " NULLS LAST"
 	}
+	if nullsSortChange != "" && (g.dialect.NullOrderingSupported == nil || !*g.dialect.NullOrderingSupported) {
+		// generator.py:3178-3227. WINDOW_FUNCS_WITH_NULL_ORDERING is empty for every ported
+		// dialect, and the NULL_ORDERING_SUPPORTED = False (BigQuery) branch is not needed yet.
+		var windowThis, spec expressions.Expression
+		if window := e.FindAncestor(expressions.KindWindow, expressions.KindSelect); window != nil && window.Kind() == expressions.KindWindow {
+			windowThis = window.This()
+			if windowThis != nil && (windowThis.Kind() == expressions.KindIgnoreNulls || windowThis.Kind() == expressions.KindRespectNulls) {
+				windowThis = windowThis.This()
+			}
+			spec = asExpression(window.Arg("spec"))
+		}
+		if windowThis != nil && spec != nil {
+			g.unsupported("'" + strings.TrimSpace(nullsSortChange) + "' translation not supported in window function " + g.sqlName(windowThis.Kind()))
+			nullsSortChange = ""
+		} else if g.dialect.NullOrderingSupported == nil {
+			orderedThis := asExpression(e.Arg("this"))
+			if orderedThis != nil && orderedThis.IsInt() {
+				g.unsupported("'" + strings.TrimSpace(nullsSortChange) + "' translation not supported with positional ordering")
+			} else if orderedThis != nil && orderedThis.Kind() != expressions.KindRand {
+				target := this
+				if resolved := g.resolveOrderedForNullOrderingSimulation(e); resolved != nil {
+					target = g.gen(resolved)
+				}
+				nullSortOrder := ""
+				if nullsSortChange == " NULLS FIRST" {
+					nullSortOrder = " DESC"
+				}
+				this = "CASE WHEN " + target + " IS NULL THEN 1 ELSE 0 END" + nullSortOrder + ", " + target
+			}
+			nullsSortChange = ""
+		}
+	}
 	withFill := g.sqlKey(e, "with_fill")
 	if withFill != "" {
 		withFill = " " + withFill
 	}
 	return this + sortOrder + nullsSortChange + withFill
+}
+
+// resolveOrderedForNullOrderingSimulation ports _resolve_ordered_for_null_ordering_simulation
+// (generator.py:3119-3151): a bare ORDER BY name resolves to the uniquely matching projection.
+func (g *Generator) resolveOrderedForNullOrderingSimulation(e expressions.Expression) expressions.Expression {
+	this := e.This()
+	if this == nil || this.Kind() != expressions.KindColumn || this.Text("table") != "" {
+		return nil
+	}
+	ancestor := e.FindAncestor(expressions.KindSelect, expressions.KindWindow)
+	if ancestor == nil || ancestor.Kind() != expressions.KindSelect {
+		return nil
+	}
+	name := this.Name()
+	var matched []expressions.Expression
+	for _, p := range ancestor.Selects() {
+		if p.OutputName() != name {
+			continue
+		}
+		if p.Kind() == expressions.KindAlias {
+			p = p.This()
+		}
+		matched = append(matched, p)
+	}
+	if len(matched) != 1 {
+		return nil
+	}
+	match := matched[0]
+	if match.Kind() == expressions.KindColumn && match.Text("table") == "" && match.Name() == name {
+		return nil
+	}
+	return match
 }
 
 func (g *Generator) limitSQL(e expressions.Expression) string {
@@ -1389,8 +1453,33 @@ func (g *Generator) insertSQL(e expressions.Expression) string {
 	return g.prependCtes(e, sql)
 }
 
+// updateFromJoinsSQL ports _update_from_joins_sql (generator.py:2658-2688): dialects without
+// UPDATE ... FROM (MySQL) qualify the SET columns with the target and render FROM as JOIN ON TRUE.
 func (g *Generator) updateFromJoinsSQL(e expressions.Expression) (string, string) {
-	return "", g.sqlKey(e, "from_")
+	from := asExpression(e.Arg("from_"))
+	if g.dialect.UpdateStatementSupportsFrom || from == nil {
+		return "", g.sqlKey(e, "from_")
+	}
+	if target := e.This(); target != nil && target.Kind() == expressions.KindTable {
+		targetName := target.AliasOrName()
+		for _, eq := range e.Expressions() {
+			if col := eq.This(); col != nil && col.Kind() == expressions.KindColumn && col.Text("table") == "" {
+				col.Set("table", expressions.ToIdentifier(targetName))
+			}
+		}
+	}
+	table := from.This()
+	nested := listFromValue(table.Arg("joins"))
+	table.Set("joins", nil)
+	joinSQL := g.gen(expressions.Join(expressions.Args{"this": table, "on": expressions.Boolean(expressions.Args{"this": true})}))
+	for _, n := range nested {
+		join := asExpression(n)
+		if join.Arg("on") == nil && join.Arg("using") == nil {
+			join.Set("on", expressions.Boolean(expressions.Args{"this": true}))
+		}
+		joinSQL += g.gen(join)
+	}
+	return joinSQL, ""
 }
 
 func (g *Generator) updateSQL(e expressions.Expression) string {
@@ -2257,6 +2346,9 @@ func (g *Generator) dateAddSQL(e expressions.Expression) string {
 // flatten - dateIntervalArg below recovers the equivalent (this, unit) pair either way.
 func (g *Generator) mysqlDateAddSQL(kind string, e expressions.Expression) string {
 	value, unit := dateIntervalArg(e)
+	if value == nil {
+		value = e.Arg("expression")
+	}
 	interval := expressions.Interval(expressions.Args{"this": value, "unit": unitToVarValue(unit)})
 	return g.funcCall("DATE_"+kind, []any{e.Arg("this"), interval}, "(", ")", true)
 }

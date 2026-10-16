@@ -221,6 +221,11 @@ type Dialect struct {
 	LogBaseFirst                    *bool
 	SupportsSingleArgConcat         bool
 	ExceptIntersectSupportAllClause bool
+	// UpdateStatementSupportsFrom ports UPDATE_STATEMENT_SUPPORTS_FROM (generator.py:625).
+	UpdateStatementSupportsFrom bool
+	// NullOrderingSupported ports NULL_ORDERING_SUPPORTED (generator.py:301): nil is upstream's
+	// None (simulate NULLS FIRST/LAST with a CASE sort key).
+	NullOrderingSupported *bool
 	// TablesampleKeywords ports the generator flag TABLESAMPLE_KEYWORDS (generator.py:424): the
 	// keyword(s) to use when generating a sample clause.
 	TablesampleKeywords string
@@ -475,6 +480,8 @@ func Base() *Dialect {
 		LogBaseFirst:                    &trueValue,
 		SupportsSingleArgConcat:         true,
 		ExceptIntersectSupportAllClause: true,
+		UpdateStatementSupportsFrom:     true,
+		NullOrderingSupported:           &trueValue,
 		IndexOn:                         "ON",
 		Nvl2Supported:                   true,
 		ArraySizeName:                   "ARRAY_LENGTH",

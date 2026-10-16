@@ -12,10 +12,8 @@ var lambdaArgTerminators = map[tokens.TokenType]bool{
 	tokens.R_PAREN: true,
 }
 
-// lambdas ports the base LAMBDAS table (parser.py:988-1001), restricted to the ARROW ->
-// exp.Lambda entry. Upstream's other entry, FARROW -> exp.Kwarg (named arguments like
-// `foo(bar => 1)`), isn't ported here: exp.Kwarg has no Kind in this codebase yet, and no
-// gap in this part's scope needs it.
+// lambdas ports the base LAMBDAS table (parser.py:988-1001): ARROW -> exp.Lambda and FARROW ->
+// exp.Kwarg (named arguments like `foo(bar => 1)`).
 //
 // Declared empty and populated from func init() (rather than a map literal referencing the
 // closure directly): the closure calls parseDisjunction, which transitively calls back
@@ -28,6 +26,18 @@ func init() {
 	lambdas[tokens.ARROW] = func(p *Parser, params []exp.Expression) exp.Expression {
 		body := replaceLambda(p.parseDisjunction(), params)
 		return p.expression(exp.Lambda(exp.Args{"this": body, "expressions": params}), nil, nil)
+	}
+	// parser.py:1064-1069 FARROW -> exp.Kwarg
+	lambdas[tokens.FARROW] = func(p *Parser, params []exp.Expression) exp.Expression {
+		name := ""
+		if len(params) > 0 && params[0] != nil {
+			name = params[0].Name()
+		}
+		body := p.parseDisjunction()
+		if body == nil {
+			body = p.parseSelect()
+		}
+		return p.expression(exp.New(exp.KindKwarg, exp.Args{"this": exp.Var(exp.Args{"this": name}), "expression": body}), nil, nil)
 	}
 }
 
