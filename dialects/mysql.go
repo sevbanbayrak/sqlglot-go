@@ -5,8 +5,8 @@ import (
 	"maps"
 	"strings"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 // applyMySQLAnsiQuotes rewrites the dialect's tokenizer config for MySQL `sql_mode=ANSI_QUOTES`: `"`

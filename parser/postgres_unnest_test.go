@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	sqlerrors "github.com/ridi-oss/sqlglot-go/errors"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/generator"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
 )
 
 // DEVIATIONS §1.21: PostgreSQL has no UNNEST ... WITH OFFSET; only WITH ORDINALITY exists.

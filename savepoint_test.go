@@ -3,9 +3,9 @@ package sqlglot_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/generator"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
 )
 
 // SAVEPOINT / RELEASE SAVEPOINT transaction-control statements parse to exp.Savepoint. Pinned

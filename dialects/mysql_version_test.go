@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
 )
 
 func TestMySQLVersionSetting(t *testing.T) {

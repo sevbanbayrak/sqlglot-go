@@ -3,7 +3,7 @@ package expressions_test
 import (
 	"testing"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 func TestAliasColumnNames(t *testing.T) {

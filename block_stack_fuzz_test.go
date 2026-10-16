@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
 )
 
 // TestBlockExtentInvariantFuzz asserts the single property the degraded-CREATE extent

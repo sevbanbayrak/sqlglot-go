@@ -1,7 +1,7 @@
 package parser_test
 
 import (
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 	"testing"
 )
 

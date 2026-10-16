@@ -3,8 +3,8 @@ package sqlglot_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // MySQL account-management statements — CREATE/ALTER/DROP {USER|ROLE} — are a grammar extension beyond

@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/ridi-oss/sqlglot-go/tokens"
+import "github.com/sevbanbayrak/sqlglot-go/tokens"
 
 var idVarTokens = map[tokens.TokenType]bool{
 	tokens.OUT:                     true,

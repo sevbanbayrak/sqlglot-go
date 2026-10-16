@@ -3,10 +3,10 @@ package optimizer_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/generator"
-	"github.com/ridi-oss/sqlglot-go/optimizer"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
 )
 
 // Tests for the NON-UPSTREAM EngineCatalog identity resolution (engine_catalog.go), companion to

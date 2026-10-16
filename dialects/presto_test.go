@@ -3,9 +3,9 @@ package dialects_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 // TestPrestoConfigAndTokenizer mirrors TestPostgresConfigAndTokenizer: it pins the dialect flags

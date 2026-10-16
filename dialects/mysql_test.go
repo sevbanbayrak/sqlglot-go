@@ -3,12 +3,12 @@ package dialects_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	"github.com/ridi-oss/sqlglot-go/generator"
-	"github.com/ridi-oss/sqlglot-go/optimizer"
-	"github.com/ridi-oss/sqlglot-go/schema"
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 func TestMySQLConfigAndTokenizer(t *testing.T) {

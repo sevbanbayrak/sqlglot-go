@@ -10,8 +10,8 @@ package generator_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/generator"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
 )
 
 // prettyRoundTrip is roundTrip (generator_test.go) with Pretty:true, needed by the

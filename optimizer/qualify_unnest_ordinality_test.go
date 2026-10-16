@@ -4,12 +4,12 @@ import (
 	"reflect"
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/generator"
-	"github.com/ridi-oss/sqlglot-go/optimizer"
-	"github.com/ridi-oss/sqlglot-go/schema"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
 // Unnest.selects (array.py:277-282) includes the ordinal column, so the resolver sees it as a

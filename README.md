@@ -1,10 +1,16 @@
 # sqlglot-go
 
-[![CI](https://github.com/ridi-oss/sqlglot-go/actions/workflows/ci.yml/badge.svg)](https://github.com/ridi-oss/sqlglot-go/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/ridi-oss/sqlglot-go.svg)](https://pkg.go.dev/github.com/ridi-oss/sqlglot-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ridi-oss/sqlglot-go)](https://goreportcard.com/report/github.com/ridi-oss/sqlglot-go)
-[![Release](https://img.shields.io/github/v/release/ridi-oss/sqlglot-go)](https://github.com/ridi-oss/sqlglot-go/releases)
+[![CI](https://github.com/sevbanbayrak/sqlglot-go/actions/workflows/ci.yml/badge.svg)](https://github.com/sevbanbayrak/sqlglot-go/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sevbanbayrak/sqlglot-go.svg)](https://pkg.go.dev/github.com/sevbanbayrak/sqlglot-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sevbanbayrak/sqlglot-go)](https://goreportcard.com/report/github.com/sevbanbayrak/sqlglot-go)
+[![Release](https://img.shields.io/github/v/release/sevbanbayrak/sqlglot-go)](https://github.com/sevbanbayrak/sqlglot-go/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+> **Fork notice.** This repository is a fork of [ridi-oss/sqlglot-go](https://github.com/ridi-oss/sqlglot-go)
+> (MIT, © RIDI), itself a derivative of [tobymao/sqlglot](https://github.com/tobymao/sqlglot) (MIT, © Toby Mao).
+> The fork extends the port with cross-dialect transpilation, additional dialects (Spark/Databricks,
+> DuckDB, BigQuery, Snowflake) and the remaining optimizer passes. Module path:
+> `github.com/sevbanbayrak/sqlglot-go`.
 
 A Go port of the **parse → AST → generate** core of
 [tobymao/sqlglot](https://github.com/tobymao/sqlglot) v30.17.0, plus the `qualify` and `scope`
@@ -68,7 +74,7 @@ case-folding, to match real engines).
 ## Quick start
 
 ```bash
-go get github.com/ridi-oss/sqlglot-go
+go get github.com/sevbanbayrak/sqlglot-go
 ```
 
 ```go
@@ -77,10 +83,10 @@ package main
 import (
 	"fmt"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/generator"
-	"github.com/ridi-oss/sqlglot-go/optimizer"
-	"github.com/ridi-oss/sqlglot-go/schema"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
 func main() {

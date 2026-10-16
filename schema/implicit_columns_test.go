@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ridi-oss/sqlglot-go/schema"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
 // Tests for the NON-UPSTREAM implicit-column marking (NewMappingSchemaWithImplicit): in-mapping

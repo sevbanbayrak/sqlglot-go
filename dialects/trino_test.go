@@ -3,8 +3,8 @@ package dialects_test
 import (
 	"testing"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 func TestTrinoConfigAndTokenizer(t *testing.T) {

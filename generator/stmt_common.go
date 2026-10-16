@@ -1,6 +1,6 @@
 package generator
 
-import "github.com/ridi-oss/sqlglot-go/expressions"
+import "github.com/sevbanbayrak/sqlglot-go/expressions"
 
 // partitionSQL ports partition_sql (generator.py:2015-2017): `PARTITION(...)` /
 // `SUBPARTITION(...)`, plus MySQL's CREATE TABLE partition-property override

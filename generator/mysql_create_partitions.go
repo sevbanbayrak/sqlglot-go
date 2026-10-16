@@ -1,6 +1,6 @@
 package generator
 
-import "github.com/ridi-oss/sqlglot-go/expressions"
+import "github.com/sevbanbayrak/sqlglot-go/expressions"
 
 // Register the MySQL CREATE TABLE RANGE/LIST partition property family from
 // generators/mysql.py:818-839.

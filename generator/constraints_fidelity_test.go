@@ -3,8 +3,8 @@ package generator_test
 import (
 	"testing"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 func TestConstraintFidelityTransforms(t *testing.T) {

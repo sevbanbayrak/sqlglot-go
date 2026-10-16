@@ -3,7 +3,7 @@ package schema
 import (
 	"testing"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
 )
 
 // TestDialectForCallPreservesDialect proves the schema threads the resolved *Dialect verbatim

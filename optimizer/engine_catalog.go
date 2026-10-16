@@ -3,8 +3,8 @@ package optimizer
 import (
 	"strings"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // EngineCatalog is the NON-UPSTREAM, opt-in identity catalog for function/relation resolution
