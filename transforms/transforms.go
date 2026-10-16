@@ -601,3 +601,89 @@ func AddWithinGroupForPercentiles(e exp.Expression) exp.Expression {
 	order := exp.Order(exp.Args{"expressions": []exp.Expression{exp.Ordered(exp.Args{"this": column})}})
 	return exp.New(exp.KindWithinGroup, exp.Args{"this": e, "expression": order})
 }
+
+// UnqualifyColumns ports unqualify_columns (transforms.py:732-738).
+func UnqualifyColumns(e exp.Expression) exp.Expression {
+	for _, col := range e.FindAll(exp.KindColumn) {
+		for _, key := range []string{"table", "db", "catalog"} {
+			if part := asExpression(col.Arg(key)); part != nil {
+				part.Pop()
+			}
+		}
+	}
+	return e
+}
+
+// UnqualifyPivotFields ports unqualify_pivot_fields (transforms.py:741-755).
+func UnqualifyPivotFields(e exp.Expression) exp.Expression {
+	if e.Kind() == exp.KindPivot {
+		fields := listArg(e, "fields")
+		for i, field := range fields {
+			fields[i] = UnqualifyColumns(field)
+		}
+		e.Set("fields", fields)
+	}
+	return e
+}
+
+// RemoveUniqueConstraints ports remove_unique_constraints (transforms.py:758-764).
+func RemoveUniqueConstraints(e exp.Expression) exp.Expression {
+	for _, constraint := range e.FindAll(exp.KindUniqueColumnConstraint) {
+		if constraint.Parent() != nil {
+			constraint.Parent().Pop()
+		}
+	}
+	return e
+}
+
+// CtasWithTmpTablesToCreateTmpView ports ctas_with_tmp_tables_to_create_tmp_view
+// (transforms.py:767-788); tmpStorageProvider may be nil.
+func CtasWithTmpTablesToCreateTmpView(e exp.Expression, tmpStorageProvider func(exp.Expression) exp.Expression) exp.Expression {
+	temporary := false
+	if props := asExpression(e.Arg("properties")); props != nil {
+		for _, prop := range props.Expressions() {
+			if prop.Kind() == exp.KindTemporaryProperty {
+				temporary = true
+			}
+		}
+	}
+	if e.Text("kind") == "TABLE" && temporary {
+		if expression := asExpression(e.Arg("expression")); expression != nil {
+			return exp.New(exp.KindCreate, exp.Args{"kind": "TEMPORARY VIEW", "this": e.This(), "expression": expression})
+		}
+		if tmpStorageProvider != nil {
+			return tmpStorageProvider(e)
+		}
+	}
+	return e
+}
+
+// MoveSchemaColumnsToPartitionedBy ports move_schema_columns_to_partitioned_by
+// (transforms.py:791-811).
+func MoveSchemaColumnsToPartitionedBy(e exp.Expression) exp.Expression {
+	schema := e.This()
+	kind := e.Text("kind")
+	if schema == nil || schema.Kind() != exp.KindSchema || (kind != "TABLE" && kind != "VIEW") {
+		return e
+	}
+	prop := e.Find(exp.KindPartitionedByProperty)
+	if prop == nil || prop.This() == nil || prop.This().Kind() == exp.KindSchema {
+		return e
+	}
+	columns := map[string]bool{}
+	for _, v := range prop.This().Expressions() {
+		columns[strings.ToUpper(v.Name())] = true
+	}
+	var partitions, kept []exp.Expression
+	for _, col := range schema.Expressions() {
+		if columns[strings.ToUpper(col.Name())] {
+			partitions = append(partitions, col)
+		} else {
+			kept = append(kept, col)
+		}
+	}
+	schema.Set("expressions", kept)
+	prop.Replace(exp.New(exp.KindPartitionedByProperty, exp.Args{"this": exp.Schema(exp.Args{"expressions": partitions})}))
+	e.Set("this", schema)
+	return e
+}

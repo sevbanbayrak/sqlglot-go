@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"unicode"
 
 	"github.com/sevbanbayrak/sqlglot-go/dialects"
 	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
@@ -2270,7 +2271,7 @@ func (p *Parser) parseTerm() exp.Expression {
 var factorTokens = map[tokens.TokenType]func(exp.Args) exp.Expression{
 	tokens.SLASH:      exp.Div,
 	tokens.STAR:       exp.Mul,
-	tokens.DIV:        exp.Div,
+	tokens.DIV:        func(args exp.Args) exp.Expression { return exp.New(exp.KindIntDiv, args) },
 	tokens.LR_ARROW:   exp.Distance,
 	tokens.LLRR_ARROW: exp.DistanceNd,
 }
@@ -2284,8 +2285,14 @@ func (p *Parser) parseFactor() exp.Expression {
 		tokenType := p.curr.TokenType
 		p.advance()
 		comments := p.prevComments
-		args := exp.Args{"this": this, "expression": p.parseUnary()}
-		if tokenType == tokens.SLASH || tokenType == tokens.DIV {
+		expression := p.parseUnary()
+		if expression == nil && tokenType == tokens.DIV && isAlpha(p.prev.Text) {
+			// parser.py:6353-6355: a bare `x DIV` keeps DIV as an alias, not an operator.
+			p.retreat(p.index - 1)
+			return this
+		}
+		args := exp.Args{"this": this, "expression": expression}
+		if tokenType == tokens.SLASH {
 			args["typed"] = p.dialect.TypedDivision
 			args["safe"] = p.dialect.SafeDivision
 		}
@@ -3199,7 +3206,7 @@ func (p *Parser) parseQueryParameter() exp.Expression {
 // parseParameter ports _parse_parameter (parser.py:8586-8588): the leading `@` is already
 // consumed; the following identifier/var becomes the parameter's `this` (mysql `@var1`).
 func (p *Parser) parseParameter() exp.Expression {
-	if p.dialect.Name == "hive" {
+	if p.dialect.Is("hive") {
 		// parsers/hive.py:264-271: `${this[:expression]}`.
 		p.match(tokens.L_BRACE)
 		this := p.parseIdentifier()
@@ -3550,7 +3557,7 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 		// MOD/DATABASE/SCHEMA) - everywhere else the token is already tokens.VAR and funcTokens
 		// (which includes VAR) already covers it, so this is a no-op for the vast majority of
 		// FunctionByName/Functions entries.
-	} else if !funcTokens[tokenType] && !(tokenType == tokens.VALUES && p.dialect.ValuesIsFunction) &&
+	} else if !funcTokens[tokenType] && !p.dialect.FuncTokens[tokenType] && !(tokenType == tokens.VALUES && p.dialect.ValuesIsFunction) &&
 		!(tokenType == tokens.CHARACTER_SET && p.dialect.CharsetIsFunction) &&
 		!skipNoParen &&
 		p.dialect.Functions[upper] == nil && exp.FunctionByName[upper] == nil {
@@ -4086,7 +4093,7 @@ func (p *Parser) parseRespectOrIgnoreNulls(this exp.Expression) exp.Expression {
 }
 
 func (p *Parser) parsePartitionAndOrder() ([]exp.Expression, exp.Expression) {
-	if p.dialect.Name == "hive" {
+	if p.dialect.Is("hive") {
 		// parsers/hive.py:252-262: DISTRIBUTE BY / SORT BY are window-spec synonyms.
 		partition := []exp.Expression{}
 		if p.matchSet(map[tokens.TokenType]bool{tokens.PARTITION_BY: true, tokens.DISTRIBUTE_BY: true}) {
@@ -4458,4 +4465,17 @@ func stringsLower(s string) string {
 		}
 	}
 	return string(out)
+}
+
+// isAlpha ports str.isalpha for the DIV retreat rule.
+func isAlpha(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsLetter(r) {
+			return false
+		}
+	}
+	return true
 }

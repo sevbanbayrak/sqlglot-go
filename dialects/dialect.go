@@ -315,6 +315,17 @@ type Dialect struct {
 	// A nil/empty map (the base Dialect's zero value) means "no per-dialect overrides",
 	// so p.dialect.Functions is safe to index even when unset.
 	Functions map[string]func([]exp.Expression) exp.Expression
+	// FuncTokens extends the parser's FUNC_TOKENS for this dialect (parsers/spark2.py:26).
+	FuncTokens map[tokens.TokenType]bool
+	// TrimPatternFirst ports Parser.TRIM_PATTERN_FIRST (parser.py:1860).
+	TrimPatternFirst bool
+	// ChangeColumnAlterSyntax ports HiveParser.CHANGE_COLUMN_ALTER_SYNTAX (parsers/hive.py:60).
+	ChangeColumnAlterSyntax bool
+	// InitcapDefaultDelimiterChars ports INITCAP_DEFAULT_DELIMITER_CHARS; "" keeps the base set.
+	InitcapDefaultDelimiterChars string
+	// LenientTimeMapping is true when TIME_MAPPING["MM"] is lax (dialects/spark2.py:16-24); Hive's
+	// generator then skips its lenient M/d rewrite (generators/hive.py:416).
+	LenientTimeMapping bool
 	// ValuesFollowedByParen ports the parser flag of the same name (parser.py:1801): whether a
 	// bare VALUES keyword not immediately followed by "(" can be reparsed as a plain identifier
 	// (e.g. `SELECT values`, `values.c`). MySQL overrides to False (parsers/mysql.py:303),
@@ -653,6 +664,20 @@ func validIntervalUnits(mapping map[string]string) map[string]bool {
 	return out
 }
 
+// dialectParents mirrors the upstream class hierarchy for the dialects that subclass another
+// ported dialect, so parser checks written against the parent apply to the child too.
+var dialectParents = map[string]string{"spark2": "hive"}
+
+// Is reports whether the dialect is name or inherits from it (Spark2 is a Hive).
+func (d *Dialect) Is(name string) bool {
+	for key := strings.ToLower(d.Name); key != ""; key = dialectParents[key] {
+		if key == name {
+			return true
+		}
+	}
+	return false
+}
+
 // dialectByName constructs a fresh dialect from its bare name (no settings).
 func dialectByName(name string) (*Dialect, error) {
 	switch strings.ToLower(strings.TrimSpace(name)) {
@@ -668,6 +693,8 @@ func dialectByName(name string) (*Dialect, error) {
 		return Trino(), nil
 	case "hive":
 		return Hive(), nil
+	case "spark2":
+		return Spark2(), nil
 	case "athena":
 		return Athena(), nil
 	default:

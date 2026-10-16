@@ -73,7 +73,8 @@ func (p *Parser) alterParsers() map[string]func(*Parser) []exp.Expression {
 	switch p.dialect.Name {
 	case "mysql":
 		return mysqlAlterParsers
-	case "hive":
+	}
+	if p.dialect.Is("hive") {
 		return hiveAlterParsers
 	}
 	return alterParsers
@@ -96,6 +97,9 @@ func init() {
 func (p *Parser) parseHiveAlterTableChange() exp.Expression {
 	p.match(tokens.COLUMN)
 	this := p.parseField(true, nil, false)
+	if p.dialect.ChangeColumnAlterSyntax && p.matchTextSeq("TYPE") {
+		return p.expression(exp.AlterColumn(exp.Args{"this": this, "dtype": p.parseTypes(false, true, true, true)}), nil, nil)
+	}
 	columnNew := p.parseField(true, nil, false)
 	dtype := p.parseTypes(false, true, true, true)
 	var comment any = false
@@ -421,6 +425,13 @@ func (p *Parser) parseDropColumn() exp.Expression {
 func (p *Parser) parseAlterDropAction() exp.Expression {
 	if p.dialect.Name == "mysql" && p.matchPair(tokens.DROP, tokens.PRIMARY_KEY, true) {
 		return p.expression(exp.DropPrimaryKey(nil), nil, nil)
+	}
+	if p.dialect.Name == "spark2" {
+		// parsers/spark2.py:104-109: only DROP COLUMNS (schema) is an ALTER action.
+		if p.matchTextSeq("DROP", "COLUMNS") {
+			return p.expression(exp.Drop(exp.Args{"this": p.parseSchema(nil), "kind": "COLUMNS"}), nil, nil)
+		}
+		return nil
 	}
 	return p.parseDropColumn()
 }

@@ -345,10 +345,20 @@ func hiveBuildFormattedTime(
 	format exp.Expression,
 	defaultTime bool,
 ) exp.Expression {
+	return hiveBuildFormattedTimeWith(hiveDefaultTimeTable, kind, this, format, defaultTime)
+}
+
+func hiveBuildFormattedTimeWith(
+	table hiveTimeTable,
+	kind exp.Kind,
+	this exp.Expression,
+	format exp.Expression,
+	defaultTime bool,
+) exp.Expression {
 	if format == nil && defaultTime {
 		format = exp.LiteralString(hiveTimeFormat[1 : len(hiveTimeFormat)-1])
 	}
-	format = hiveFormatTime(format)
+	format = hiveFormatTimeWith(format, table)
 
 	args := exp.Args{"this": this}
 	if format != nil {
@@ -399,9 +409,11 @@ type hiveTimeTrieNode struct {
 	exists   bool
 }
 
-var hiveTimeTrie = func() *hiveTimeTrieNode {
+var hiveTimeTrie = hiveBuildTimeTrie(hiveTimeMapping)
+
+func hiveBuildTimeTrie(mapping map[string]string) *hiveTimeTrieNode {
 	root := &hiveTimeTrieNode{children: map[rune]*hiveTimeTrieNode{}}
-	for pattern := range hiveTimeMapping {
+	for pattern := range mapping {
 		current := root
 		for _, char := range pattern {
 			if current.children[char] == nil {
@@ -412,13 +424,26 @@ var hiveTimeTrie = func() *hiveTimeTrieNode {
 		current.exists = true
 	}
 	return root
-}()
+}
+
+// hiveTimeTable pairs a TIME_MAPPING with its trie so Hive subclasses (Spark2) can overlay
+// the mapping without re-implementing the builders.
+type hiveTimeTable struct {
+	mapping map[string]string
+	trie    *hiveTimeTrieNode
+}
+
+var hiveDefaultTimeTable = hiveTimeTable{mapping: hiveTimeMapping, trie: hiveTimeTrie}
 
 func hiveFormatTime(format exp.Expression) exp.Expression {
+	return hiveFormatTimeWith(format, hiveDefaultTimeTable)
+}
+
+func hiveFormatTimeWith(format exp.Expression, table hiveTimeTable) exp.Expression {
 	if format == nil || !format.IsString() {
 		return format
 	}
-	converted, ok := hiveConvertTimeFormat(format.Text("this"))
+	converted, ok := hiveConvertTimeFormatWith(format.Text("this"), table.mapping, table.trie)
 	if !ok {
 		// time.py:27 returns None for an empty format; Literal.string(None) stores "None".
 		return exp.LiteralString("None")

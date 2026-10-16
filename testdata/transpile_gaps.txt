@@ -17,13 +17,11 @@
 {"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')"}
-{"read":"hive","write":"","category":"generate: mismatch","sql":"INSTR(haystack, needle)"}
 {"read":"hive","write":"postgres","category":"generate: mismatch","sql":"ROUND(x::DOUBLE, 4)"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"COLLECT_LIST(x)"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"DATE_FORMAT('2020-01-01', 'yyyy-MM-dd HH:mm:ss')"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"UNIX_TIMESTAMP(x)"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"from_unixtime(x, \"yyyy-MM-dd'T'HH\")"}
-{"read":"hive","write":"presto","category":"generate: mismatch","sql":"x DIV y"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"DAY(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"DAYOFMONTH(x)"}
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"DAYOFWEEK(x)"}
@@ -76,6 +74,7 @@
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT UNNEST(ARRAY[1])"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT UNNEST(c) FROM t"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"a || b"}
+{"read":"postgres","write":"spark2","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES(a, b, '  2   days  ')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"merge into x as x using (select id) as y on a = b WHEN matched then update set X.\"A\" = y.b"}

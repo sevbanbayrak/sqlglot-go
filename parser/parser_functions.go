@@ -265,7 +265,7 @@ func (p *Parser) parseTrim() exp.Expression {
 	this := p.parseBitwise()
 	commaArgs := []exp.Expression{this}
 	if p.matchSet(map[tokens.TokenType]bool{tokens.FROM: true, tokens.COMMA: true}) {
-		invert := p.prev.TokenType == tokens.FROM
+		invert := p.prev.TokenType == tokens.FROM || p.dialect.TrimPatternFirst
 		keywordForm = keywordForm || invert
 		expression = p.parseBitwise()
 		commaArgs = append(commaArgs, expression)

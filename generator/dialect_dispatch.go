@@ -18,6 +18,7 @@ var (
 	dialectPropertyLocations = map[string]map[expressions.Kind]propertyLocation{}
 	dialectParents           = map[string]string{
 		"trino":        "presto",
+		"spark2":       "hive",
 		"athena-trino": "trino",
 		"athena-hive":  "hive",
 	}
@@ -36,6 +37,20 @@ func registerDialectDispatch(name string, table map[expressions.Kind]func(*Gener
 			panic("generator: duplicate dispatch override for dialect " + name + " kind " + expressions.ClassName(kind))
 		}
 		dialectDispatch[name][kind] = handler
+	}
+}
+
+// dialectDispatchRemovals ports a `exp.X: None` TRANSFORMS entry: the parent chain stops for
+// that kind and the shared base handler renders it (generators/spark2.py:206-210).
+var dialectDispatchRemovals = map[string]map[expressions.Kind]bool{}
+
+func registerDialectDispatchRemovals(name string, kinds ...expressions.Kind) {
+	name = strings.ToLower(name)
+	if dialectDispatchRemovals[name] == nil {
+		dialectDispatchRemovals[name] = map[expressions.Kind]bool{}
+	}
+	for _, kind := range kinds {
+		dialectDispatchRemovals[name][kind] = true
 	}
 }
 
@@ -83,6 +98,9 @@ func (g *Generator) lookupDispatch(kind expressions.Kind) func(*Generator, expre
 	for key := g.overrideKey(); key != ""; key = dialectParents[key] {
 		if handler := dialectDispatch[key][kind]; handler != nil {
 			return handler
+		}
+		if dialectDispatchRemovals[key][kind] {
+			break
 		}
 	}
 	return dispatch[kind]

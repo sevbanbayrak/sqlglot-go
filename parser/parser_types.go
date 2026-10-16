@@ -675,7 +675,7 @@ func (p *Parser) kvToPropEQ(expressions []exp.Expression) []exp.Expression {
 // toPropEQ ports _to_prop_eq: base returns the expression (parser.py:7305-7306); Hive names
 // positional struct fields col<N> (parsers/hive.py:273-282).
 func (p *Parser) toPropEQ(e exp.Expression, index int) exp.Expression {
-	if p.dialect.Name != "hive" || e.IsStar() {
+	if !p.dialect.Is("hive") || e.IsStar() {
 		return e
 	}
 	var key exp.Expression

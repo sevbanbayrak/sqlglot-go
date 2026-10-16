@@ -2320,7 +2320,11 @@ func (g *Generator) arraySizeSQL(e expressions.Expression) string {
 
 func (g *Generator) initcapSQL(e expressions.Expression) string {
 	delimiters := asExpression(e.Arg("expression"))
-	if delimiters != nil && delimiters.IsString() && delimiters.Name() == initcapDefaultDelimiterChars {
+	defaultChars := initcapDefaultDelimiterChars
+	if g.dialect.InitcapDefaultDelimiterChars != "" {
+		defaultChars = g.dialect.InitcapDefaultDelimiterChars
+	}
+	if delimiters != nil && delimiters.IsString() && delimiters.Name() == defaultChars {
 		delimiters = nil
 	}
 	return g.funcCall("INITCAP", []any{e.Arg("this"), delimiters}, "(", ")", true)

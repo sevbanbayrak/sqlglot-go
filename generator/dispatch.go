@@ -34,6 +34,11 @@ func init() {
 	dispatch[expressions.KindSub] = (*Generator).subSQL
 	dispatch[expressions.KindMul] = (*Generator).mulSQL
 	dispatch[expressions.KindDiv] = (*Generator).divSQL
+	// generator.py:4438-4444 intdiv_sql
+	dispatch[expressions.KindIntDiv] = func(g *Generator, e expressions.Expression) string {
+		div := expressions.Div(expressions.Args{"this": e.This(), "expression": e.Expr()})
+		return g.gen(expressions.Cast(expressions.Args{"this": div, "to": expressions.DTypeInt.IntoExpr(nil)}))
+	}
 	dispatch[expressions.KindMod] = (*Generator).modSQL
 	dispatch[expressions.KindEQ] = (*Generator).eqSQL
 	dispatch[expressions.KindNEQ] = (*Generator).neqSQL

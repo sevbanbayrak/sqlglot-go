@@ -123,6 +123,7 @@ func init() {
 		},
 		exp.KindPercentileCont: withinGroup,
 		exp.KindPercentileDisc: withinGroup,
+		exp.KindIntDiv:         prestoRename("DIV"),
 		exp.KindRand:           rename("RANDOM"),
 		exp.KindSelect: func(g *Generator, e exp.Expression) string {
 			// generators/postgres.py:382-387 Select preprocess chain.

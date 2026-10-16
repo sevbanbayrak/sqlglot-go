@@ -59,6 +59,7 @@ func init() {
 			}
 			return New(KindGenerateDateArray, Args{"start": seq(args, 0), "end": seq(args, 1), "step": step})
 		},
+		"INSTR": func(args []Expression) Expression { return FromArgList(KindStrPosition, args) },
 		// parser.py:185-190 build_locate_strposition
 		"LOCATE": func(args []Expression) Expression {
 			return New(KindStrPosition, Args{"this": seq(args, 1), "substr": seq(args, 0), "position": seq(args, 2)})
