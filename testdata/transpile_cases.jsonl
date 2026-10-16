@@ -1,0 +1,1098 @@
+{"read": "", "sql": "ARRAY_MAX(x)", "write": "athena", "pretty": false, "identify": false, "want": "ARRAY_MAX(x)"}
+{"read": "", "sql": "ARRAY_MIN(x)", "write": "athena", "pretty": false, "identify": false, "want": "ARRAY_MIN(x)"}
+{"read": "", "sql": "SELECT ARRAY_EXCEPT(ARRAY(1, 2, 3), ARRAY(2))", "write": "athena", "pretty": false, "identify": false, "want": "SELECT ARRAY_EXCEPT(ARRAY[1, 2, 3], ARRAY[2])"}
+{"read": "", "sql": "SELECT ARRAY_POSITION(ARRAY(1, 2, 3), 2)", "write": "athena", "pretty": false, "identify": false, "want": "SELECT ARRAY_POSITION(ARRAY[1, 2, 3], 2)"}
+{"read": "", "sql": "SELECT CAST(ds AS STRING) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "write": "athena", "want": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "pretty": false, "identify": false}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "athena", "pretty": false, "identify": false, "want": "STRPOS(haystack, needle)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "athena", "pretty": false, "identify": false, "want": "IF(STRPOS(SUBSTR(haystack, position), needle) = 0, 0, STRPOS(SUBSTR(haystack, position), needle) + position - 1)"}
+{"read": "", "sql": "\nWITH c AS (\n  WITH b AS (\n    WITH a1 AS (\n      SELECT 1\n    ), a2 AS (\n      SELECT 2\n    )\n    SELECT * FROM a1, a2\n  )\n  SELECT *\n  FROM b\n)\nSELECT *\nFROM c", "write": "hive", "pretty": false, "identify": false, "want": "WITH a1 AS (SELECT 1), a2 AS (SELECT 2), b AS (SELECT * FROM a1, a2), c AS (SELECT * FROM b) SELECT * FROM c"}
+{"read": "", "sql": "\nWITH subquery1 AS (\n  WITH tmp AS (\n    SELECT\n      *\n    FROM table0\n  )\n  SELECT\n    *\n  FROM tmp\n), subquery2 AS (\n  WITH tmp2 AS (\n    SELECT\n      *\n    FROM table1\n    WHERE\n      a IN subquery1\n  )\n  SELECT\n    *\n  FROM tmp2\n)\nSELECT\n  *\nFROM subquery2\n", "write": "hive", "pretty": true, "identify": false, "want": "WITH tmp AS (\n  SELECT\n    *\n  FROM table0\n), subquery1 AS (\n  SELECT\n    *\n  FROM tmp\n), tmp2 AS (\n  SELECT\n    *\n  FROM table1\n  WHERE\n    a IN subquery1\n), subquery2 AS (\n  SELECT\n    *\n  FROM tmp2\n)\nSELECT\n  *\nFROM subquery2"}
+{"read": "", "sql": "'[\"x\"]'", "write": "hive", "pretty": false, "identify": false, "want": "'[\"x\"]'"}
+{"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "hive", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "ARRAY_FILTER(the_array, x -> x > 0)", "write": "hive", "pretty": false, "identify": false, "want": "FILTER(the_array, x -> x > 0)"}
+{"read": "", "sql": "ARRAY_INTERSECT(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "ARRAY_INTERSECT(x, y)"}
+{"read": "", "sql": "ARRAY_REMOVE(the_array, target)", "write": "hive", "pretty": false, "identify": false, "want": "ARRAY_REMOVE(the_array, target)"}
+{"read": "", "sql": "ARRAY_SUM(ARRAY(1, 2))", "write": "hive", "pretty": false, "identify": false, "want": "ARRAY_SUM(ARRAY(1, 2))"}
+{"read": "", "sql": "ASCII('A')", "write": "hive", "pretty": false, "identify": false, "want": "ASCII('A')"}
+{"read": "", "sql": "CASE WHEN 1 THEN x ELSE 0 END", "write": "hive", "pretty": false, "identify": false, "want": "CASE WHEN 1 THEN x ELSE 0 END"}
+{"read": "", "sql": "CAST(a AS BINARY(4))", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS BINARY(4))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING(3))", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS STRING)"}
+{"read": "", "sql": "CAST(a AS DOUBLE)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE)"}
+{"read": "", "sql": "CAST(a AS SMALLINT)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS SMALLINT)"}
+{"read": "", "sql": "CAST(a AS STRING)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS STRING)"}
+{"read": "", "sql": "CAST(a AS TEXT)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS STRING)"}
+{"read": "", "sql": "CAST(a AS VARBINARY(4))", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS BINARY(4))"}
+{"read": "", "sql": "CAST(a AS VARCHAR(3))", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS VARCHAR)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(a AS STRING)"}
+{"read": "", "sql": "CONCAT_WS('-', 'a', 'b')", "write": "hive", "pretty": false, "identify": false, "want": "CASE WHEN '-' IS NULL OR 'a' IS NULL OR 'b' IS NULL THEN NULL ELSE CONCAT_WS('-', 'a', 'b') END"}
+{"read": "", "sql": "CONCAT_WS('-', x)", "write": "hive", "pretty": false, "identify": false, "want": "CASE WHEN '-' IS NULL OR x IS NULL THEN NULL ELSE CONCAT_WS('-', x) END"}
+{"read": "", "sql": "CREATE INDEX my_idx ON tbl(a, b)", "write": "hive", "pretty": false, "identify": false, "want": "CREATE INDEX my_idx ON TABLE tbl(a, b)"}
+{"read": "", "sql": "CREATE TABLE a LIKE b", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE a LIKE b"}
+{"read": "", "sql": "CREATE TABLE t (b1 BINARY, b2 BINARY(1024), c1 TEXT, c2 TEXT(1024))", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE t (b1 BINARY, b2 BINARY(1024), c1 STRING, c2 VARCHAR(1024))"}
+{"read": "", "sql": "CREATE TABLE t (c CHAR, nc NCHAR, v1 VARCHAR, v2 VARCHAR2, nv NVARCHAR, nv2 NVARCHAR2)", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE t (c STRING, nc STRING, v1 STRING, v2 STRING, nv STRING, nv2 STRING)"}
+{"read": "", "sql": "CREATE UNIQUE INDEX my_idx ON tbl(a, b)", "write": "hive", "pretty": false, "identify": false, "want": "CREATE UNIQUE INDEX my_idx ON TABLE tbl(a, b)"}
+{"read": "", "sql": "DATE_ADD(CAST('2020-01-01' AS DATE), 1)", "write": "hive", "pretty": false, "identify": false, "want": "DATE_ADD(CAST('2020-01-01' AS DATE), 1)"}
+{"read": "", "sql": "DATE_ADD(x, 1)", "write": "hive", "pretty": false, "identify": false, "want": "DATE_ADD(x, 1)"}
+{"read": "", "sql": "DATE_ADD(x, 1, 'DAY')", "write": "hive", "pretty": false, "identify": false, "want": "DATE_ADD(x, 1)"}
+{"read": "", "sql": "DATE_STR_TO_DATE(x)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(x AS DATE)"}
+{"read": "", "sql": "DATE_SUB('2020-01-01', 1)", "write": "hive", "want": "DATE_ADD('2020-01-01', -1)", "pretty": false, "identify": false}
+{"read": "", "sql": "DATE_SUB('2020-01-01', 2, month)", "write": "hive", "want": "ADD_MONTHS('2020-01-01', -2)", "pretty": false, "identify": false}
+{"read": "", "sql": "DATE_SUB(a, b)", "write": "hive", "want": "DATE_ADD(a, b * -1)", "pretty": false, "identify": false}
+{"read": "", "sql": "DATE_TO_DATE_STR(x)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(x AS STRING)"}
+{"read": "", "sql": "DATE_TO_DI(x)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(DATE_FORMAT(x, 'yyyyMMdd') AS INT)"}
+{"read": "", "sql": "DAY(x)", "write": "hive", "pretty": false, "identify": false, "want": "DAY(x)"}
+{"read": "", "sql": "DI_TO_DATE(x)", "write": "hive", "pretty": false, "identify": false, "want": "TO_DATE(CAST(x AS STRING), 'yyyyMMdd')"}
+{"read": "", "sql": "GROUPING(x)", "write": "hive", "pretty": false, "identify": false, "want": "GROUPING(x)"}
+{"read": "", "sql": "IF(x > 1, 1, 0)", "write": "hive", "pretty": false, "identify": false, "want": "IF(x > 1, 1, 0)"}
+{"read": "", "sql": "LEVENSHTEIN(coalesce(col1, col2), coalesce(col2, col1))", "write": "hive", "pretty": false, "identify": false, "want": "LEVENSHTEIN(COALESCE(col1, col2), COALESCE(col2, col1))"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2)", "write": "hive", "pretty": false, "identify": false, "want": "LEVENSHTEIN(col1, col2)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3)", "write": "hive", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3, 4)", "write": "hive", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LTRIM('Hello World')", "write": "hive", "pretty": false, "identify": false, "want": "LTRIM('Hello World')"}
+{"read": "", "sql": "LTRIM('Hello World', 'H')", "write": "hive", "pretty": false, "identify": false, "want": "TRIM(LEADING 'H' FROM 'Hello World')"}
+{"read": "", "sql": "MOD(8 - 1 + 7, 7)", "write": "hive", "pretty": false, "identify": false, "want": "(8 - 1 + 7) % 7"}
+{"read": "", "sql": "MOD(a, b + 1)", "write": "hive", "pretty": false, "identify": false, "want": "a % (b + 1)"}
+{"read": "", "sql": "MONTH(x)", "write": "hive", "pretty": false, "identify": false, "want": "MONTH(x)"}
+{"read": "", "sql": "RAND()", "write": "hive", "pretty": false, "identify": false, "want": "RAND()"}
+{"read": "", "sql": "REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)", "write": "hive", "pretty": false, "identify": false, "want": "REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)"}
+{"read": "", "sql": "REGR_COUNT(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "REGR_COUNT(x, y)"}
+{"read": "", "sql": "REGR_INTERCEPT(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "REGR_INTERCEPT(x, y)"}
+{"read": "", "sql": "REGR_R2(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "REGR_R2(x, y)"}
+{"read": "", "sql": "REGR_SXX(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "REGR_SXX(x, y)"}
+{"read": "", "sql": "REGR_SXY(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "REGR_SXY(x, y)"}
+{"read": "", "sql": "REGR_SYY(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "REGR_SYY(x, y)"}
+{"read": "", "sql": "REVERSE(x)", "write": "hive", "pretty": false, "identify": false, "want": "REVERSE(x)"}
+{"read": "", "sql": "RTRIM('Hello World')", "write": "hive", "pretty": false, "identify": false, "want": "RTRIM('Hello World')"}
+{"read": "", "sql": "RTRIM('Hello World', 'd')", "write": "hive", "pretty": false, "identify": false, "want": "TRIM(TRAILING 'd' FROM 'Hello World')"}
+{"read": "", "sql": "SELECT * FROM (SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq1) AS subq2", "write": "hive", "pretty": false, "identify": false, "want": "WITH t AS (SELECT 1 AS c) SELECT * FROM (SELECT * FROM (SELECT c FROM t) AS subq1) AS subq2"}
+{"read": "", "sql": "SELECT * FROM (SELECT * FROM my_table AS t) AS tbl", "write": "hive", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT * FROM my_table AS t) AS tbl"}
+{"read": "", "sql": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq", "write": "hive", "pretty": false, "identify": false, "want": "WITH t AS (SELECT 1 AS c) SELECT * FROM (SELECT c FROM t) AS subq"}
+{"read": "", "sql": "SELECT * FROM t FETCH FIRST ROWS ONLY", "write": "hive", "pretty": false, "identify": false, "want": "SELECT * FROM t LIMIT 1"}
+{"read": "", "sql": "SELECT * FROM x CROSS JOIN UNNEST(a) AS j(lista) CROSS JOIN UNNEST(b) AS k(listb) CROSS JOIN UNNEST(c) AS l(listc)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT * FROM x LATERAL VIEW EXPLODE(a) j AS lista LATERAL VIEW EXPLODE(b) k AS listb LATERAL VIEW EXPLODE(c) l AS listc"}
+{"read": "", "sql": "SELECT 1 AS \"x`\"", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 1 AS `x```"}
+{"read": "", "sql": "SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) as foo FROM baz", "write": "hive", "pretty": false, "identify": false, "want": "SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) AS foo FROM baz"}
+{"read": "", "sql": "SELECT LPAD('bar', 5)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "hive", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT NVL2(a, b)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b END"}
+{"read": "", "sql": "SELECT NVL2(a, b, c)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b ELSE c END"}
+{"read": "", "sql": "SELECT RPAD('bar', 5)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "hive", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT a, b FROM x CROSS JOIN UNNEST(y) AS t (a, b)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT a, b FROM x LATERAL VIEW EXPLODE(y) t AS a, b"}
+{"read": "", "sql": "SELECT a, b, c, d, e FROM x CROSS JOIN UNNEST(y) AS t(a, b, c, d)", "write": "hive", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "hive", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname"}
+{"read": "", "sql": "SELECT numbers, animals, n, a FROM (SELECT ARRAY(2, 5) AS numbers, ARRAY('dog', 'cat', 'bird') AS animals UNION ALL SELECT ARRAY(7, 8, 9), ARRAY('cow', 'pig')) AS x CROSS JOIN UNNEST(numbers, animals) AS t(n, a)", "write": "hive", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "SELECT y x FROM my_table t", "write": "hive", "pretty": false, "identify": false, "want": "SELECT y AS x FROM my_table AS t"}
+{"read": "", "sql": "SORT_ARRAY(x)", "write": "hive", "pretty": false, "identify": false, "want": "SORT_ARRAY(x)"}
+{"read": "", "sql": "SOUNDEX(x)", "write": "hive", "pretty": false, "identify": false, "want": "SOUNDEX(x)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "hive", "pretty": false, "identify": false, "want": "LOCATE(needle, haystack)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "hive", "pretty": false, "identify": false, "want": "LOCATE(needle, haystack, position)"}
+{"read": "", "sql": "STR_TO_DATE(x, '%Y-%m-%d')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(x AS DATE)"}
+{"read": "", "sql": "STR_TO_DATE(x, '%Y-%m-%dT%H:%M:%S')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP(x, 'yyyy-M-dTH:m:s')) AS DATE)"}
+{"read": "", "sql": "STR_TO_TIME('2020-01-01', '%Y-%m-%d')", "write": "hive", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "STR_TO_TIME(x, '%Y-%m-%dT%H:%M:%S')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP(x, 'yyyy-M-dTH:m:s')) AS TIMESTAMP)"}
+{"read": "", "sql": "STR_TO_TIME(x, '%y')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP(x, 'yy')) AS TIMESTAMP)"}
+{"read": "", "sql": "STR_TO_UNIX('2020-01-01', '%Y-%m-%d')", "write": "hive", "pretty": false, "identify": false, "want": "UNIX_TIMESTAMP('2020-01-01', 'yyyy-M-d')"}
+{"read": "", "sql": "TIMESTAMP '2022-01-01'", "write": "hive", "pretty": false, "identify": false, "want": "CAST('2022-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "TIMESTAMP('2022-01-01')", "write": "hive", "pretty": false, "identify": false, "want": "TIMESTAMP('2022-01-01')"}
+{"read": "", "sql": "TIME_STR_TO_DATE('2020-01-01')", "write": "hive", "pretty": false, "identify": false, "want": "TO_DATE('2020-01-01')"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')", "write": "hive", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14-08:00' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01')", "write": "hive", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME(col, 'America/Los_Angeles')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(col AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_UNIX('2020-01-01')", "write": "hive", "pretty": false, "identify": false, "want": "UNIX_TIMESTAMP('2020-01-01')"}
+{"read": "", "sql": "TIME_TO_STR(x, '%Y-%m-%d')", "write": "hive", "pretty": false, "identify": false, "want": "DATE_FORMAT(x, 'yyyy-MM-dd')"}
+{"read": "", "sql": "TIME_TO_TIME_STR(x)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(x AS STRING)"}
+{"read": "", "sql": "TIME_TO_UNIX(x)", "write": "hive", "pretty": false, "identify": false, "want": "UNIX_TIMESTAMP(x)"}
+{"read": "", "sql": "TRANSLATE(x, y, z)", "write": "hive", "pretty": false, "identify": false, "want": "TRANSLATE(x, y, z)"}
+{"read": "", "sql": "TRIM('abc', 'a')", "write": "hive", "pretty": false, "identify": false, "want": "TRIM('a' FROM 'abc')"}
+{"read": "", "sql": "TS_OR_DI_TO_DI(x)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(SUBSTR(REPLACE(CAST(x AS STRING), '-', ''), 1, 8) AS INT)"}
+{"read": "", "sql": "TS_OR_DS_ADD('2021-02-01', 1, 'DAY')", "write": "hive", "pretty": false, "identify": false, "want": "DATE_ADD('2021-02-01', 1)"}
+{"read": "", "sql": "TS_OR_DS_ADD(CURRENT_DATE, 1, 'DAY')", "write": "hive", "pretty": false, "identify": false, "want": "DATE_ADD(CURRENT_DATE, 1)"}
+{"read": "", "sql": "TS_OR_DS_ADD(x, 1, 'DAY')", "write": "hive", "pretty": false, "identify": false, "want": "DATE_ADD(x, 1)"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x)", "write": "hive", "pretty": false, "identify": false, "want": "TO_DATE(x)"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x, '%-d')", "write": "hive", "pretty": false, "identify": false, "want": "TO_DATE(x, 'd')"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE_STR(x)", "write": "hive", "pretty": false, "identify": false, "want": "SUBSTRING(CAST(x AS STRING), 1, 10)"}
+{"read": "", "sql": "UNIX_TO_STR(x, y)", "write": "hive", "pretty": false, "identify": false, "want": "FROM_UNIXTIME(x, y)"}
+{"read": "", "sql": "UNIX_TO_TIME(x)", "write": "hive", "pretty": false, "identify": false, "want": "FROM_UNIXTIME(x)"}
+{"read": "", "sql": "UNIX_TO_TIME_STR(x)", "write": "hive", "pretty": false, "identify": false, "want": "FROM_UNIXTIME(x)"}
+{"read": "", "sql": "UUID()", "write": "hive", "pretty": false, "identify": false, "want": "UUID()"}
+{"read": "", "sql": "VAR_MAP(a, b, c, d)", "write": "hive", "want": "MAP(a, b, c, d)", "pretty": false, "identify": false}
+{"read": "", "sql": "WEEKOFYEAR(CAST('2025-01-01' AS DATE))", "write": "hive", "pretty": false, "identify": false, "want": "WEEKOFYEAR(CAST('2025-01-01' AS DATE))"}
+{"read": "", "sql": "WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c", "write": "hive", "pretty": false, "identify": false, "want": "WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c"}
+{"read": "", "sql": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y", "write": "hive", "pretty": false, "identify": false, "want": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y"}
+{"read": "", "sql": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x", "write": "hive", "pretty": false, "identify": false, "want": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x"}
+{"read": "", "sql": "YEAR(x)", "write": "hive", "pretty": false, "identify": false, "want": "YEAR(x)"}
+{"read": "", "sql": "a / b", "write": "hive", "pretty": false, "identify": false, "want": "a / b"}
+{"read": "", "sql": "true or null as \"foo\"", "write": "hive", "pretty": false, "identify": false, "want": "TRUE OR NULL AS `foo`"}
+{"read": "", "sql": "x ILIKE '%y'", "write": "hive", "pretty": false, "identify": false, "want": "LOWER(x) LIKE LOWER('%y')"}
+{"read": "", "sql": "x NOT ILIKE '%y'", "write": "hive", "pretty": false, "identify": false, "want": "LOWER(x) NOT LIKE LOWER('%y')"}
+{"read": "", "sql": "x[y]", "write": "hive", "pretty": false, "identify": false, "want": "x[y]"}
+{"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "mysql", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "ASCII('A')", "write": "mysql", "pretty": false, "identify": false, "want": "ASCII('A')"}
+{"read": "", "sql": "BEGIN TRANSACTION", "write": "mysql", "pretty": false, "identify": false, "want": "BEGIN"}
+{"read": "", "sql": "CAST(a AS BINARY(4))", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS BINARY(4))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING(3))", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS CHAR(3))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING)", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS CHAR)"}
+{"read": "", "sql": "CAST(a AS DOUBLE)", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE)"}
+{"read": "", "sql": "CAST(a AS SMALLINT)", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS SIGNED)"}
+{"read": "", "sql": "CAST(a AS STRING)", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS CHAR)"}
+{"read": "", "sql": "CAST(a AS TEXT)", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS CHAR)"}
+{"read": "", "sql": "CAST(a AS TIMESTAMP)", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS DATETIME)"}
+{"read": "", "sql": "CAST(a AS TIMESTAMPTZ)", "write": "mysql", "pretty": false, "identify": false, "want": "TIMESTAMP(a)"}
+{"read": "", "sql": "CAST(a AS VARBINARY(4))", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS VARBINARY(4))"}
+{"read": "", "sql": "CAST(a AS VARCHAR(3))", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS CHAR(3))"}
+{"read": "", "sql": "CAST(a AS VARCHAR)", "write": "mysql", "pretty": false, "identify": false, "want": "CAST(a AS CHAR)"}
+{"read": "", "sql": "CREATE TABLE a LIKE b", "write": "mysql", "pretty": false, "identify": false, "want": "CREATE TABLE a LIKE b"}
+{"read": "", "sql": "CURRENT_SCHEMA()", "write": "mysql", "pretty": false, "identify": false, "want": "SCHEMA()"}
+{"read": "", "sql": "DATE_ADD(x, 1)", "write": "mysql", "pretty": false, "identify": false, "want": "DATE_ADD(x, INTERVAL 1 DAY)"}
+{"read": "", "sql": "DATE_ADD(x, 1, 'DAY')", "write": "mysql", "pretty": false, "identify": false, "want": "DATE_ADD(x, INTERVAL 1 DAY)"}
+{"read": "", "sql": "DATE_TRUNC('DAY', x)", "write": "mysql", "pretty": false, "identify": false, "want": "DATE(x)"}
+{"read": "", "sql": "DATE_TRUNC('YEAR', x)", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(CONCAT(YEAR(x), ' 1 1'), '%Y %c %e')"}
+{"read": "", "sql": "DATE_TRUNC('millennium', x)", "write": "mysql", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "DATE_TRUNC('month', x)", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(CONCAT(YEAR(x), ' ', MONTH(x), ' 1'), '%Y %c %e')"}
+{"read": "", "sql": "DATE_TRUNC('quarter', x)", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(CONCAT(YEAR(x), ' ', QUARTER(x) * 3 - 2, ' 1'), '%Y %c %e')"}
+{"read": "", "sql": "DATE_TRUNC('week', x)", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(CONCAT(YEAR(x), ' ', WEEK(x, 1), ' 1'), '%Y %u %w')"}
+{"read": "", "sql": "DATE_TRUNC('year', x)", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(CONCAT(YEAR(x), ' 1 1'), '%Y %c %e')"}
+{"read": "", "sql": "DAY(TS_OR_DS_TO_DATE(x))", "write": "mysql", "pretty": false, "identify": false, "want": "DAY(x)"}
+{"read": "", "sql": "DAY(x)", "write": "mysql", "pretty": false, "identify": false, "want": "DAY(x)"}
+{"read": "", "sql": "GROUPING(col1, col2, col3)", "write": "mysql", "pretty": false, "identify": false, "want": "GROUPING(col1, col2, col3)"}
+{"read": "", "sql": "GROUPING(x)", "write": "mysql", "pretty": false, "identify": false, "want": "GROUPING(x)"}
+{"read": "", "sql": "JSON_ARRAY_APPEND(PARSE_JSON('[\"a\", \"b\", \"c\"]'), '$', 1)", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_ARRAY_APPEND('[\"a\", \"b\", \"c\"]', '$', 1)"}
+{"read": "", "sql": "JSON_ARRAY_INSERT(PARSE_JSON('[\"a\", [\"b\", \"c\"], \"d\"]'), '$[1]', 1)", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_ARRAY_INSERT('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]', 1)"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y.*')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y.*')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y[*]')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[0].z')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y[0].z')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$[\"a b\"]')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.\"a b\"')"}
+{"read": "", "sql": "JSON_KEYS(foo)", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_KEYS(foo)"}
+{"read": "", "sql": "JSON_KEYS(foo, '$.a')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_KEYS(foo, '$.a')"}
+{"read": "", "sql": "JSON_REMOVE(PARSE_JSON('[\"a\", [\"b\", \"c\"], \"d\"]'), '$[1]', '$[1]')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_REMOVE('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]', '$[1]')"}
+{"read": "", "sql": "JSON_SET(PARSE_JSON('{\"a\": 1}'), '$', PARSE_JSON('{\"b\": 2, \"c\": 3}'))", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_SET('{\"a\": 1}', '$', '{\"b\": 2, \"c\": 3}')"}
+{"read": "", "sql": "LOG(10, a)", "write": "mysql", "pretty": false, "identify": false, "want": "LOG(10, a)"}
+{"read": "", "sql": "LOG(2, a)", "write": "mysql", "pretty": false, "identify": false, "want": "LOG(2, a)"}
+{"read": "", "sql": "MATCH(col1, col2, col3) AGAINST('abc')", "write": "mysql", "want": "MATCH(col1, col2, col3) AGAINST('abc')", "pretty": false, "identify": false}
+{"read": "", "sql": "MONTH(TS_OR_DS_TO_DATE(x))", "write": "mysql", "pretty": false, "identify": false, "want": "MONTH(x)"}
+{"read": "", "sql": "MONTH(x)", "write": "mysql", "pretty": false, "identify": false, "want": "MONTH(x)"}
+{"read": "", "sql": "RAND()", "write": "mysql", "pretty": false, "identify": false, "want": "RAND()"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg)", "write": "mysql", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt)", "write": "mysql", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "write": "mysql", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par)"}
+{"read": "", "sql": "REVERSE(x)", "write": "mysql", "pretty": false, "identify": false, "want": "REVERSE(x)"}
+{"read": "", "sql": "SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT `user id`, some_id, other_id, `2 nd id` FROM (SELECT `user id`, some_id, 1 AS other_id, 2 AS `2 nd id`, COUNT(*) OVER () AS _w FROM t) AS _t WHERE _w > 1"}
+{"read": "", "sql": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq"}
+{"read": "", "sql": "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))", "write": "mysql", "pretty": false, "identify": false, "want": "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates"}
+{"read": "", "sql": "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK)) AS _q(date_week)", "write": "mysql", "pretty": false, "identify": false, "want": "WITH RECURSIVE _generated_dates(date_week) AS (SELECT CAST('2020-01-01' AS DATE) AS date_week UNION ALL SELECT CAST(DATE_ADD(date_week, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_week, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_week FROM _generated_dates) AS _generated_dates"}
+{"read": "", "sql": "SELECT * FROM t FETCH FIRST 10 ROWS ONLY", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT * FROM t LIMIT 10"}
+{"read": "", "sql": "SELECT * FROM t FETCH FIRST ROWS ONLY", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT * FROM t LIMIT 1"}
+{"read": "", "sql": "SELECT * FROM t QUALIFY COUNT(*) OVER () > 1", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT *, COUNT(*) OVER () AS _w FROM t) AS _t WHERE _w > 1"}
+{"read": "", "sql": "SELECT 1 AS \"x`\"", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT 1 AS `x```"}
+{"read": "", "sql": "SELECT 1 EXCEPT ALL SELECT 1", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT 1 EXCEPT ALL SELECT 1"}
+{"read": "", "sql": "SELECT IFNULL(1, NULL) FROM foo", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT COALESCE(1, NULL) FROM foo"}
+{"read": "", "sql": "SELECT IS_ASCII(x)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT REGEXP_LIKE(x, '^[[:ascii:]]*$')"}
+{"read": "", "sql": "SELECT LOCALTIME", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT LOCALTIME"}
+{"read": "", "sql": "SELECT LOCALTIME(2)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT LOCALTIME(2)"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP(2)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT NVL2(a, b)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b END"}
+{"read": "", "sql": "SELECT NVL2(a, b, c)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b ELSE c END"}
+{"read": "", "sql": "SELECT RPAD('bar', 5)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT a IS DISTINCT FROM b", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT NOT a <=> b"}
+{"read": "", "sql": "SELECT a IS NOT DISTINCT FROM b", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT a <=> b"}
+{"read": "", "sql": "SELECT x BETWEEN 2 AND 10", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT x BETWEEN 2 AND 10"}
+{"read": "", "sql": "SELECT x BETWEEN ASYMMETRIC 10 AND 2", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT x BETWEEN 10 AND 2"}
+{"read": "", "sql": "SELECT x BETWEEN SYMMETRIC 10 AND 2", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT (x BETWEEN 10 AND 2 OR x BETWEEN 2 AND 10)"}
+{"read": "", "sql": "SOUNDEX(x)", "write": "mysql", "pretty": false, "identify": false, "want": "SOUNDEX(x)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "mysql", "pretty": false, "identify": false, "want": "LOCATE(needle, haystack)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "mysql", "pretty": false, "identify": false, "want": "LOCATE(needle, haystack, position)"}
+{"read": "", "sql": "STR_TO_DATE(x, '%Y-%m-%d')", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(x, '%Y-%m-%d')"}
+{"read": "", "sql": "STR_TO_DATE(x, '%Y-%m-%dT%H:%M:%S')", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(x, '%Y-%m-%dT%T')"}
+{"read": "", "sql": "STR_TO_TIME(x, '%Y-%m-%dT%H:%M:%S')", "write": "mysql", "pretty": false, "identify": false, "want": "STR_TO_DATE(x, '%Y-%m-%dT%T')"}
+{"read": "", "sql": "TIMESTAMP '2022-01-01'", "write": "mysql", "pretty": false, "identify": false, "want": "CAST('2022-01-01' AS DATETIME)"}
+{"read": "", "sql": "TIMESTAMP('2022-01-01')", "write": "mysql", "pretty": false, "identify": false, "want": "TIMESTAMP('2022-01-01')"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')", "write": "mysql", "pretty": false, "identify": false, "want": "TIMESTAMP('2020-01-01 12:13:14-08:00')"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')", "write": "mysql", "pretty": false, "identify": false, "want": "TIMESTAMP('2020-01-01 12:13:14.123-08:00')"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')", "write": "mysql", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14.123456+00:00' AS DATETIME(6))"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01')", "write": "mysql", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS DATETIME)"}
+{"read": "", "sql": "TIME_STR_TO_TIME(col, 'America/Los_Angeles')", "write": "mysql", "pretty": false, "identify": false, "want": "TIMESTAMP(col)"}
+{"read": "", "sql": "TIME_STR_TO_UNIX('2020-01-01')", "write": "mysql", "pretty": false, "identify": false, "want": "UNIX_TIMESTAMP('2020-01-01')"}
+{"read": "", "sql": "TS_OR_DS_ADD('2021-02-01', 1, 'DAY')", "write": "mysql", "pretty": false, "identify": false, "want": "DATE_ADD('2021-02-01', INTERVAL 1 DAY)"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x)", "write": "mysql", "want": "DATE(x)", "pretty": false, "identify": false}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x, '%B')", "write": "mysql", "want": "STR_TO_DATE(x, '%M')", "pretty": false, "identify": false}
+{"read": "", "sql": "UUID()", "write": "mysql", "pretty": false, "identify": false, "want": "UUID()"}
+{"read": "", "sql": "WEEKOFYEAR(CAST('2025-01-01' AS DATE))", "write": "mysql", "pretty": false, "identify": false, "want": "WEEKOFYEAR(CAST('2025-01-01' AS DATE))"}
+{"read": "", "sql": "WITH dates AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))) SELECT * FROM dates", "write": "mysql", "pretty": false, "identify": false, "want": "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)), dates AS (SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates) SELECT * FROM dates"}
+{"read": "", "sql": "WITH dates1 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))), dates2 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-03-01', INTERVAL 1 MONTH))) SELECT * FROM dates1 CROSS JOIN dates2", "write": "mysql", "pretty": false, "identify": false, "want": "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)), _generated_dates_1(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 MONTH) AS DATE) FROM _generated_dates_1 WHERE CAST(DATE_ADD(date_value, INTERVAL 1 MONTH) AS DATE) <= CAST('2020-03-01' AS DATE)), dates1 AS (SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates), dates2 AS (SELECT * FROM (SELECT date_value FROM _generated_dates_1) AS _generated_dates_1) SELECT * FROM dates1 CROSS JOIN dates2"}
+{"read": "", "sql": "YEAR(TS_OR_DS_TO_DATE(x))", "write": "mysql", "pretty": false, "identify": false, "want": "YEAR(x)"}
+{"read": "", "sql": "YEAR(x)", "write": "mysql", "pretty": false, "identify": false, "want": "YEAR(x)"}
+{"read": "", "sql": "a / b", "write": "mysql", "pretty": false, "identify": false, "want": "a / b"}
+{"read": "", "sql": "x ILIKE '%y'", "write": "mysql", "pretty": false, "identify": false, "want": "LOWER(x) LIKE LOWER('%y')"}
+{"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "postgres", "pretty": false, "identify": false, "want": "(ARRAY_LENGTH(arr, 1) = 0 OR ARRAY_LENGTH(ARRAY(SELECT x FROM UNNEST(arr) AS _t0(x) WHERE pred), 1) <> 0)"}
+{"read": "", "sql": "ARRAY_APPEND(arr, x)", "write": "postgres", "pretty": false, "identify": false, "want": "ARRAY_APPEND(arr, x)"}
+{"read": "", "sql": "ARRAY_PREPEND(arr, x)", "write": "postgres", "pretty": false, "identify": false, "want": "ARRAY_PREPEND(x, arr)"}
+{"read": "", "sql": "ARRAY_REMOVE(the_array, target)", "write": "postgres", "pretty": false, "identify": false, "want": "ARRAY_REMOVE(the_array, target)"}
+{"read": "", "sql": "ASCII('A')", "write": "postgres", "pretty": false, "identify": false, "want": "ASCII('A')"}
+{"read": "", "sql": "BEGIN TRANSACTION", "write": "postgres", "pretty": false, "identify": false, "want": "BEGIN"}
+{"read": "", "sql": "CAST('1 DAY' AS INTERVAL)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST('1 DAY' AS INTERVAL)"}
+{"read": "", "sql": "CAST(a AS BINARY(4))", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS BYTEA(4))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING(3))", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(a AS DATETIME)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS TIMESTAMP)"}
+{"read": "", "sql": "CAST(a AS DOUBLE)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE PRECISION)"}
+{"read": "", "sql": "CAST(a AS SMALLINT)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS SMALLINT)"}
+{"read": "", "sql": "CAST(a AS STRING)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS TEXT)"}
+{"read": "", "sql": "CAST(a AS TEXT)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS TEXT)"}
+{"read": "", "sql": "CAST(a AS VARBINARY(4))", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS BYTEA(4))"}
+{"read": "", "sql": "CAST(a AS VARCHAR(3))", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS VARCHAR)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(x AS some_udt)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(x AS some_udt)"}
+{"read": "", "sql": "CREATE INDEX my_idx ON tbl(a, b)", "write": "postgres", "pretty": false, "identify": false, "want": "CREATE INDEX my_idx ON tbl(a NULLS FIRST, b NULLS FIRST)"}
+{"read": "", "sql": "CREATE TABLE a LIKE b", "write": "postgres", "pretty": false, "identify": false, "want": "CREATE TABLE a (LIKE b)"}
+{"read": "", "sql": "CREATE TABLE t (b1 BINARY, b2 BINARY(1024), c1 TEXT, c2 TEXT(1024))", "write": "postgres", "pretty": false, "identify": false, "want": "CREATE TABLE t (b1 BYTEA, b2 BYTEA(1024), c1 TEXT, c2 TEXT(1024))"}
+{"read": "", "sql": "CREATE TABLE t (c CHAR, nc NCHAR, v1 VARCHAR, v2 VARCHAR2, nv NVARCHAR, nv2 NVARCHAR2)", "write": "postgres", "pretty": false, "identify": false, "want": "CREATE TABLE t (c CHAR, nc CHAR, v1 VARCHAR, v2 VARCHAR, nv VARCHAR, nv2 VARCHAR)"}
+{"read": "", "sql": "CREATE UNIQUE INDEX my_idx ON tbl(a, b)", "write": "postgres", "pretty": false, "identify": false, "want": "CREATE UNIQUE INDEX my_idx ON tbl(a NULLS FIRST, b NULLS FIRST)"}
+{"read": "", "sql": "CURRENT_SCHEMA()", "write": "postgres", "pretty": false, "identify": false, "want": "CURRENT_SCHEMA"}
+{"read": "", "sql": "DATE_ADD(x, 1, 'DAY')", "write": "postgres", "pretty": false, "identify": false, "want": "x + INTERVAL '1 DAY'"}
+{"read": "", "sql": "DATE_TRUNC('DAY', x)", "write": "postgres", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "", "sql": "DATE_TRUNC('YEAR', x)", "write": "postgres", "pretty": false, "identify": false, "want": "DATE_TRUNC('YEAR', x)"}
+{"read": "", "sql": "FORMAT('str fmt1 fmt2', 1, 'a')", "write": "postgres", "pretty": false, "identify": false, "want": "FORMAT('str fmt1 fmt2', 1, 'a')"}
+{"read": "", "sql": "GROUPING(col1, col2, col3)", "write": "postgres", "pretty": false, "identify": false, "want": "GROUPING(col1, col2, col3)"}
+{"read": "", "sql": "GROUPING(x)", "write": "postgres", "pretty": false, "identify": false, "want": "GROUPING(x)"}
+{"read": "", "sql": "JSONB_EXTRACT(x, 'y')", "write": "postgres", "want": "x #> 'y'", "pretty": false, "identify": false}
+{"read": "", "sql": "JSONB_EXTRACT_SCALAR(x, 'y')", "write": "postgres", "want": "x #>> 'y'", "pretty": false, "identify": false}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y')", "write": "postgres", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH(x, 'y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y.*')", "write": "postgres", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "postgres", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "postgres", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH(x, 'y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[0].z')", "write": "postgres", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH(x, 'y', '0', 'z')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$[\"a b\"]')", "write": "postgres", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH(x, 'a b')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y')", "write": "postgres", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH_TEXT(x, 'y')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "write": "postgres", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH_TEXT(x, 'y', '0', 'z')"}
+{"read": "", "sql": "JSON_STRIP_NULLS(PARSE_JSON('[{\"f1\":1,\"f2\":null},2,null,3]'))", "write": "postgres", "pretty": false, "identify": false, "want": "JSON_STRIP_NULLS(CAST('[{\"f1\":1,\"f2\":null},2,null,3]' AS JSON))"}
+{"read": "", "sql": "JUSTIFY_DAYS(INTERVAL '1' DAY)", "write": "postgres", "pretty": false, "identify": false, "want": "JUSTIFY_DAYS(INTERVAL '1 DAY')"}
+{"read": "", "sql": "JUSTIFY_HOURS(INTERVAL '1' HOUR)", "write": "postgres", "pretty": false, "identify": false, "want": "JUSTIFY_HOURS(INTERVAL '1 HOUR')"}
+{"read": "", "sql": "JUSTIFY_INTERVAL(INTERVAL '1' HOUR)", "write": "postgres", "pretty": false, "identify": false, "want": "JUSTIFY_INTERVAL(INTERVAL '1 HOUR')"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2)", "write": "postgres", "pretty": false, "identify": false, "want": "LEVENSHTEIN(col1, col2)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3)", "write": "postgres", "pretty": false, "identify": false, "want": "LEVENSHTEIN(col1, col2, 1, 2, 3)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3, 4)", "write": "postgres", "pretty": false, "identify": false, "want": "LEVENSHTEIN_LESS_EQUAL(col1, col2, 1, 2, 3, 4)"}
+{"read": "", "sql": "LOG(10, a)", "write": "postgres", "pretty": false, "identify": false, "want": "LOG(10, a)"}
+{"read": "", "sql": "LOG(2, a)", "write": "postgres", "pretty": false, "identify": false, "want": "LOG(2, a)"}
+{"read": "", "sql": "MEDIAN(x)", "write": "postgres", "pretty": false, "identify": false, "want": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)"}
+{"read": "", "sql": "MEDIAN(x) OVER ()", "write": "postgres", "pretty": false, "identify": false, "want": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) OVER ()"}
+{"read": "", "sql": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED AND target.a <> src.a THEN UPDATE SET target.b = 'FOO'\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)", "write": "postgres", "pretty": false, "identify": false, "want": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED AND target.a <> src.a THEN UPDATE SET b = 'FOO' WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)"}
+{"read": "", "sql": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED THEN UPDATE SET target.b = COALESCE(src.b, target.b)\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)", "write": "postgres", "pretty": false, "identify": false, "want": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED THEN UPDATE SET b = COALESCE(src.b, target.b) WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)"}
+{"read": "", "sql": "RAND()", "write": "postgres", "pretty": false, "identify": false, "want": "RANDOM()"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg)", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt)", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)"}
+{"read": "", "sql": "REGR_COUNT(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "REGR_COUNT(x, y)"}
+{"read": "", "sql": "REGR_INTERCEPT(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "REGR_INTERCEPT(x, y)"}
+{"read": "", "sql": "REGR_R2(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "REGR_R2(x, y)"}
+{"read": "", "sql": "REGR_SLOPE(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "REGR_SLOPE(x, y)"}
+{"read": "", "sql": "REGR_SXX(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "REGR_SXX(x, y)"}
+{"read": "", "sql": "REGR_SXY(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "REGR_SXY(x, y)"}
+{"read": "", "sql": "REGR_SYY(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "REGR_SYY(x, y)"}
+{"read": "", "sql": "REVERSE(x)", "write": "postgres", "pretty": false, "identify": false, "want": "REVERSE(x)"}
+{"read": "", "sql": "SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT \"user id\", some_id, other_id, \"2 nd id\" FROM (SELECT \"user id\", some_id, 1 AS other_id, 2 AS \"2 nd id\", COUNT(*) OVER () AS _w FROM t) AS _t WHERE _w > 1"}
+{"read": "", "sql": "SELECT * FROM (SELECT * FROM my_table AS t) AS tbl", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT * FROM my_table AS t) AS tbl"}
+{"read": "", "sql": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq"}
+{"read": "", "sql": "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT CAST(value AS DATE) FROM GENERATE_SERIES(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), INTERVAL '1 WEEK') AS _t(value)) AS _unnested_generate_series"}
+{"read": "", "sql": "SELECT * FROM t FETCH FIRST ROWS ONLY", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT * FROM t FETCH FIRST ROWS ONLY"}
+{"read": "", "sql": "SELECT * FROM t QUALIFY COUNT(*) OVER () > 1", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT *, COUNT(*) OVER () AS _w FROM t) AS _t WHERE _w > 1"}
+{"read": "", "sql": "SELECT 1 AS \"x\"\"\"", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT 1 AS \"x\"\"\""}
+{"read": "", "sql": "SELECT 1 EXCEPT ALL SELECT 1", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT 1 EXCEPT ALL SELECT 1"}
+{"read": "", "sql": "SELECT COUNT_IF(col % 2 = 0) FROM foo", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT SUM(CASE WHEN col % 2 = 0 THEN 1 ELSE 0 END) FROM foo"}
+{"read": "", "sql": "SELECT IFNULL(1, NULL) FROM foo", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT COALESCE(1, NULL) FROM foo"}
+{"read": "", "sql": "SELECT IS_ASCII(x)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT (x ~ '^[[:ascii:]]*$')"}
+{"read": "", "sql": "SELECT LOCALTIME", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LOCALTIME"}
+{"read": "", "sql": "SELECT LOCALTIME(2)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LOCALTIME(2)"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP(2)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT NVL2(a, b)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b END"}
+{"read": "", "sql": "SELECT NVL2(a, b, c)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b ELSE c END"}
+{"read": "", "sql": "SELECT RPAD('bar', 5)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5)"}
+{"read": "", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW)"}
+{"read": "", "sql": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE GROUP)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE GROUP)"}
+{"read": "", "sql": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE TIES)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE TIES)"}
+{"read": "", "sql": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)"}
+{"read": "", "sql": "SELECT TIME_TO_UNIX(TIMESTAMP '2023-01-04 04:05:06.789')", "write": "postgres", "want": "SELECT DATE_PART('epoch', CAST('2023-01-04 04:05:06.789' AS TIMESTAMP))", "pretty": false, "identify": false}
+{"read": "", "sql": "SELECT a IS DISTINCT FROM b", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT a IS DISTINCT FROM b"}
+{"read": "", "sql": "SELECT a IS NOT DISTINCT FROM b", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT a IS NOT DISTINCT FROM b"}
+{"read": "", "sql": "SELECT x BETWEEN 2 AND 10", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x BETWEEN 2 AND 10"}
+{"read": "", "sql": "SELECT x BETWEEN ASYMMETRIC 10 AND 2", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x BETWEEN ASYMMETRIC 10 AND 2"}
+{"read": "", "sql": "SELECT x BETWEEN SYMMETRIC 10 AND 2", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x BETWEEN SYMMETRIC 10 AND 2"}
+{"read": "", "sql": "SELECT y x FROM my_table t", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT y AS x FROM my_table AS t"}
+{"read": "", "sql": "SOUNDEX(x)", "write": "postgres", "pretty": false, "identify": false, "want": "SOUNDEX(x)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "postgres", "pretty": false, "identify": false, "want": "POSITION(needle IN haystack)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "postgres", "pretty": false, "identify": false, "want": "CASE WHEN POSITION(needle IN SUBSTRING(haystack FROM position)) = 0 THEN 0 ELSE POSITION(needle IN SUBSTRING(haystack FROM position)) + position - 1 END"}
+{"read": "", "sql": "STR_TO_TIME('2020-01-01', '%Y-%m-%d')", "write": "postgres", "pretty": false, "identify": false, "want": "TO_TIMESTAMP('2020-01-01', 'YYYY-MM-DD')"}
+{"read": "", "sql": "STR_TO_TIME(x, '%y')", "write": "postgres", "pretty": false, "identify": false, "want": "TO_TIMESTAMP(x, 'YY')"}
+{"read": "", "sql": "SUBSTR('123456', 2, 3)", "write": "postgres", "pretty": false, "identify": false, "want": "SUBSTRING('123456' FROM 2 FOR 3)"}
+{"read": "", "sql": "SUBSTRING('123456', 2, 3)", "write": "postgres", "pretty": false, "identify": false, "want": "SUBSTRING('123456' FROM 2 FOR 3)"}
+{"read": "", "sql": "TIMESTAMP_TRUNC(x, DAY, 'UTC')", "write": "postgres", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x, 'UTC')"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')", "write": "postgres", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14-08:00' AS TIMESTAMPTZ)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01')", "write": "postgres", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME(col, 'America/Los_Angeles')", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(col AS TIMESTAMPTZ)"}
+{"read": "", "sql": "TIME_TO_STR(x, '%Y-%m-%d')", "write": "postgres", "pretty": false, "identify": false, "want": "TO_CHAR(x, 'YYYY-MM-DD')"}
+{"read": "", "sql": "TRANSLATE(x, y, z)", "write": "postgres", "pretty": false, "identify": false, "want": "TRANSLATE(x, y, z)"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(x AS DATE)"}
+{"read": "", "sql": "UNIX_TO_TIME(x)", "write": "postgres", "pretty": false, "identify": false, "want": "TO_TIMESTAMP(x)"}
+{"read": "", "sql": "UUID()", "write": "postgres", "pretty": false, "identify": false, "want": "GEN_RANDOM_UUID()"}
+{"read": "", "sql": "VARIANCE_POP(x)", "write": "postgres", "want": "VAR_POP(x)", "pretty": false, "identify": false}
+{"read": "", "sql": "WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c", "write": "postgres", "pretty": false, "identify": false, "want": "WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c"}
+{"read": "", "sql": "a / b", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE PRECISION) / b"}
+{"read": "", "sql": "x ILIKE '%y'", "write": "postgres", "pretty": false, "identify": false, "want": "x ILIKE '%y'"}
+{"read": "", "sql": "x NOT ILIKE '%y'", "write": "postgres", "pretty": false, "identify": false, "want": "x NOT ILIKE '%y'"}
+{"read": "", "sql": "'[\"x\"]'", "write": "presto", "pretty": false, "identify": false, "want": "'[\"x\"]'"}
+{"read": "", "sql": "ARRAY(0, 1, 2)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY[0, 1, 2]"}
+{"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "presto", "pretty": false, "identify": false, "want": "ANY_MATCH(arr, x -> pred)"}
+{"read": "", "sql": "ARRAY_FILTER(the_array, x -> x > 0)", "write": "presto", "pretty": false, "identify": false, "want": "FILTER(the_array, x -> x > 0)"}
+{"read": "", "sql": "ARRAY_INTERSECT(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_INTERSECT(x, y)"}
+{"read": "", "sql": "ARRAY_MAX(x)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_MAX(x)"}
+{"read": "", "sql": "ARRAY_MIN(x)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_MIN(x)"}
+{"read": "", "sql": "ARRAY_REMOVE(the_array, target)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_REMOVE(the_array, target)"}
+{"read": "", "sql": "ARRAY_SIZE(x)", "write": "presto", "pretty": false, "identify": false, "want": "CARDINALITY(x)"}
+{"read": "", "sql": "ARRAY_SLICE(x, 1, 3)", "write": "presto", "pretty": false, "identify": false, "want": "SLICE(x, 1, 3)"}
+{"read": "", "sql": "ARRAY_SUM(ARRAY(1, 2))", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_SUM(ARRAY[1, 2])"}
+{"read": "", "sql": "BEGIN TRANSACTION", "write": "presto", "pretty": false, "identify": false, "want": "START TRANSACTION"}
+{"read": "", "sql": "CASE WHEN 1 THEN x ELSE 0 END", "write": "presto", "pretty": false, "identify": false, "want": "CASE WHEN 1 THEN x ELSE 0 END"}
+{"read": "", "sql": "CAST(a AS BINARY(4))", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARBINARY(4))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING(3))", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(a AS DOUBLE)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE)"}
+{"read": "", "sql": "CAST(a AS SMALLINT)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS SMALLINT)"}
+{"read": "", "sql": "CAST(a AS STRING)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(a AS TEXT)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(a AS VARBINARY(4))", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARBINARY(4))"}
+{"read": "", "sql": "CAST(a AS VARCHAR(3))", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS VARCHAR)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(x AS some_udt)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(x AS some_udt)"}
+{"read": "", "sql": "CONCAT(a)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CREATE TABLE a LIKE b", "write": "presto", "pretty": false, "identify": false, "want": "CREATE TABLE a (LIKE b)"}
+{"read": "", "sql": "DATE_ADD(CAST('2020-01-01' AS DATE), 1)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, CAST('2020-01-01' AS DATE))"}
+{"read": "", "sql": "DATE_ADD(x, 1)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, x)"}
+{"read": "", "sql": "DATE_ADD(x, 1, 'DAY')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, x)"}
+{"read": "", "sql": "DATE_FROM_UNIX_DATE(1)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, CAST('1970-01-01' AS DATE))"}
+{"read": "", "sql": "DATE_STR_TO_DATE(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(x AS DATE)"}
+{"read": "", "sql": "DATE_TO_DATE_STR(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(x AS VARCHAR)"}
+{"read": "", "sql": "DATE_TO_DI(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(DATE_FORMAT(x, '%Y%m%d') AS INT)"}
+{"read": "", "sql": "DATE_TRUNC('DAY', x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "", "sql": "DAY(x)", "write": "presto", "pretty": false, "identify": false, "want": "DAY(x)"}
+{"read": "", "sql": "DI_TO_DATE(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(DATE_PARSE(CAST(x AS VARCHAR), '%Y%m%d') AS DATE)"}
+{"read": "", "sql": "FILTER(the_array, x -> x > 0)", "write": "presto", "pretty": false, "identify": false, "want": "FILTER(the_array, x -> x > 0)"}
+{"read": "", "sql": "FROM_BASE32(x)", "write": "presto", "pretty": false, "identify": false, "want": "FROM_BASE32(x)"}
+{"read": "", "sql": "IF(x > 1, 1, 0)", "write": "presto", "pretty": false, "identify": false, "want": "IF(x > 1, 1, 0)"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y.*')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y.*')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y[*]')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[0].z')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$.y[0].z')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$[\"a b\"]')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$[\"a b\"]')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT_SCALAR(x, '$.y')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')"}
+{"read": "", "sql": "LEVENSHTEIN(coalesce(col1, col2), coalesce(col2, col1))", "write": "presto", "pretty": false, "identify": false, "want": "LEVENSHTEIN_DISTANCE(COALESCE(col1, col2), COALESCE(col2, col1))"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2)", "write": "presto", "pretty": false, "identify": false, "want": "LEVENSHTEIN_DISTANCE(col1, col2)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3)", "write": "presto", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3, 4)", "write": "presto", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LOG(10, a)", "write": "presto", "pretty": false, "identify": false, "want": "LOG10(a)"}
+{"read": "", "sql": "LOG(2, a)", "write": "presto", "pretty": false, "identify": false, "want": "LOG2(a)"}
+{"read": "", "sql": "LOG(b, n)", "write": "presto", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "MOD(8 - 1 + 7, 7)", "write": "presto", "pretty": false, "identify": false, "want": "(8 - 1 + 7) % 7"}
+{"read": "", "sql": "MOD(a, b + 1)", "write": "presto", "pretty": false, "identify": false, "want": "a % (b + 1)"}
+{"read": "", "sql": "MONTH(x)", "write": "presto", "pretty": false, "identify": false, "want": "MONTH(x)"}
+{"read": "", "sql": "RAND()", "write": "presto", "pretty": false, "identify": false, "want": "RAND()"}
+{"read": "", "sql": "REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)", "write": "presto", "pretty": false, "identify": false, "want": "REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)"}
+{"read": "", "sql": "REGR_COUNT(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "REGR_COUNT(x, y)"}
+{"read": "", "sql": "REGR_INTERCEPT(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "REGR_INTERCEPT(x, y)"}
+{"read": "", "sql": "REGR_R2(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "REGR_R2(x, y)"}
+{"read": "", "sql": "REGR_SLOPE(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "REGR_SLOPE(x, y)"}
+{"read": "", "sql": "REGR_SXX(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "REGR_SXX(x, y)"}
+{"read": "", "sql": "REGR_SXY(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "REGR_SXY(x, y)"}
+{"read": "", "sql": "REGR_SYY(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "REGR_SYY(x, y)"}
+{"read": "", "sql": "REVERSE(x)", "write": "presto", "pretty": false, "identify": false, "want": "REVERSE(x)"}
+{"read": "", "sql": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq"}
+{"read": "", "sql": "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM UNNEST(SEQUENCE(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), (1 * INTERVAL '7' DAY)))"}
+{"read": "", "sql": "SELECT * FROM a EXCEPT DISTINCT SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a EXCEPT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a EXCEPT SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a EXCEPT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a INTERSECT ALL SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a INTERSECT ALL SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a INTERSECT DISTINCT SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a INTERSECT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a INTERSECT SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a INTERSECT SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a UNION ALL SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a UNION ALL SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a UNION DISTINCT SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a UNION SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM a UNION SELECT * FROM b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM a UNION SELECT * FROM b"}
+{"read": "", "sql": "SELECT * FROM t FETCH FIRST ROWS ONLY", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM t FETCH FIRST ROWS ONLY"}
+{"read": "", "sql": "SELECT * FROM x CROSS JOIN UNNEST(a) AS j(lista) CROSS JOIN UNNEST(b) AS k(listb) CROSS JOIN UNNEST(c) AS l(listc)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM x CROSS JOIN UNNEST(a) AS j(lista) CROSS JOIN UNNEST(b) AS k(listb) CROSS JOIN UNNEST(c) AS l(listc)"}
+{"read": "", "sql": "SELECT * FROM x CROSS JOIN UNNEST(y) AS t", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM x CROSS JOIN UNNEST(y) AS t"}
+{"read": "", "sql": "SELECT 1 AS \"x\"\"\"", "write": "presto", "pretty": false, "identify": false, "want": "SELECT 1 AS \"x\"\"\""}
+{"read": "", "sql": "SELECT 1 EXCEPT ALL SELECT 1", "write": "presto", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "SELECT ARRAY_EXCEPT(ARRAY(1, 2, 3), ARRAY(2))", "write": "presto", "pretty": false, "identify": false, "want": "SELECT ARRAY_EXCEPT(ARRAY[1, 2, 3], ARRAY[2])"}
+{"read": "", "sql": "SELECT ARRAY_POSITION(ARRAY(1, 2, 3), 2)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT ARRAY_POSITION(ARRAY[1, 2, 3], 2)"}
+{"read": "", "sql": "SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo", "write": "presto", "pretty": false, "identify": false, "want": "SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo"}
+{"read": "", "sql": "SELECT COUNT_IF(col % 2 = 0) FROM foo", "write": "presto", "pretty": false, "identify": false, "want": "SELECT COUNT_IF(col % 2 = 0) FROM foo"}
+{"read": "", "sql": "SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) as foo FROM baz", "write": "presto", "pretty": false, "identify": false, "want": "SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) AS foo FROM baz"}
+{"read": "", "sql": "SELECT IFNULL(1, NULL) FROM foo", "write": "presto", "pretty": false, "identify": false, "want": "SELECT COALESCE(1, NULL) FROM foo"}
+{"read": "", "sql": "SELECT LOCALTIME", "write": "presto", "pretty": false, "identify": false, "want": "SELECT LOCALTIME"}
+{"read": "", "sql": "SELECT LOCALTIME(2)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT LOCALTIME(2)"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP", "write": "presto", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP(2)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "presto", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT NORMALIZE('str')", "write": "presto", "pretty": false, "identify": false, "want": "SELECT NORMALIZE('str')"}
+{"read": "", "sql": "SELECT NORMALIZE('str', nfkc)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT NORMALIZE('str', nfkc)"}
+{"read": "", "sql": "SELECT NVL2(a, b)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b END"}
+{"read": "", "sql": "SELECT NVL2(a, b, c)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b ELSE c END"}
+{"read": "", "sql": "SELECT RPAD('bar', 5)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "presto", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT a FROM x CROSS JOIN UNNEST(y) AS t (a)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a FROM x CROSS JOIN UNNEST(y) AS t(a)"}
+{"read": "", "sql": "SELECT a FROM x CROSS JOIN UNNEST(y) WITH ORDINALITY AS t (a)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a FROM x CROSS JOIN UNNEST(y) WITH ORDINALITY AS t(a)"}
+{"read": "", "sql": "SELECT a, b FROM x CROSS JOIN UNNEST(y) AS t (a, b)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a, b FROM x CROSS JOIN UNNEST(y) AS t(a, b)"}
+{"read": "", "sql": "SELECT a, b FROM x CROSS JOIN UNNEST(y, z) AS t (a, b)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a, b FROM x CROSS JOIN UNNEST(y, z) AS t(a, b)"}
+{"read": "", "sql": "SELECT a, b, c, d, e FROM x CROSS JOIN UNNEST(y) AS t(a, b, c, d)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a, b, c, d, e FROM x CROSS JOIN UNNEST(y) AS t(a, b, c, d)"}
+{"read": "", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "presto", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC, lname NULLS FIRST"}
+{"read": "", "sql": "SELECT numbers, animals, n, a FROM (SELECT ARRAY(2, 5) AS numbers, ARRAY('dog', 'cat', 'bird') AS animals UNION ALL SELECT ARRAY(7, 8, 9), ARRAY('cow', 'pig')) AS x CROSS JOIN UNNEST(numbers, animals) AS t(n, a)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT numbers, animals, n, a FROM (SELECT ARRAY[2, 5] AS numbers, ARRAY['dog', 'cat', 'bird'] AS animals UNION ALL SELECT ARRAY[7, 8, 9], ARRAY['cow', 'pig']) AS x CROSS JOIN UNNEST(numbers, animals) AS t(n, a)"}
+{"read": "", "sql": "SORT_ARRAY(x)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_SORT(x)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "presto", "pretty": false, "identify": false, "want": "STRPOS(haystack, needle)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "presto", "pretty": false, "identify": false, "want": "IF(STRPOS(SUBSTR(haystack, position), needle) = 0, 0, STRPOS(SUBSTR(haystack, position), needle) + position - 1)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position, occurrence)", "write": "presto", "pretty": false, "identify": false, "want": "IF(STRPOS(SUBSTR(haystack, position), needle, occurrence) = 0, 0, STRPOS(SUBSTR(haystack, position), needle, occurrence) + position - 1)"}
+{"read": "", "sql": "STR_TO_DATE(x, '%Y-%m-%d')", "write": "presto", "pretty": false, "identify": false, "want": "CAST(DATE_PARSE(x, '%Y-%m-%d') AS DATE)"}
+{"read": "", "sql": "STR_TO_DATE(x, '%Y-%m-%dT%H:%M:%S')", "write": "presto", "pretty": false, "identify": false, "want": "CAST(DATE_PARSE(x, '%Y-%m-%dT%T') AS DATE)"}
+{"read": "", "sql": "STR_TO_TIME('2020-01-01', '%Y-%m-%d')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_PARSE('2020-01-01', '%Y-%m-%d')"}
+{"read": "", "sql": "STR_TO_TIME(x, '%Y-%m-%dT%H:%M:%S')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_PARSE(x, '%Y-%m-%dT%T')"}
+{"read": "", "sql": "STR_TO_TIME(x, '%y')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_PARSE(x, '%y')"}
+{"read": "", "sql": "STR_TO_UNIX('2020-01-01', '%Y-%m-%d')", "write": "presto", "pretty": false, "identify": false, "want": "TO_UNIXTIME(COALESCE(TRY(DATE_PARSE(CAST('2020-01-01' AS VARCHAR), '%Y-%m-%d')), PARSE_DATETIME(DATE_FORMAT(CAST('2020-01-01' AS TIMESTAMP), '%Y-%m-%d'), 'yyyy-MM-dd')))"}
+{"read": "", "sql": "TIMESTAMP_TRUNC(x, DAY, 'UTC')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "", "sql": "TIME_STR_TO_DATE('2020-01-01')", "write": "presto", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')", "write": "presto", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14-08:00' AS TIMESTAMP WITH TIME ZONE)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')", "write": "presto", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14.123-08:00' AS TIMESTAMP WITH TIME ZONE)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')", "write": "presto", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14.123456+00:00' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01')", "write": "presto", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME(col, 'America/Los_Angeles')", "write": "presto", "pretty": false, "identify": false, "want": "CAST(col AS TIMESTAMP WITH TIME ZONE)"}
+{"read": "", "sql": "TIME_STR_TO_UNIX('2020-01-01')", "write": "presto", "pretty": false, "identify": false, "want": "TO_UNIXTIME(DATE_PARSE('2020-01-01', '%Y-%m-%d %T'))"}
+{"read": "", "sql": "TIME_TO_STR(x, '%Y-%m-%d')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_FORMAT(x, '%Y-%m-%d')"}
+{"read": "", "sql": "TIME_TO_TIME_STR(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(x AS VARCHAR)"}
+{"read": "", "sql": "TIME_TO_UNIX(x)", "write": "presto", "pretty": false, "identify": false, "want": "TO_UNIXTIME(x)"}
+{"read": "", "sql": "TO_BASE32(x)", "write": "presto", "pretty": false, "identify": false, "want": "TO_BASE32(x)"}
+{"read": "", "sql": "TS_OR_DI_TO_DI(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(SUBSTR(REPLACE(CAST(x AS VARCHAR), '-', ''), 1, 8) AS INT)"}
+{"read": "", "sql": "TS_OR_DS_ADD('2021-02-01', 1, 'DAY')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, CAST(CAST('2021-02-01' AS TIMESTAMP) AS DATE))"}
+{"read": "", "sql": "TS_OR_DS_ADD(CURRENT_DATE, 1, 'DAY')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, CAST(CAST(CURRENT_DATE AS TIMESTAMP) AS DATE))"}
+{"read": "", "sql": "TS_OR_DS_ADD(x, 1, 'DAY')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, CAST(CAST(x AS TIMESTAMP) AS DATE))"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(CAST(x AS TIMESTAMP) AS DATE)"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x, '%-d')", "write": "presto", "pretty": false, "identify": false, "want": "CAST(DATE_PARSE(x, '%e') AS DATE)"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE_STR(x)", "write": "presto", "pretty": false, "identify": false, "want": "SUBSTR(CAST(x AS VARCHAR), 1, 10)"}
+{"read": "", "sql": "UNIX_TO_STR(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_FORMAT(FROM_UNIXTIME(x), y)"}
+{"read": "", "sql": "UNIX_TO_TIME(x)", "write": "presto", "pretty": false, "identify": false, "want": "FROM_UNIXTIME(x)"}
+{"read": "", "sql": "UNIX_TO_TIME_STR(x)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(FROM_UNIXTIME(x) AS VARCHAR)"}
+{"read": "", "sql": "UUID()", "write": "presto", "pretty": false, "identify": false, "want": "UUID()"}
+{"read": "", "sql": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y", "write": "presto", "pretty": false, "identify": false, "want": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y"}
+{"read": "", "sql": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x", "write": "presto", "pretty": false, "identify": false, "want": "WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x"}
+{"read": "", "sql": "YEAR(x)", "write": "presto", "pretty": false, "identify": false, "want": "YEAR(x)"}
+{"read": "", "sql": "a / b", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE) / b"}
+{"read": "", "sql": "true or null as \"foo\"", "write": "presto", "pretty": false, "identify": false, "want": "TRUE OR NULL AS \"foo\""}
+{"read": "", "sql": "x ILIKE '%y'", "write": "presto", "pretty": false, "identify": false, "want": "LOWER(x) LIKE LOWER('%y')"}
+{"read": "", "sql": "x NOT ILIKE '%y'", "write": "presto", "pretty": false, "identify": false, "want": "LOWER(x) NOT LIKE LOWER('%y')"}
+{"read": "", "sql": "x[y]", "write": "presto", "pretty": false, "identify": false, "want": "x[y]"}
+{"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "trino", "pretty": false, "identify": false, "want": "ANY_MATCH(arr, x -> pred)"}
+{"read": "", "sql": "ARRAY_INTERSECT(x, y)", "write": "trino", "pretty": false, "identify": false, "want": "ARRAY_INTERSECT(x, y)"}
+{"read": "", "sql": "ARRAY_MAX(x)", "write": "trino", "pretty": false, "identify": false, "want": "ARRAY_MAX(x)"}
+{"read": "", "sql": "ARRAY_MIN(x)", "write": "trino", "pretty": false, "identify": false, "want": "ARRAY_MIN(x)"}
+{"read": "", "sql": "ARRAY_SLICE(x, 1, 3)", "write": "trino", "pretty": false, "identify": false, "want": "SLICE(x, 1, 3)"}
+{"read": "", "sql": "ARRAY_SUM(ARRAY(1, 2))", "write": "trino", "pretty": false, "identify": false, "want": "REDUCE(ARRAY[1, 2], 0, (acc, x) -> acc + x, acc -> acc)"}
+{"read": "", "sql": "BEGIN TRANSACTION", "write": "trino", "pretty": false, "identify": false, "want": "START TRANSACTION"}
+{"read": "", "sql": "CONCAT(a)", "write": "trino", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CONCAT_WS('-', 'a', 'b')", "write": "trino", "pretty": false, "identify": false, "want": "CASE WHEN '-' IS NULL OR 'a' IS NULL OR 'b' IS NULL THEN NULL ELSE CONCAT_WS('-', CAST('a' AS VARCHAR), CAST('b' AS VARCHAR)) END"}
+{"read": "", "sql": "CONCAT_WS('-', x)", "write": "trino", "pretty": false, "identify": false, "want": "CASE WHEN '-' IS NULL OR x IS NULL THEN NULL ELSE CONCAT_WS('-', CAST(x AS VARCHAR)) END"}
+{"read": "", "sql": "CREATE TABLE a LIKE b", "write": "trino", "pretty": false, "identify": false, "want": "CREATE TABLE a (LIKE b)"}
+{"read": "", "sql": "DATE_FROM_UNIX_DATE(1)", "write": "trino", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, CAST('1970-01-01' AS DATE))"}
+{"read": "", "sql": "FROM_BASE32(x)", "write": "trino", "pretty": false, "identify": false, "want": "FROM_BASE32(x)"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$[\"a b\"]')", "write": "trino", "pretty": false, "identify": false, "want": "JSON_EXTRACT(x, '$[\"a b\"]')"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2)", "write": "trino", "pretty": false, "identify": false, "want": "LEVENSHTEIN_DISTANCE(col1, col2)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3)", "write": "trino", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3, 4)", "write": "trino", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LOG(10, a)", "write": "trino", "pretty": false, "identify": false, "want": "LOG(10, a)"}
+{"read": "", "sql": "LOG(2, a)", "write": "trino", "pretty": false, "identify": false, "want": "LOG(2, a)"}
+{"read": "", "sql": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED AND target.a <> src.a THEN UPDATE SET target.b = 'FOO'\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)", "write": "trino", "pretty": false, "identify": false, "want": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED AND target.a <> src.a THEN UPDATE SET b = 'FOO' WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)"}
+{"read": "", "sql": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED THEN UPDATE SET target.b = COALESCE(src.b, target.b)\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)", "write": "trino", "pretty": false, "identify": false, "want": "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED THEN UPDATE SET b = COALESCE(src.b, target.b) WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)"}
+{"read": "", "sql": "REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)", "write": "trino", "pretty": false, "identify": false, "want": "REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)"}
+{"read": "", "sql": "REGR_COUNT(x, y)", "write": "trino", "pretty": false, "identify": false, "want": "REGR_COUNT(x, y)"}
+{"read": "", "sql": "REGR_SLOPE(x, y)", "write": "trino", "pretty": false, "identify": false, "want": "REGR_SLOPE(x, y)"}
+{"read": "", "sql": "REVERSE(x)", "write": "trino", "pretty": false, "identify": false, "want": "REVERSE(x)"}
+{"read": "", "sql": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq", "write": "trino", "pretty": false, "identify": false, "want": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq"}
+{"read": "", "sql": "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))", "write": "trino", "pretty": false, "identify": false, "want": "SELECT * FROM UNNEST(SEQUENCE(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), (1 * INTERVAL '7' DAY)))"}
+{"read": "", "sql": "SELECT 1 AS \"x\"\"\"", "write": "trino", "pretty": false, "identify": false, "want": "SELECT 1 AS \"x\"\"\""}
+{"read": "", "sql": "SELECT 1 EXCEPT ALL SELECT 1", "write": "trino", "pretty": false, "identify": false, "want": "SELECT 1 EXCEPT ALL SELECT 1"}
+{"read": "", "sql": "SELECT ARRAY_EXCEPT(ARRAY(1, 2, 3), ARRAY(2))", "write": "trino", "pretty": false, "identify": false, "want": "SELECT ARRAY_EXCEPT(ARRAY[1, 2, 3], ARRAY[2])"}
+{"read": "", "sql": "SELECT ARRAY_POSITION(ARRAY(1, 2, 3), 2)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT ARRAY_POSITION(ARRAY[1, 2, 3], 2)"}
+{"read": "", "sql": "SELECT LOCALTIME", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LOCALTIME"}
+{"read": "", "sql": "SELECT LOCALTIME(2)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LOCALTIME(2)"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP"}
+{"read": "", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LOCALTIMESTAMP(2)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT NORMALIZE('str')", "write": "trino", "pretty": false, "identify": false, "want": "SELECT NORMALIZE('str')"}
+{"read": "", "sql": "SELECT NORMALIZE('str', nfkc)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT NORMALIZE('str', nfkc)"}
+{"read": "", "sql": "SELECT NVL2(a, b)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b END"}
+{"read": "", "sql": "SELECT NVL2(a, b, c)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT CASE WHEN NOT a IS NULL THEN b ELSE c END"}
+{"read": "", "sql": "SELECT RPAD('bar', 5)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "trino", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SOUNDEX(x)", "write": "trino", "pretty": false, "identify": false, "want": "SOUNDEX(x)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "trino", "pretty": false, "identify": false, "want": "STRPOS(haystack, needle)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "trino", "pretty": false, "identify": false, "want": "IF(STRPOS(SUBSTR(haystack, position), needle) = 0, 0, STRPOS(SUBSTR(haystack, position), needle) + position - 1)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position, occurrence)", "write": "trino", "pretty": false, "identify": false, "want": "IF(STRPOS(SUBSTR(haystack, position), needle, occurrence) = 0, 0, STRPOS(SUBSTR(haystack, position), needle, occurrence) + position - 1)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')", "write": "trino", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14-08:00' AS TIMESTAMP WITH TIME ZONE)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')", "write": "trino", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14.123-08:00' AS TIMESTAMP(3) WITH TIME ZONE)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')", "write": "trino", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14.123456+00:00' AS TIMESTAMP(6))"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01')", "write": "trino", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME(col, 'America/Los_Angeles')", "write": "trino", "pretty": false, "identify": false, "want": "CAST(col AS TIMESTAMP WITH TIME ZONE)"}
+{"read": "", "sql": "TO_BASE32(x)", "write": "trino", "pretty": false, "identify": false, "want": "TO_BASE32(x)"}
+{"read": "", "sql": "TRANSLATE(x, y, z)", "write": "trino", "pretty": false, "identify": false, "want": "TRANSLATE(x, y, z)"}
+{"read": "", "sql": "UUID()", "write": "trino", "pretty": false, "identify": false, "want": "UUID()"}
+{"read": "", "sql": "a / b", "write": "trino", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE) / b"}
+{"read": "", "sql": "x ILIKE '%y'", "write": "trino", "pretty": false, "identify": false, "want": "LOWER(x) LIKE LOWER('%y')"}
+{"read": "athena", "sql": "CHARINDEX(needle, haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "athena", "sql": "POSITION(needle in haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "athena", "sql": "SELECT * FROM (SELECT 1 AS col) apply", "write": "", "want": "SELECT * FROM (SELECT 1 AS col) AS apply", "pretty": false, "identify": false}
+{"read": "athena", "sql": "SELECT array_position(array[1, 2, 3], 2)", "write": "", "want": "SELECT ARRAY_POSITION(ARRAY(1, 2, 3), 2)", "pretty": false, "identify": false}
+{"read": "athena", "sql": "STRPOS(haystack, needle)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "athena", "sql": "array_max(x)", "write": "", "want": "ARRAY_MAX(x)", "pretty": false, "identify": false}
+{"read": "athena", "sql": "array_min(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
+{"read": "athena", "sql": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT CAST(ds AS STRING) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)"}
+{"read": "athena", "sql": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT CAST(ds AS VARCHAR) AS ds FROM (VALUES ('2022-01-01')) AS t(ds)"}
+{"read": "hive", "sql": "ARRAY_INTERSECT(x, y)", "write": "", "want": "ARRAY_INTERSECT(x, y)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "ASCII('A')", "write": "", "want": "ASCII('A')", "pretty": false, "identify": false}
+{"read": "hive", "sql": "CREATE INDEX my_idx ON TABLE tbl(a, b)", "write": "", "want": "CREATE INDEX my_idx ON tbl(a, b)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "CREATE UNIQUE INDEX my_idx ON TABLE tbl(a, b)", "write": "", "want": "CREATE UNIQUE INDEX my_idx ON tbl(a, b)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "DATEDIFF(TO_DATE(y), x)", "write": "", "pretty": false, "identify": false, "want": "DATEDIFF(TRY_CAST(y AS DATE), CAST(x AS DATE))"}
+{"read": "hive", "sql": "DATEDIFF(a, b)", "write": "", "pretty": false, "identify": false, "want": "DATEDIFF(CAST(a AS DATE), CAST(b AS DATE))"}
+{"read": "hive", "sql": "DATE_ADD('2020-01-01', 1)", "write": "", "pretty": false, "identify": false, "want": "TS_OR_DS_ADD('2020-01-01', 1, DAY)"}
+{"read": "hive", "sql": "DATE_SUB('2020-01-01', 1)", "write": "", "pretty": false, "identify": false, "want": "TS_OR_DS_ADD('2020-01-01', 1 * -1, DAY)"}
+{"read": "hive", "sql": "GROUPING(x)", "write": "", "want": "GROUPING(x)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "INSTR(haystack, needle)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "LEVENSHTEIN(col1, col2)", "write": "", "want": "LEVENSHTEIN(col1, col2)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "LOCATE(needle, haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "LOCATE(needle, haystack, position)", "write": "", "want": "STR_POSITION(haystack, needle, position)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "LOG(b, n)", "write": "", "want": "LOG(b, n)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "LOG(x)", "write": "", "want": "LN(x)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "LTRIM('Hello World')", "write": "", "want": "LTRIM('Hello World')", "pretty": false, "identify": false}
+{"read": "hive", "sql": "LTRIM('Hello World', 'H')", "write": "", "want": "LTRIM('Hello World', 'H')", "pretty": false, "identify": false}
+{"read": "hive", "sql": "MAP(a, b, c, d)", "write": "", "pretty": false, "identify": false, "want": "MAP(ARRAY(a, c), ARRAY(b, d))"}
+{"read": "hive", "sql": "RAND()", "write": "", "want": "RAND()", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGR_COUNT(x, y)", "write": "", "want": "REGR_COUNT(x, y)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGR_INTERCEPT(x, y)", "write": "", "want": "REGR_INTERCEPT(x, y)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGR_R2(x, y)", "write": "", "want": "REGR_R2(x, y)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGR_SXX(x, y)", "write": "", "want": "REGR_SXX(x, y)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGR_SXY(x, y)", "write": "", "want": "REGR_SXY(x, y)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGR_SYY(x, y)", "write": "", "want": "REGR_SYY(x, y)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REVERSE(x)", "write": "", "want": "REVERSE(x)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "RTRIM('Hello World')", "write": "", "want": "RTRIM('Hello World')", "pretty": false, "identify": false}
+{"read": "hive", "sql": "RTRIM('Hello World', 'd')", "write": "", "want": "RTRIM('Hello World', 'd')", "pretty": false, "identify": false}
+{"read": "hive", "sql": "SELECT * FROM (SELECT 1 AS col) apply", "write": "", "want": "SELECT * FROM (SELECT 1 AS col) AS apply", "pretty": false, "identify": false}
+{"read": "hive", "sql": "SELECT 1 AS `x```", "write": "", "want": "SELECT 1 AS \"x`\"", "pretty": false, "identify": false}
+{"read": "hive", "sql": "SOUNDEX(x)", "write": "", "want": "SOUNDEX(x)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "TRANSLATE(x, y, z)", "write": "", "want": "TRANSLATE(x, y, z)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "TRIM('abc', 'a')", "write": "", "want": "TRIM('abc', 'a')", "pretty": false, "identify": false}
+{"read": "hive", "sql": "UNIX_TIMESTAMP(x)", "write": "", "pretty": false, "identify": false, "want": "STR_TO_UNIX(x, '%Y-%mstrict-%dstrict %Hstrict:%Mstrict:%Sstrict')"}
+{"read": "hive", "sql": "UUID()", "write": "", "want": "UUID()", "pretty": false, "identify": false}
+{"read": "hive", "sql": "pow(1.2, 3.4)", "write": "", "want": "POWER(1.2, 3.4)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "ROUND(x::DOUBLE, 4)", "write": "postgres", "want": "ROUND(CAST(CAST(x AS DOUBLE PRECISION) AS DECIMAL), 4)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "SIZE(arr)", "write": "postgres", "want": "ARRAY_LENGTH(arr, 1)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "\"'x'\"", "write": "presto", "pretty": false, "identify": false, "want": "'''x'''"}
+{"read": "hive", "sql": "'\"x\"'", "write": "presto", "pretty": false, "identify": false, "want": "'\"x\"'"}
+{"read": "hive", "sql": "'\\''", "write": "presto", "pretty": false, "identify": false, "want": "''''"}
+{"read": "hive", "sql": "'\\\\\\\\a'", "write": "presto", "pretty": false, "identify": false, "want": "'\\\\a'"}
+{"read": "hive", "sql": "1.0bd", "write": "presto", "pretty": false, "identify": false, "want": "TRY_CAST(1.0 AS DECIMAL)"}
+{"read": "hive", "sql": "1L", "write": "presto", "pretty": false, "identify": false, "want": "TRY_CAST(1 AS BIGINT)"}
+{"read": "hive", "sql": "1S", "write": "presto", "pretty": false, "identify": false, "want": "TRY_CAST(1 AS SMALLINT)"}
+{"read": "hive", "sql": "1Y", "write": "presto", "pretty": false, "identify": false, "want": "TRY_CAST(1 AS TINYINT)"}
+{"read": "hive", "sql": "1s", "write": "presto", "pretty": false, "identify": false, "want": "TRY_CAST(1 AS SMALLINT)"}
+{"read": "hive", "sql": "APPROX_COUNT_DISTINCT(a)", "write": "presto", "pretty": false, "identify": false, "want": "APPROX_DISTINCT(a)"}
+{"read": "hive", "sql": "ARRAY_CONTAINS(x, 1)", "write": "presto", "pretty": false, "identify": false, "want": "CONTAINS(x, 1)"}
+{"read": "hive", "sql": "BASE64(x)", "write": "presto", "want": "TO_BASE64(x)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "CAST(1 AS INT)", "write": "presto", "pretty": false, "identify": false, "want": "TRY_CAST(1 AS INTEGER)"}
+{"read": "hive", "sql": "COLLECT_LIST(x)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_AGG(x) FILTER(WHERE x IS NOT NULL)"}
+{"read": "hive", "sql": "COLLECT_SET(x)", "write": "presto", "pretty": false, "identify": false, "want": "SET_AGG(x)"}
+{"read": "hive", "sql": "CREATE TABLE db.example_table (col_a struct<struct_col_a:int, struct_col_b:string>)", "write": "presto", "pretty": false, "identify": false, "want": "CREATE TABLE db.example_table (col_a ROW(struct_col_a INTEGER, struct_col_b VARCHAR))"}
+{"read": "hive", "sql": "CREATE TABLE db.example_table (col_a struct<struct_col_a:int, struct_col_b:struct<nested_col_a:string, nested_col_b:string>>)", "write": "presto", "pretty": false, "identify": false, "want": "CREATE TABLE db.example_table (col_a ROW(struct_col_a INTEGER, struct_col_b ROW(nested_col_a VARCHAR, nested_col_b VARCHAR)))"}
+{"read": "hive", "sql": "CREATE TABLE test STORED AS parquet TBLPROPERTIES ('x'='1', 'Z'='2') AS SELECT 1", "write": "presto", "pretty": false, "identify": false, "want": "CREATE TABLE test WITH (format='parquet', x='1', Z='2') AS SELECT 1"}
+{"read": "hive", "sql": "CREATE TABLE x (w STRING) PARTITIONED BY (y INT, z INT)", "write": "presto", "pretty": false, "identify": false, "want": "CREATE TABLE x (w VARCHAR, y INTEGER, z INTEGER) WITH (PARTITIONED_BY=ARRAY['y', 'z'])"}
+{"read": "hive", "sql": "DATEDIFF(TO_DATE(y), x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_DIFF('DAY', CAST(CAST(x AS TIMESTAMP) AS DATE), CAST(CAST(CAST(CAST(y AS TIMESTAMP) AS DATE) AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "DATEDIFF(a, b)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_DIFF('DAY', CAST(CAST(b AS TIMESTAMP) AS DATE), CAST(CAST(a AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "DATE_ADD('2020-01-01', 1)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1, CAST(CAST('2020-01-01' AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "DATE_FORMAT('2020-01-01', 'yyyy-MM-dd HH:mm:ss')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_FORMAT(CAST('2020-01-01' AS TIMESTAMP), '%Y-%m-%d %H:%i:%s')"}
+{"read": "hive", "sql": "DATE_SUB('2020-01-01', 1)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_ADD('DAY', 1 * -1, CAST(CAST('2020-01-01' AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "DAY(x)", "write": "presto", "pretty": false, "identify": false, "want": "DAY(CAST(CAST(x AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "GET_JSON_OBJECT(x, '$.name')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT_SCALAR(x, '$.name')"}
+{"read": "hive", "sql": "LOCATE('a', x)", "write": "presto", "pretty": false, "identify": false, "want": "STRPOS(x, 'a')"}
+{"read": "hive", "sql": "LOCATE('a', x, 3)", "write": "presto", "pretty": false, "identify": false, "want": "IF(STRPOS(SUBSTR(x, 3), 'a') = 0, 0, STRPOS(SUBSTR(x, 3), 'a') + 3 - 1)"}
+{"read": "hive", "sql": "LOG(10)", "write": "presto", "pretty": false, "identify": false, "want": "LN(10)"}
+{"read": "hive", "sql": "MAP(a, b)", "write": "presto", "pretty": false, "identify": false, "want": "MAP(ARRAY[a], ARRAY[b])"}
+{"read": "hive", "sql": "MAP(a, b, c, d)", "write": "presto", "pretty": false, "identify": false, "want": "MAP(ARRAY[a, c], ARRAY[b, d])"}
+{"read": "hive", "sql": "MONTH(x)", "write": "presto", "pretty": false, "identify": false, "want": "MONTH(CAST(CAST(x AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "PERCENTILE(x, 0.5)", "write": "presto", "pretty": false, "identify": false, "want": "APPROX_PERCENTILE(x, 0.5)"}
+{"read": "hive", "sql": "PERCENTILE_APPROX(x, 0.5)", "write": "presto", "pretty": false, "identify": false, "want": "APPROX_PERCENTILE(x, 0.5)"}
+{"read": "hive", "sql": "REGEXP_EXTRACT('abc', '(a)(b)(c)')", "write": "presto", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT('abc', '(a)(b)(c)', 1)"}
+{"read": "hive", "sql": "REPLACE(subject, pattern, replacement)", "write": "presto", "want": "REPLACE(subject, pattern, replacement)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "SELECT * FROM x LATERAL VIEW POSEXPLODE(MAP(col, 'val')) t AS pos, key, value", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM x CROSS JOIN LATERAL (SELECT pos - 1 AS pos, key, value FROM UNNEST(MAP(ARRAY[col], ARRAY['val'])) WITH ORDINALITY AS t(key, value, pos))"}
+{"read": "hive", "sql": "SELECT SORT_ARRAY(x, FALSE)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT ARRAY_SORT(x, (a, b) -> CASE WHEN a < b THEN 1 WHEN a > b THEN -1 ELSE 0 END)"}
+{"read": "hive", "sql": "SELECT TRUNC(CAST(ds AS TIMESTAMP), 'MONTH')", "write": "presto", "pretty": false, "identify": false, "want": "SELECT DATE_TRUNC('MONTH', TRY_CAST(ds AS TIMESTAMP))"}
+{"read": "hive", "sql": "SELECT a FROM x LATERAL VIEW EXPLODE(ARRAY(y)) t AS a", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a FROM x CROSS JOIN UNNEST(ARRAY[y]) AS t(a)"}
+{"read": "hive", "sql": "SELECT a FROM x LATERAL VIEW EXPLODE(y) t AS a", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a FROM x CROSS JOIN UNNEST(y) AS t(a)"}
+{"read": "hive", "sql": "SELECT a FROM x LATERAL VIEW POSEXPLODE(y) t AS pos, col", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a FROM x CROSS JOIN LATERAL (SELECT pos - 1 AS pos, col FROM UNNEST(y) WITH ORDINALITY AS t(col, pos))"}
+{"read": "hive", "sql": "SELECT a, b FROM x LATERAL VIEW EXPLODE(y) t AS a LATERAL VIEW EXPLODE(z) u AS b", "write": "presto", "pretty": false, "identify": false, "want": "SELECT a, b FROM x CROSS JOIN UNNEST(y) AS t(a) CROSS JOIN UNNEST(z) AS u(b)"}
+{"read": "hive", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "presto", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC, lname NULLS FIRST"}
+{"read": "hive", "sql": "SIZE(x)", "write": "presto", "pretty": false, "identify": false, "want": "CARDINALITY(x)"}
+{"read": "hive", "sql": "UNBASE64(x)", "write": "presto", "want": "FROM_BASE64(x)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "UNIX_TIMESTAMP(x)", "write": "presto", "pretty": false, "identify": false, "want": "TO_UNIXTIME(COALESCE(TRY(DATE_PARSE(CAST(x AS VARCHAR), '%Y-%m-%d %H:%i:%s')), PARSE_DATETIME(DATE_FORMAT(x, '%Y-%m-%d %H:%i:%s'), 'yyyy-MM-dd HH:mm:ss')))"}
+{"read": "hive", "sql": "YEAR(x)", "write": "presto", "pretty": false, "identify": false, "want": "YEAR(CAST(CAST(x AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "a REGEXP 'x'", "write": "presto", "pretty": false, "identify": false, "want": "REGEXP_LIKE(a, 'x')"}
+{"read": "hive", "sql": "a RLIKE 'x'", "write": "presto", "pretty": false, "identify": false, "want": "REGEXP_LIKE(a, 'x')"}
+{"read": "hive", "sql": "ds = \"1''2\"", "write": "presto", "pretty": false, "identify": false, "want": "ds = '1''''2'"}
+{"read": "hive", "sql": "ds = \"2020-01-01\"", "write": "presto", "pretty": false, "identify": false, "want": "ds = '2020-01-01'"}
+{"read": "hive", "sql": "from_unixtime(x, \"yyyy-MM-dd'T'HH\")", "write": "presto", "pretty": false, "identify": false, "want": "DATE_FORMAT(FROM_UNIXTIME(x), '%Y-%m-%d''T''%H')"}
+{"read": "hive", "sql": "x & 1", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_AND(x, 1)"}
+{"read": "hive", "sql": "x & 1 > 0", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_AND(x, 1) > 0"}
+{"read": "hive", "sql": "x << 1", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_LEFT_SHIFT(x, 1)"}
+{"read": "hive", "sql": "x == 1", "write": "presto", "pretty": false, "identify": false, "want": "x = 1"}
+{"read": "hive", "sql": "x >> 1", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_RIGHT_SHIFT(x, 1)"}
+{"read": "hive", "sql": "x DIV y", "write": "presto", "pretty": false, "identify": false, "want": "CAST(CAST(x AS DOUBLE) / y AS INTEGER)"}
+{"read": "hive", "sql": "x | 1", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_OR(x, 1)"}
+{"read": "hive", "sql": "~x", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_NOT(x)"}
+{"read": "hive", "sql": "COLLECT_SET(x)", "write": "trino", "pretty": false, "identify": false, "want": "ARRAY_AGG(DISTINCT x)"}
+{"read": "hive", "sql": "REGEXP_EXTRACT('abc', '(a)(b)(c)')", "write": "trino", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT('abc', '(a)(b)(c)', 1)"}
+{"read": "hive", "sql": "SELECT * FROM x LATERAL VIEW POSEXPLODE(MAP(col, 'val')) t AS pos, key, value", "write": "trino", "pretty": false, "identify": false, "want": "SELECT * FROM x CROSS JOIN LATERAL (SELECT pos - 1 AS pos, key, value FROM UNNEST(MAP(ARRAY[col], ARRAY['val'])) WITH ORDINALITY AS t(key, value, pos))"}
+{"read": "hive", "sql": "SELECT 1_a AS a FROM test_table", "write": "trino", "pretty": false, "identify": false, "want": "SELECT \"1_a\" AS a FROM test_table"}
+{"read": "hive", "sql": "SELECT a FROM x LATERAL VIEW POSEXPLODE(y) t AS pos, col", "write": "trino", "pretty": false, "identify": false, "want": "SELECT a FROM x CROSS JOIN LATERAL (SELECT pos - 1 AS pos, col FROM UNNEST(y) WITH ORDINALITY AS t(col, pos))"}
+{"read": "mysql", "sql": "ASCII('A')", "write": "", "want": "ASCII('A')", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "DAY(x)", "write": "", "pretty": false, "identify": false, "want": "DAY(CAST(x AS DATE))"}
+{"read": "mysql", "sql": "DAYOFMONTH(x)", "write": "", "pretty": false, "identify": false, "want": "DAY_OF_MONTH(CAST(x AS DATE))"}
+{"read": "mysql", "sql": "DAYOFWEEK(x)", "write": "", "pretty": false, "identify": false, "want": "DAY_OF_WEEK(CAST(x AS DATE))"}
+{"read": "mysql", "sql": "DAYOFYEAR(x)", "write": "", "pretty": false, "identify": false, "want": "DAY_OF_YEAR(CAST(x AS DATE))"}
+{"read": "mysql", "sql": "GROUPING(col1, col2, col3)", "write": "", "want": "GROUPING(col1, col2, col3)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "GROUPING(x)", "write": "", "want": "GROUPING(x)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "INSTR(haystack, needle)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "JSON_EXTRACT(x, '$.y')", "write": "", "want": "JSON_EXTRACT(x, '$.y')", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "JSON_EXTRACT(x, '$.y[0].z')", "write": "", "want": "JSON_EXTRACT(x, '$.y[0].z')", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "JSON_KEYS(foo)", "write": "", "want": "JSON_KEYS(foo)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "JSON_KEYS(foo, '$.a')", "write": "", "want": "JSON_KEYS(foo, '$.a')", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "LOCATE(needle, haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "LOCATE(needle, haystack, position)", "write": "", "want": "STR_POSITION(haystack, needle, position)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "LOG(b, n)", "write": "", "want": "LOG(b, n)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "LOG(x)", "write": "", "want": "LN(x)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "LOG10(a)", "write": "", "want": "LOG(10, a)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "LOG2(a)", "write": "", "want": "LOG(2, a)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "MATCH(col1, col2, col3) AGAINST('abc')", "write": "", "pretty": false, "identify": false, "want": "MATCH(col1, col2, col3) AGAINST('abc')"}
+{"read": "mysql", "sql": "MONTH(x)", "write": "", "want": "MONTH(CAST(x AS DATE))", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "MONTHNAME(x)", "write": "", "pretty": false, "identify": false, "want": "TIME_TO_STR(CAST(x AS DATE), '%B')"}
+{"read": "mysql", "sql": "POSITION(needle in haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "RAND()", "write": "", "want": "RAND()", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "REGEXP_INSTR(src, reg)", "write": "", "want": "REGEXP_INSTR(src, reg)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "REVERSE(x)", "write": "", "want": "REVERSE(x)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SCHEMA()", "write": "", "want": "CURRENT_SCHEMA()", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT # comment1\n  x, # comment2\n  y # comment3", "write": "", "want": "/* comment1 */\nSELECT\n  x, /* comment2 */\n  y /* comment3 */", "pretty": true, "identify": false}
+{"read": "mysql", "sql": "SELECT 1 # arbitrary content,,, until end-of-line", "write": "", "want": "SELECT 1 /* arbitrary content,,, until end-of-line */", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT 1 'foo'", "write": "", "want": "SELECT 1 AS \"foo\"", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT 1 AS `x```", "write": "", "want": "SELECT 1 AS \"x`\"", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT 17 MEMBER OF('[23, \"abc\", 17, \"ab\", 10]')", "write": "", "pretty": false, "identify": false, "want": "SELECT JSON_ARRAY_CONTAINS(17, '[23, \"abc\", 17, \"ab\", 10]')"}
+{"read": "mysql", "sql": "SELECT ISNULL(x)", "write": "", "pretty": false, "identify": false, "want": "SELECT (x IS NULL)"}
+{"read": "mysql", "sql": "SELECT LOCALTIME", "write": "", "want": "SELECT LOCALTIME", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT LOCALTIME(2)", "write": "", "want": "SELECT LOCALTIME(2)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT LOCALTIMESTAMP", "write": "", "want": "SELECT LOCALTIMESTAMP", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "", "want": "SELECT LOCALTIMESTAMP(2)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT a <=> b", "write": "", "want": "SELECT a IS NOT DISTINCT FROM b", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT a FROM tbl FOR SHARE", "write": "", "pretty": false, "identify": false, "want": "SELECT a FROM tbl"}
+{"read": "mysql", "sql": "SELECT a FROM tbl FOR UPDATE", "write": "", "pretty": false, "identify": false, "want": "SELECT a FROM tbl"}
+{"read": "mysql", "sql": "SELECT x BETWEEN 2 AND 10", "write": "", "want": "SELECT x BETWEEN 2 AND 10", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SOUNDEX(x)", "write": "", "want": "SOUNDEX(x)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "UUID()", "write": "", "want": "UUID()", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "WEEK(x)", "write": "", "pretty": false, "identify": false, "want": "WEEK(CAST(x AS DATE))"}
+{"read": "mysql", "sql": "WEEKOFYEAR(x)", "write": "", "pretty": false, "identify": false, "want": "WEEK_OF_YEAR(CAST(x AS DATE))"}
+{"read": "mysql", "sql": "YEAR(x)", "write": "", "pretty": false, "identify": false, "want": "YEAR(CAST(x AS DATE))"}
+{"read": "mysql", "sql": "x IS NOT UNKNOWN", "write": "", "want": "NOT x IS NULL", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "x IS UNKNOWN", "write": "", "want": "x IS NULL", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "CREATE TABLE t (foo BLOB)", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE t (foo BINARY)"}
+{"read": "mysql", "sql": "SELECT 0b1011", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT 0x0000CC", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 204"}
+{"read": "mysql", "sql": "SELECT 0xCC", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 204"}
+{"read": "mysql", "sql": "SELECT 0xCC ", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 204"}
+{"read": "mysql", "sql": "SELECT b'1011'", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT x'0000CC'", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 204"}
+{"read": "mysql", "sql": "SELECT x'CC'", "write": "hive", "pretty": false, "identify": false, "want": "SELECT 204"}
+{"read": "mysql", "sql": "a / b", "write": "hive", "pretty": false, "identify": false, "want": "a / b"}
+{"read": "mysql", "sql": "CREATE TABLE t (c INT COMMENT 'comment 1') COMMENT = 'comment 2'", "write": "postgres", "want": "CREATE TABLE t (c INT)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "CREATE TABLE t (foo BLOB)", "write": "postgres", "pretty": false, "identify": false, "want": "CREATE TABLE t (foo BYTEA)"}
+{"read": "mysql", "sql": "CURDATE()", "write": "postgres", "pretty": false, "identify": false, "want": "CURRENT_DATE"}
+{"read": "mysql", "sql": "GROUP_CONCAT(DISTINCT a, b, c ORDER BY d SEPARATOR '')", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(DISTINCT a || b || c, '' ORDER BY d NULLS FIRST)"}
+{"read": "mysql", "sql": "GROUP_CONCAT(DISTINCT a, b, c SEPARATOR '')", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(DISTINCT a || b || c, '')"}
+{"read": "mysql", "sql": "GROUP_CONCAT(DISTINCT x ORDER BY y DESC SEPARATOR '')", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(DISTINCT x, '' ORDER BY y DESC NULLS LAST)"}
+{"read": "mysql", "sql": "GROUP_CONCAT(DISTINCT x ORDER BY y DESC)", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(DISTINCT x, ',' ORDER BY y DESC NULLS LAST)"}
+{"read": "mysql", "sql": "GROUP_CONCAT(a, b, c ORDER BY d SEPARATOR '')", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(a || b || c, '' ORDER BY d NULLS FIRST)"}
+{"read": "mysql", "sql": "GROUP_CONCAT(a, b, c SEPARATOR '')", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(a || b || c, '')"}
+{"read": "mysql", "sql": "GROUP_CONCAT(a, b, c SEPARATOR ',')", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(a || b || c, ',')"}
+{"read": "mysql", "sql": "GROUP_CONCAT(x ORDER BY y SEPARATOR z)", "write": "postgres", "pretty": false, "identify": false, "want": "STRING_AGG(x, z ORDER BY y NULLS FIRST)"}
+{"read": "mysql", "sql": "MATCH(col1, col2, col3) AGAINST('abc')", "write": "postgres", "pretty": false, "identify": false, "want": "(col1 @@ 'abc' OR col2 @@ 'abc' OR col3 @@ 'abc')"}
+{"read": "mysql", "sql": "SELECT * FROM test LIMIT 0 + 1, 0 + 1", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT * FROM test LIMIT 0 + 1 OFFSET 0 + 1"}
+{"read": "mysql", "sql": "SELECT 0b1011", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT b'1011'"}
+{"read": "mysql", "sql": "SELECT 0x0000CC", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC ", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT CHARACTER_LENGTH('foo')", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LENGTH('foo')"}
+{"read": "mysql", "sql": "SELECT CHAR_LENGTH('foo')", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT LENGTH('foo')"}
+{"read": "mysql", "sql": "SELECT CONCAT('11', '22')", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT '11' || '22'"}
+{"read": "mysql", "sql": "SELECT DATEDIFF(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT (CAST(x AS DATE) - CAST(y AS DATE))"}
+{"read": "mysql", "sql": "SELECT DATE_ADD(CURRENT_TIMESTAMP, INTERVAL -1 QUARTER)", "write": "postgres", "want": "SELECT CURRENT_TIMESTAMP + INTERVAL '-3 MONTH'", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 NULLS FIRST ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1"}
+{"read": "mysql", "sql": "SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2) FROM table1", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 NULLS FIRST) FROM table1"}
+{"read": "mysql", "sql": "SELECT FROM_UNIXTIME(col)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT TO_TIMESTAMP(col)"}
+{"read": "mysql", "sql": "SELECT a FROM tbl FOR SHARE", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT a FROM tbl FOR SHARE"}
+{"read": "mysql", "sql": "SELECT a FROM tbl FOR UPDATE", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT a FROM tbl FOR UPDATE"}
+{"read": "mysql", "sql": "SELECT b'1011'", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT b'1011'"}
+{"read": "mysql", "sql": "SELECT x'0000CC'", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT x'CC'", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "TRUNCATE(3.14159, 2)", "write": "postgres", "pretty": false, "identify": false, "want": "TRUNC(3.14159, 2)"}
+{"read": "mysql", "sql": "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT DATE_ADD(col, INTERVAL num_days DAY) FROM t", "write": "postgres", "pretty": false, "identify": false, "want": "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT col + INTERVAL '1 DAY' * num_days FROM t"}
+{"read": "mysql", "sql": "a / b", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE PRECISION) / NULLIF(b, 0)"}
+{"read": "mysql", "sql": "a XOR b", "write": "postgres", "pretty": false, "identify": false, "want": "(a AND (NOT b)) OR ((NOT a) AND b)"}
+{"read": "mysql", "sql": "CAST(x AS DATETIME)", "write": "presto", "want": "CAST(x AS TIMESTAMP)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "CAST(x AS TEXT)", "write": "presto", "pretty": false, "identify": false, "want": "CAST(x AS VARCHAR)"}
+{"read": "mysql", "sql": "CHAR(10)", "write": "presto", "pretty": false, "identify": false, "want": "CHR(10)"}
+{"read": "mysql", "sql": "GROUP_CONCAT(a, b, c SEPARATOR ',')", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY_JOIN(ARRAY_AGG(CONCAT(CAST(a AS VARCHAR), CAST(b AS VARCHAR), CAST(c AS VARCHAR))), ',')"}
+{"read": "mysql", "sql": "SELECT * FROM test LIMIT 0 + 1, 0 + 1", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM test OFFSET 1 LIMIT 1"}
+{"read": "mysql", "sql": "SELECT 0b1011", "write": "presto", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT 0x0000CC", "write": "presto", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC", "write": "presto", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC ", "write": "presto", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT DATEDIFF(x, y)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT DATE_DIFF('DAY', DATE_TRUNC('DAY', y), DATE_TRUNC('DAY', x))"}
+{"read": "mysql", "sql": "SELECT TO_DAYS(x)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT (DATE_DIFF('DAY', CAST(CAST('0000-01-01' AS TIMESTAMP) AS DATE), CAST(CAST(x AS TIMESTAMP) AS DATE)) + 1)"}
+{"read": "mysql", "sql": "SELECT b'1011'", "write": "presto", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT x'0000CC'", "write": "presto", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT x'CC'", "write": "presto", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "STR_TO_DATE(x, '%Y-%m-%d')", "write": "presto", "pretty": false, "identify": false, "want": "CAST(DATE_PARSE(x, '%Y-%m-%d') AS DATE)"}
+{"read": "mysql", "sql": "STR_TO_DATE(x, '%Y-%m-%dT%T')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_PARSE(x, '%Y-%m-%dT%T')"}
+{"read": "mysql", "sql": "TIMESTAMP(x)", "write": "presto", "want": "CAST(x AS TIMESTAMP)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "a / b", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE) / NULLIF(b, 0)"}
+{"read": "mysql", "sql": "SELECT * FROM test LIMIT 0 + 1, 0 + 1", "write": "trino", "pretty": false, "identify": false, "want": "SELECT * FROM test OFFSET 1 LIMIT 1"}
+{"read": "mysql", "sql": "SELECT 0b1011", "write": "trino", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT 0x0000CC", "write": "trino", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC", "write": "trino", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC ", "write": "trino", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT b'1011'", "write": "trino", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT x'0000CC'", "write": "trino", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT x'CC'", "write": "trino", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "a / b", "write": "trino", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE) / NULLIF(b, 0)"}
+{"read": "mysql", "sql": "a XOR b", "write": "trino", "pretty": false, "identify": false, "want": "(a AND (NOT b)) OR ((NOT a) AND b)"}
+{"read": "postgres", "sql": "ARRAY_APPEND(arr, x)", "write": "", "want": "ARRAY_APPEND(arr, x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "ARRAY_PREPEND(x, arr)", "write": "", "want": "ARRAY_PREPEND(arr, x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "ASCII('A')", "write": "", "want": "ASCII('A')", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "CAST(a AS DOUBLE PRECISION)", "write": "", "want": "CAST(a AS DOUBLE)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "CONCAT(a)", "write": "", "want": "CONCAT(COALESCE(a, ''))", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "CONCAT(a, b)", "write": "", "pretty": false, "identify": false, "want": "CONCAT(COALESCE(a, ''), COALESCE(b, ''))"}
+{"read": "postgres", "sql": "CURRENT_SCHEMA()", "write": "", "want": "CURRENT_SCHEMA()", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "DATE_TRUNC('day', x)", "write": "", "want": "TIMESTAMP_TRUNC(x, DAY)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "DATE_TRUNC('day', x::DATE)", "write": "", "want": "TIMESTAMP_TRUNC(CAST(x AS DATE), DAY)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "DATE_TRUNC(year, x)", "write": "", "want": "TIMESTAMP_TRUNC(x, YEAR)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "FORMAT('str fmt1 fmt2', 1, 'a')", "write": "", "want": "FORMAT('str fmt1 fmt2', 1, 'a')", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "GEN_RANDOM_UUID()", "write": "", "want": "UUID()", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "GROUPING(col1, col2, col3)", "write": "", "want": "GROUPING(col1, col2, col3)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "GROUPING(x)", "write": "", "want": "GROUPING(x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "INET '127.0.0.1/32'", "write": "", "want": "CAST('127.0.0.1/32' AS INET)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')", "write": "", "pretty": false, "identify": false, "want": "JSON_EXTRACT('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}', '$.f4')"}
+{"read": "postgres", "sql": "JUSTIFY_DAYS(INTERVAL '1 DAY')", "write": "", "want": "JUSTIFY_DAYS(INTERVAL '1' DAY)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "JUSTIFY_HOURS(INTERVAL '1 HOUR')", "write": "", "want": "JUSTIFY_HOURS(INTERVAL '1' HOUR)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "JUSTIFY_INTERVAL(INTERVAL '1 HOUR')", "write": "", "want": "JUSTIFY_INTERVAL(INTERVAL '1' HOUR)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "LEVENSHTEIN(col1, col2)", "write": "", "want": "LEVENSHTEIN(col1, col2)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "LOG(b, n)", "write": "", "want": "LOG(b, n)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "LOG(x)", "write": "", "want": "LOG(x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "LOG10(a)", "write": "", "want": "LOG(10, a)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "LOG2(a)", "write": "", "want": "LOG(2, a)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "POSITION(needle in haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "RANDOM()", "write": "", "want": "RAND()", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGEXP_INSTR(src, reg)", "write": "", "want": "REGEXP_INSTR(src, reg)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGR_COUNT(x, y)", "write": "", "want": "REGR_COUNT(x, y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGR_INTERCEPT(x, y)", "write": "", "want": "REGR_INTERCEPT(x, y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGR_R2(x, y)", "write": "", "want": "REGR_R2(x, y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGR_SLOPE(x, y)", "write": "", "want": "REGR_SLOPE(x, y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGR_SXX(x, y)", "write": "", "want": "REGR_SXX(x, y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGR_SXY(x, y)", "write": "", "want": "REGR_SXY(x, y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REGR_SYY(x, y)", "write": "", "want": "REGR_SYY(x, y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "REVERSE(x)", "write": "", "want": "REVERSE(x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT $$$$", "write": "", "want": "SELECT ''", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT $$this is a heredoc string$$", "write": "", "want": "SELECT 'this is a heredoc string'", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT $foo$$foo$", "write": "", "want": "SELECT ''", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT $foo$this is also a heredoc string$foo$", "write": "", "want": "SELECT 'this is also a heredoc string'", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT * FROM (SELECT 1 AS col) apply", "write": "", "want": "SELECT * FROM (SELECT 1 AS col) AS apply", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT 1 AS \"x\"\"\"", "write": "", "want": "SELECT 1 AS \"x\"\"\"", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT LOCALTIME", "write": "", "want": "SELECT LOCALTIME", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT LOCALTIME(2)", "write": "", "want": "SELECT LOCALTIME(2)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT LOCALTIMESTAMP", "write": "", "want": "SELECT LOCALTIMESTAMP", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "", "want": "SELECT LOCALTIMESTAMP(2)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT LPAD('bar', 5)", "write": "", "want": "SELECT LPAD('bar', 5)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "", "want": "SELECT LPAD('bar', 5, ' ')", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT RPAD('bar', 5)", "write": "", "want": "SELECT RPAD('bar', 5)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "", "want": "SELECT RPAD('bar', 5, ' ')", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE NO OTHERS)", "write": "", "want": "SELECT SUM(X) OVER (PARTITION BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT a IS DISTINCT FROM b", "write": "", "want": "SELECT a IS DISTINCT FROM b", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT a IS NOT DISTINCT FROM b", "write": "", "want": "SELECT a IS NOT DISTINCT FROM b", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT col IS NOT NULL::BOOLEAN FROM (SELECT 1 AS col) AS t", "write": "", "want": "SELECT CAST(col IS NOT NULL AS BOOLEAN) FROM (SELECT 1 AS col) AS t", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT col IS NULL::BOOLEAN FROM (SELECT 1 AS col) AS t", "write": "", "want": "SELECT CAST(col IS NULL AS BOOLEAN) FROM (SELECT 1 AS col) AS t", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT x BETWEEN 2 AND 10", "write": "", "want": "SELECT x BETWEEN 2 AND 10", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SOUNDEX(x)", "write": "", "want": "SOUNDEX(x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "STRPOS(haystack, needle)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "TRANSLATE(x, y, z)", "write": "", "want": "TRANSLATE(x, y, z)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all", "write": "", "want": "WITH t AS (SELECT 1 AS all) SELECT 1 FROM t", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "a || b", "write": "", "pretty": false, "identify": false, "want": "a || b"}
+{"read": "postgres", "sql": "power(1.2, 3.4)", "write": "", "want": "POWER(1.2, 3.4)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "x # y", "write": "", "pretty": false, "identify": false, "want": "x ^ y"}
+{"read": "postgres", "sql": "x #> 'y'", "write": "", "pretty": false, "identify": false, "want": "JSONB_EXTRACT(x, 'y')"}
+{"read": "postgres", "sql": "x #>> 'y'", "write": "", "pretty": false, "identify": false, "want": "JSONB_EXTRACT_SCALAR(x, 'y')"}
+{"read": "postgres", "sql": "x -> 'y' -> 0 -> 'z'", "write": "", "pretty": false, "identify": false, "want": "JSON_EXTRACT(JSON_EXTRACT(JSON_EXTRACT(x, '$.y'), '$[0]'), '$.z')"}
+{"read": "postgres", "sql": "x ->> 'y'", "write": "", "want": "JSON_EXTRACT_SCALAR(x, '$.y')", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "x / y ^ z", "write": "", "pretty": false, "identify": false, "want": "x / POWER(y, z)"}
+{"read": "postgres", "sql": "x ? y", "write": "", "pretty": false, "identify": false, "want": "JSONB_CONTAINS(x, y)"}
+{"read": "postgres", "sql": "x ILIKE '%y'", "write": "", "want": "x ILIKE '%y'", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "x IS NOT UNKNOWN", "write": "", "want": "x IS NOT NULL", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "x IS UNKNOWN", "write": "", "want": "x IS NULL", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "x NOT ILIKE '%y'", "write": "", "want": "x NOT ILIKE '%y'", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "x ^ y", "write": "", "pretty": false, "identify": false, "want": "POWER(x, y)"}
+{"read": "postgres", "sql": "x->'y'", "write": "", "want": "JSON_EXTRACT(x, '$.y')", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT U&'a\nb'", "write": "athena", "pretty": false, "identify": false, "want": "SELECT U&'a\nb'"}
+{"read": "postgres", "sql": "SELECT U&'can''t'", "write": "athena", "pretty": false, "identify": false, "want": "SELECT U&'can''t'"}
+{"read": "postgres", "sql": "ARRAY_LENGTH(arr, 1)", "write": "hive", "pretty": false, "identify": false, "want": "SIZE(arr)"}
+{"read": "postgres", "sql": "ARRAY_LENGTH(arr, foo)", "write": "hive", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "postgres", "sql": "CREATE TABLE x (a UUID, b BYTEA)", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE x (a UUID, b BINARY)"}
+{"read": "postgres", "sql": "GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')", "write": "hive", "pretty": false, "identify": false, "want": "EXPLODE(SEQUENCE(CAST('2019-01-01' AS TIMESTAMP), CAST(CURRENT_TIMESTAMP() AS TIMESTAMP), INTERVAL '1' DAY))"}
+{"read": "postgres", "sql": "SELECT * FROM GENERATE_SERIES(a, b)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT * FROM EXPLODE(SEQUENCE(a, b))"}
+{"read": "postgres", "sql": "SELECT * FROM x FETCH 1 ROW", "write": "hive", "pretty": false, "identify": false, "want": "SELECT * FROM x LIMIT 1"}
+{"read": "postgres", "sql": "SELECT * FROM x WHERE SUBSTRING(col1 FROM 3 + LENGTH(col1) - 10 FOR 10) IN (col2)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT * FROM x WHERE SUBSTRING(col1, 3 + LENGTH(col1) - 10, 10) IN (col2)"}
+{"read": "postgres", "sql": "SELECT CASE WHEN SUBSTRING('abcdefg' FROM 1 FOR 2) IN ('ab') THEN 1 ELSE 0 END", "write": "hive", "pretty": false, "identify": false, "want": "SELECT CASE WHEN SUBSTRING('abcdefg', 1, 2) IN ('ab') THEN 1 ELSE 0 END"}
+{"read": "postgres", "sql": "SELECT TRIM(BOTH ' XXX ')", "write": "hive", "pretty": false, "identify": false, "want": "SELECT TRIM(' XXX ')"}
+{"read": "postgres", "sql": "SELECT UNNEST(ARRAY[1])", "write": "hive", "pretty": false, "identify": false, "want": "SELECT EXPLODE(ARRAY(1))"}
+{"read": "postgres", "sql": "SELECT UNNEST(c) FROM t", "write": "hive", "pretty": false, "identify": false, "want": "SELECT EXPLODE(c) FROM t"}
+{"read": "postgres", "sql": "SELECT col[1]", "write": "hive", "pretty": false, "identify": false, "want": "SELECT col[0]"}
+{"read": "postgres", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "hive", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname NULLS LAST"}
+{"read": "postgres", "sql": "TRIM(LEADING FROM ' XXX ')", "write": "hive", "pretty": false, "identify": false, "want": "LTRIM(' XXX ')"}
+{"read": "postgres", "sql": "TRIM(TRAILING FROM ' XXX ')", "write": "hive", "pretty": false, "identify": false, "want": "RTRIM(' XXX ')"}
+{"read": "postgres", "sql": "TRUNC(3.14159, 2)", "write": "hive", "want": "CAST(3.14159 AS BIGINT)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "WITH t AS (SELECT ARRAY[1, 2, 3] AS col) SELECT * FROM t WHERE 1 <= ANY(col) AND 2 = ANY(col)", "write": "hive", "pretty": false, "identify": false, "want": "WITH t AS (SELECT ARRAY(1, 2, 3) AS col) SELECT * FROM t WHERE EXISTS(col, x -> 1 <= x) AND EXISTS(col, x -> 2 = x)"}
+{"read": "postgres", "sql": "DATE_TRUNC(DAY, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(DAY, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) DAY)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "DATE_TRUNC(MONTH, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(MONTH, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) MONTH)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "DATE_TRUNC(SECOND, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(SECOND, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) SECOND)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "DATE_TRUNC(YEAR, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(YEAR, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) YEAR)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')", "write": "mysql", "pretty": false, "identify": false, "want": "JSON_EXTRACT('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}', '$.f4')"}
+{"read": "postgres", "sql": "SELECT '11' || '22'", "write": "mysql", "want": "SELECT CONCAT('11', '22')", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT * FROM t1 FULL OUTER JOIN t2 ON t1.x = t2.x", "write": "mysql", "want": "SELECT * FROM t1 LEFT OUTER JOIN t2 ON t1.x = t2.x UNION ALL SELECT * FROM t1 RIGHT OUTER JOIN t2 ON t1.x = t2.x WHERE NOT EXISTS(SELECT 1 FROM t1 WHERE t1.x = t2.x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT * FROM t1 FULL OUTER JOIN t2 USING (x) ", "write": "mysql", "want": "SELECT * FROM t1 LEFT OUTER JOIN t2 USING (x) UNION ALL SELECT * FROM t1 RIGHT OUTER JOIN t2 USING (x) WHERE NOT EXISTS(SELECT 1 FROM t1 WHERE t1.x = t2.x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT * FROM t1 FULL OUTER JOIN t2 USING (x, y) ", "write": "mysql", "want": "SELECT * FROM t1 LEFT OUTER JOIN t2 USING (x, y) UNION ALL SELECT * FROM t1 RIGHT OUTER JOIN t2 USING (x, y) WHERE NOT EXISTS(SELECT 1 FROM t1 WHERE t1.x = t2.x AND t1.y = t2.y)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT * FROM x FULL JOIN y ON x.id = y.id ORDER BY 1 LIMIT 0", "write": "mysql", "want": "SELECT * FROM x LEFT JOIN y ON x.id = y.id UNION ALL SELECT * FROM x RIGHT JOIN y ON x.id = y.id WHERE NOT EXISTS(SELECT 1 FROM x WHERE x.id = y.id) ORDER BY 1 LIMIT 0", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT ARRAY[1, 2, 3] @> ARRAY[1, 2]", "write": "mysql", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "postgres", "sql": "SELECT CAST('2025-02-01 00:00:00' AS TIMESTAMP) - MAKE_INTERVAL(years => 1)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT CAST('2025-02-01 00:00:00' AS DATETIME) - INTERVAL 1 YEAR"}
+{"read": "postgres", "sql": "SELECT E'a\\tb'", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT 'a\\tb'"}
+{"read": "postgres", "sql": "SELECT EXTRACT(epoch FROM TIMESTAMP '2024-04-29 12:00:00')", "write": "mysql", "want": "SELECT UNIX_TIMESTAMP(CAST('2024-04-29 12:00:00' AS DATETIME))", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT NOW() + MAKE_INTERVAL(years => 1, months => 2, days => 3)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT CURRENT_TIMESTAMP() + INTERVAL 1 YEAR + INTERVAL 2 MONTH + INTERVAL 3 DAY"}
+{"read": "postgres", "sql": "SELECT NOW() - MAKE_INTERVAL(years => 1, months => 2, days => 3)", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT CURRENT_TIMESTAMP() - INTERVAL 1 YEAR - INTERVAL 2 MONTH - INTERVAL 3 DAY"}
+{"read": "postgres", "sql": "SELECT TO_TIMESTAMP(col)", "write": "mysql", "want": "SELECT FROM_UNIXTIME(col)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT TRIM(BOTH ' XXX ')", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT TRIM(' XXX ')"}
+{"read": "postgres", "sql": "SELECT department, array_agg(name) AS employee_names FROM data GROUP BY department", "write": "mysql", "want": "SELECT department, GROUP_CONCAT(name) AS employee_names FROM data GROUP BY department", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "TRIM(LEADING FROM ' XXX ')", "write": "mysql", "pretty": false, "identify": false, "want": "LTRIM(' XXX ')"}
+{"read": "postgres", "sql": "TRIM(TRAILING FROM ' XXX ')", "write": "mysql", "pretty": false, "identify": false, "want": "RTRIM(' XXX ')"}
+{"read": "postgres", "sql": "UPDATE foo SET a = bar.a, b = bar.b FROM bar WHERE foo.id = bar.id", "write": "mysql", "pretty": false, "identify": false, "want": "UPDATE foo JOIN bar ON TRUE SET foo.a = bar.a, foo.b = bar.b WHERE foo.id = bar.id"}
+{"read": "postgres", "sql": "e'x'", "write": "mysql", "pretty": false, "identify": false, "want": "'x'"}
+{"read": "postgres", "sql": "ARRAY_LENGTH(arr, 1)", "write": "presto", "pretty": false, "identify": false, "want": "CARDINALITY(arr)"}
+{"read": "postgres", "sql": "ARRAY_LENGTH(arr, foo)", "write": "presto", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "postgres", "sql": "BEGIN", "write": "presto", "pretty": false, "identify": false, "want": "START TRANSACTION"}
+{"read": "postgres", "sql": "CONCAT(a, b)", "write": "presto", "pretty": false, "identify": false, "want": "CONCAT(COALESCE(CAST(a AS VARCHAR), ''), COALESCE(CAST(b AS VARCHAR), ''))"}
+{"read": "postgres", "sql": "CREATE TABLE x (a UUID, b BYTEA)", "write": "presto", "pretty": false, "identify": false, "want": "CREATE TABLE x (a UUID, b VARBINARY)"}
+{"read": "postgres", "sql": "GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')", "write": "presto", "pretty": false, "identify": false, "want": "UNNEST(SEQUENCE(CAST('2019-01-01' AS TIMESTAMP), CAST(CURRENT_TIMESTAMP AS TIMESTAMP), INTERVAL '1' DAY))"}
+{"read": "postgres", "sql": "GENERATE_SERIES(a, b, '  2   days  ')", "write": "presto", "pretty": false, "identify": false, "want": "UNNEST(SEQUENCE(a, b, INTERVAL '2' DAY))"}
+{"read": "postgres", "sql": "JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')", "write": "presto", "pretty": false, "identify": false, "want": "JSON_EXTRACT('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}', '$.f4')"}
+{"read": "postgres", "sql": "SELECT 'epoch'::TIMESTAMP", "write": "presto", "want": "SELECT CAST('1970-01-01 00:00:00' AS TIMESTAMP)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT * FROM GENERATE_SERIES(a, b)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM UNNEST(SEQUENCE(a, b))"}
+{"read": "postgres", "sql": "SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM t CROSS JOIN UNNEST(SEQUENCE(2, 4))"}
+{"read": "postgres", "sql": "SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4) AS s", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM t CROSS JOIN UNNEST(SEQUENCE(2, 4)) AS _u(s)"}
+{"read": "postgres", "sql": "SELECT * FROM x FETCH 1 ROW", "write": "presto", "pretty": false, "identify": false, "want": "SELECT * FROM x FETCH FIRST 1 ROWS ONLY"}
+{"read": "postgres", "sql": "SELECT CAST('10C' AS INTEGER)", "write": "presto", "want": "SELECT CAST('10C' AS INTEGER)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT APPROX_PERCENTILE(amount, 0.5)"}
+{"read": "postgres", "sql": "SELECT U&'Hello winter \\2603 !'", "write": "presto", "pretty": false, "identify": false, "want": "SELECT U&'Hello winter \\2603 !'"}
+{"read": "postgres", "sql": "SELECT U&'can''t'", "write": "presto", "pretty": false, "identify": false, "want": "SELECT U&'can''t'"}
+{"read": "postgres", "sql": "SELECT UNNEST(ARRAY[1])", "write": "presto", "pretty": false, "identify": false, "want": "SELECT IF(_u.pos = _u_2.pos_2, _u_2.col) AS col FROM UNNEST(SEQUENCE(1, GREATEST(CARDINALITY(ARRAY[1])))) AS _u(pos) CROSS JOIN UNNEST(ARRAY[1]) WITH ORDINALITY AS _u_2(col, pos_2) WHERE _u.pos = _u_2.pos_2 OR (_u.pos > CARDINALITY(ARRAY[1]) AND _u_2.pos_2 = CARDINALITY(ARRAY[1]))"}
+{"read": "postgres", "sql": "SELECT UNNEST(c) FROM t", "write": "presto", "pretty": false, "identify": false, "want": "SELECT IF(_u.pos = _u_2.pos_2, _u_2.col) AS col FROM t CROSS JOIN UNNEST(SEQUENCE(1, GREATEST(CARDINALITY(c)))) AS _u(pos) CROSS JOIN UNNEST(c) WITH ORDINALITY AS _u_2(col, pos_2) WHERE _u.pos = _u_2.pos_2 OR (_u.pos > CARDINALITY(c) AND _u_2.pos_2 = CARDINALITY(c))"}
+{"read": "postgres", "sql": "SELECT col[1]", "write": "presto", "pretty": false, "identify": false, "want": "SELECT col[1]"}
+{"read": "postgres", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "presto", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC, lname"}
+{"read": "postgres", "sql": "TRIM(LEADING FROM ' XXX ')", "write": "presto", "pretty": false, "identify": false, "want": "LTRIM(' XXX ')"}
+{"read": "postgres", "sql": "TRIM(TRAILING FROM ' XXX ')", "write": "presto", "pretty": false, "identify": false, "want": "RTRIM(' XXX ')"}
+{"read": "postgres", "sql": "a || b", "write": "presto", "pretty": false, "identify": false, "want": "CONCAT(CAST(a AS VARCHAR), CAST(b AS VARCHAR))"}
+{"read": "postgres", "sql": "BEGIN", "write": "trino", "pretty": false, "identify": false, "want": "START TRANSACTION"}
+{"read": "postgres", "sql": "GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')", "write": "trino", "pretty": false, "identify": false, "want": "UNNEST(SEQUENCE(CAST('2019-01-01' AS TIMESTAMP), CAST(CURRENT_TIMESTAMP AS TIMESTAMP), INTERVAL '1' DAY))"}
+{"read": "postgres", "sql": "GENERATE_SERIES(a, b, '  2   days  ')", "write": "trino", "pretty": false, "identify": false, "want": "UNNEST(SEQUENCE(a, b, INTERVAL '2' DAY))"}
+{"read": "postgres", "sql": "SELECT * FROM GENERATE_SERIES(a, b)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT * FROM UNNEST(SEQUENCE(a, b))"}
+{"read": "postgres", "sql": "SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT * FROM t CROSS JOIN UNNEST(SEQUENCE(2, 4))"}
+{"read": "postgres", "sql": "SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4) AS s", "write": "trino", "pretty": false, "identify": false, "want": "SELECT * FROM t CROSS JOIN UNNEST(SEQUENCE(2, 4)) AS _u(s)"}
+{"read": "postgres", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT APPROX_PERCENTILE(amount, 0.5)"}
+{"read": "postgres", "sql": "merge into x as x using (select id) as y on a = b WHEN matched then update set X.\"A\" = y.b", "write": "trino", "pretty": false, "identify": false, "want": "MERGE INTO x AS x USING (SELECT id) AS y ON a = b WHEN MATCHED THEN UPDATE SET \"A\" = y.b"}
+{"read": "presto", "sql": "ARRAY_INTERSECT(x, y)", "write": "", "want": "ARRAY_INTERSECT(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_TRUNC('DAY', x::DATE)", "write": "", "want": "DATE_TRUNC('DAY', CAST(x AS DATE))", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_TRUNC('day', x)", "write": "", "want": "TIMESTAMP_TRUNC(x, DAY)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DAY(x)", "write": "", "want": "DAY(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "FROM_BASE32(x)", "write": "", "want": "FROM_BASE32(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "JSON_EXTRACT(x, '$.y')", "write": "", "want": "JSON_EXTRACT(x, '$.y')", "pretty": false, "identify": false}
+{"read": "presto", "sql": "JSON_EXTRACT(x, '$.y[0].z')", "write": "", "want": "JSON_EXTRACT(x, '$.y[0].z')", "pretty": false, "identify": false}
+{"read": "presto", "sql": "JSON_EXTRACT_SCALAR(x, '$.y')", "write": "", "want": "JSON_EXTRACT_SCALAR(x, '$.y')", "pretty": false, "identify": false}
+{"read": "presto", "sql": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "write": "", "want": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "pretty": false, "identify": false}
+{"read": "presto", "sql": "LEVENSHTEIN_DISTANCE(col1, col2)", "write": "", "want": "LEVENSHTEIN(col1, col2)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "LOG10(a)", "write": "", "want": "LOG(10, a)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "LOG2(a)", "write": "", "want": "LOG(2, a)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "MONTH(x)", "write": "", "want": "MONTH(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "POSITION(needle in haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "RAND()", "write": "", "want": "RAND()", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGR_COUNT(x, y)", "write": "", "want": "REGR_COUNT(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGR_INTERCEPT(x, y)", "write": "", "want": "REGR_INTERCEPT(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGR_R2(x, y)", "write": "", "want": "REGR_R2(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGR_SLOPE(x, y)", "write": "", "want": "REGR_SLOPE(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGR_SXX(x, y)", "write": "", "want": "REGR_SXX(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGR_SXY(x, y)", "write": "", "want": "REGR_SXY(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGR_SYY(x, y)", "write": "", "want": "REGR_SYY(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REVERSE(x)", "write": "", "want": "REVERSE(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT * FROM (SELECT 1 AS col) apply", "write": "", "want": "SELECT * FROM (SELECT 1 AS col) AS apply", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT * FROM a EXCEPT ALL SELECT * FROM b", "write": "", "want": "SELECT * FROM a EXCEPT ALL SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT * FROM a EXCEPT SELECT * FROM b", "write": "", "want": "SELECT * FROM a EXCEPT SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT * FROM a INTERSECT SELECT * FROM b", "write": "", "want": "SELECT * FROM a INTERSECT SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT * FROM a UNION ALL SELECT * FROM b", "write": "", "want": "SELECT * FROM a UNION ALL SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT * FROM a UNION SELECT * FROM b", "write": "", "want": "SELECT * FROM a UNION SELECT * FROM b", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT 1 AS \"x\"\"\"", "write": "", "want": "SELECT 1 AS \"x\"\"\"", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)", "write": "", "pretty": false, "identify": false, "want": "SELECT ARRAY(1, 2, 3)[3]"}
+{"read": "presto", "sql": "SELECT LOCALTIME", "write": "", "want": "SELECT LOCALTIME", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT LOCALTIME(2)", "write": "", "want": "SELECT LOCALTIME(2)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT LOCALTIMESTAMP", "write": "", "want": "SELECT LOCALTIMESTAMP", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "", "want": "SELECT LOCALTIMESTAMP(2)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT NORMALIZE('str')", "write": "", "want": "SELECT NORMALIZE('str')", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT NORMALIZE('str', nfkc)", "write": "", "want": "SELECT NORMALIZE('str', nfkc)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT array_position(array[1, 2, 3], 2)", "write": "", "want": "SELECT ARRAY_POSITION(ARRAY(1, 2, 3), 2)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SLICE(x, 1, 3)", "write": "", "want": "ARRAY_SLICE(x, 1, 3)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "START TRANSACTION ISOLATION LEVEL REPEATABLE READ", "write": "", "want": "BEGIN ISOLATION LEVEL REPEATABLE READ", "pretty": false, "identify": false}
+{"read": "presto", "sql": "START TRANSACTION READ WRITE, ISOLATION LEVEL SERIALIZABLE", "write": "", "want": "BEGIN READ WRITE, ISOLATION LEVEL SERIALIZABLE", "pretty": false, "identify": false}
+{"read": "presto", "sql": "STRPOS(haystack, needle)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "TO_BASE32(x)", "write": "", "want": "TO_BASE32(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "UUID()", "write": "", "want": "UUID()", "pretty": false, "identify": false}
+{"read": "presto", "sql": "WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all", "write": "", "want": "WITH t AS (SELECT 1 AS all) SELECT 1 FROM t", "pretty": false, "identify": false}
+{"read": "presto", "sql": "YEAR(x)", "write": "", "want": "YEAR(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "array_max(x)", "write": "", "want": "ARRAY_MAX(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "array_min(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "''''", "write": "hive", "pretty": false, "identify": false, "want": "'\\''"}
+{"read": "presto", "sql": "'''x'", "write": "hive", "pretty": false, "identify": false, "want": "'\\'x'"}
+{"read": "presto", "sql": "'''x'''", "write": "hive", "pretty": false, "identify": false, "want": "'\\'x\\''"}
+{"read": "presto", "sql": "'\\\\a'", "write": "hive", "want": "'\\\\\\\\a'", "pretty": false, "identify": false}
+{"read": "presto", "sql": "'x'", "write": "hive", "pretty": false, "identify": false, "want": "'x'"}
+{"read": "presto", "sql": "APPROX_PERCENTILE(x, 0.5)", "write": "hive", "want": "PERCENTILE_APPROX(x, 0.5)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "ARRAY_AGG(x)", "write": "hive", "want": "COLLECT_LIST(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "ARRAY_JOIN(x, '-', 'a')", "write": "hive", "pretty": false, "identify": false, "want": "CONCAT_WS('-', x)"}
+{"read": "presto", "sql": "BITWISE_AND(x, 1)", "write": "hive", "want": "x & 1", "pretty": false, "identify": false}
+{"read": "presto", "sql": "BITWISE_AND(x, 1) > 0", "write": "hive", "want": "x & 1 > 0", "pretty": false, "identify": false}
+{"read": "presto", "sql": "BITWISE_NOT(x)", "write": "hive", "want": "~x", "pretty": false, "identify": false}
+{"read": "presto", "sql": "BITWISE_OR(x, 1)", "write": "hive", "want": "x | 1", "pretty": false, "identify": false}
+{"read": "presto", "sql": "CARDINALITY(x)", "write": "hive", "pretty": false, "identify": false, "want": "SIZE(x)"}
+{"read": "presto", "sql": "CAST(MAP(ARRAY['a','b','c'], ARRAY[ARRAY[1], ARRAY[2], ARRAY[3]]) AS MAP(VARCHAR, ARRAY(INT)))", "write": "hive", "pretty": false, "identify": false, "want": "CAST(MAP('a', ARRAY(1), 'b', ARRAY(2), 'c', ARRAY(3)) AS MAP<STRING, ARRAY<INT>>)"}
+{"read": "presto", "sql": "CAST(MAP(ARRAY['key'], ARRAY[1]) AS MAP(VARCHAR, INT))", "write": "hive", "pretty": false, "identify": false, "want": "CAST(MAP('key', 1) AS MAP<STRING, INT>)"}
+{"read": "presto", "sql": "CAST(x AS TIMESTAMP(9) WITH TIME ZONE)", "write": "hive", "pretty": false, "identify": false, "want": "CAST(x AS TIMESTAMP)"}
+{"read": "presto", "sql": "CREATE TABLE db.example_table (col_a ROW(struct_col_a INTEGER, struct_col_b ROW(nested_col_a VARCHAR, nested_col_b VARCHAR)))", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE db.example_table (col_a STRUCT<struct_col_a: INT, struct_col_b: STRUCT<nested_col_a: STRING, nested_col_b: STRING>>)"}
+{"read": "presto", "sql": "CREATE TABLE db.example_table (col_a ROW(struct_col_a INTEGER, struct_col_b VARCHAR))", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE db.example_table (col_a STRUCT<struct_col_a: INT, struct_col_b: STRING>)"}
+{"read": "presto", "sql": "CREATE TABLE test STORED AS 'PARQUET' AS SELECT 1", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE test STORED AS PARQUET AS SELECT 1"}
+{"read": "presto", "sql": "CREATE TABLE test WITH (FORMAT = 'PARQUET') AS SELECT 1", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE test STORED AS PARQUET AS SELECT 1"}
+{"read": "presto", "sql": "CREATE TABLE test WITH (FORMAT = 'PARQUET', X = '1', Z = '2') AS SELECT 1", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE test STORED AS PARQUET TBLPROPERTIES ('X'='1', 'Z'='2') AS SELECT 1"}
+{"read": "presto", "sql": "CREATE TABLE x (w VARCHAR, y INTEGER, z INTEGER) WITH (PARTITIONED_BY=ARRAY['y', 'z'])", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE x (w STRING) PARTITIONED BY (y INT, z INT)"}
+{"read": "presto", "sql": "CREATE TABLE x WITH (bucket_by = ARRAY['y'], bucket_count = 64) AS SELECT 1 AS y", "write": "hive", "pretty": false, "identify": false, "want": "CREATE TABLE x TBLPROPERTIES ('bucket_by'=ARRAY('y'), 'bucket_count'=64) AS SELECT 1 AS y"}
+{"read": "presto", "sql": "DATE_ADD('DAY', 1, x)", "write": "hive", "pretty": false, "identify": false, "want": "DATE_ADD(x, 1)"}
+{"read": "presto", "sql": "DATE_DIFF('hour', x, y)", "write": "hive", "want": "(UNIX_TIMESTAMP(y) - UNIX_TIMESTAMP(x)) / 3600", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_DIFF('millisecond', x, y)", "write": "hive", "want": "(UNIX_TIMESTAMP(y) - UNIX_TIMESTAMP(x)) * 1000", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_DIFF('minute', x, y)", "write": "hive", "want": "(UNIX_TIMESTAMP(y) - UNIX_TIMESTAMP(x)) / 60", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_DIFF('second', x, y)", "write": "hive", "want": "UNIX_TIMESTAMP(y) - UNIX_TIMESTAMP(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DATE_FORMAT(x, '%T')", "write": "hive", "pretty": false, "identify": false, "want": "DATE_FORMAT(x, 'HH:mm:ss')"}
+{"read": "presto", "sql": "DATE_FORMAT(x, '%Y-%m-%d %H:%i:%S')", "write": "hive", "pretty": false, "identify": false, "want": "DATE_FORMAT(x, 'yyyy-MM-dd HH:mm:ss')"}
+{"read": "presto", "sql": "DATE_PARSE(SUBSTR(x, 1, 10), '%Y-%m-%d')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(SUBSTRING(x, 1, 10) AS TIMESTAMP)"}
+{"read": "presto", "sql": "DATE_PARSE(SUBSTRING(x, 1, 10), '%Y-%m-%d')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(SUBSTRING(x, 1, 10) AS TIMESTAMP)"}
+{"read": "presto", "sql": "DATE_PARSE(x, '%Y-%m-%d %H:%i:%S')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(x AS TIMESTAMP)"}
+{"read": "presto", "sql": "DATE_PARSE(x, '%Y-%m-%d')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(x AS TIMESTAMP)"}
+{"read": "presto", "sql": "FROM_BASE64(x)", "write": "hive", "pretty": false, "identify": false, "want": "UNBASE64(x)"}
+{"read": "presto", "sql": "FROM_UNIXTIME(x)", "write": "hive", "pretty": false, "identify": false, "want": "FROM_UNIXTIME(x)"}
+{"read": "presto", "sql": "MAP(ARRAY[a, c], ARRAY[b, d])", "write": "hive", "want": "MAP(a, b, c, d)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "NOW()", "write": "hive", "pretty": false, "identify": false, "want": "CURRENT_TIMESTAMP()"}
+{"read": "presto", "sql": "REGEXP_LIKE(a, 'x')", "write": "hive", "pretty": false, "identify": false, "want": "a RLIKE 'x'"}
+{"read": "presto", "sql": "REGEXP_SPLIT(x, 'a.')", "write": "hive", "pretty": false, "identify": false, "want": "SPLIT(x, 'a.')"}
+{"read": "presto", "sql": "REPLACE(subject, pattern)", "write": "hive", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, '')"}
+{"read": "presto", "sql": "REPLACE(subject, pattern, replacement)", "write": "hive", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, replacement)"}
+{"read": "presto", "sql": "SELECT * FROM x AS foo TABLESAMPLE BERNOULLI (1)", "write": "hive", "want": "SELECT * FROM x TABLESAMPLE (1 PERCENT) AS foo", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT DATE_TRUNC('MONTH', CAST(ds AS TIMESTAMP))", "write": "hive", "want": "SELECT TRUNC(CAST(ds AS TIMESTAMP), 'MONTH')", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT a FROM x CROSS JOIN UNNEST(ARRAY(y)) AS t (a)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT a FROM x LATERAL VIEW EXPLODE(ARRAY(y)) t AS a"}
+{"read": "presto", "sql": "SELECT a FROM x CROSS JOIN UNNEST(ARRAY(y)) AS t (a) CROSS JOIN b", "write": "hive", "pretty": false, "identify": false, "want": "SELECT a FROM x CROSS JOIN b LATERAL VIEW EXPLODE(ARRAY(y)) t AS a"}
+{"read": "presto", "sql": "SET_AGG(x)", "write": "hive", "want": "COLLECT_SET(x)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SPLIT(x, 'a.')", "write": "hive", "pretty": false, "identify": false, "want": "SPLIT(x, CONCAT('\\\\Q', 'a.', '\\\\E'))"}
+{"read": "presto", "sql": "TO_BASE64(x)", "write": "hive", "pretty": false, "identify": false, "want": "BASE64(x)"}
+{"read": "presto", "sql": "TO_UNIXTIME(x)", "write": "hive", "pretty": false, "identify": false, "want": "UNIX_TIMESTAMP(x)"}
+{"read": "presto", "sql": "TRY_CAST(1 AS INT)", "write": "hive", "want": "CAST(1 AS INT)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "x IN ('a', 'a''b')", "write": "hive", "pretty": false, "identify": false, "want": "x IN ('a', 'a\\'b')"}
+{"read": "presto", "sql": "SELECT DATE_DIFF('DAY', y, x)", "write": "mysql", "want": "SELECT DATEDIFF(x, y)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT INTERVAL '1' SeCoNds", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' SECOND"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' days", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' DAY"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' hours", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' HOUR"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' minutes", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' MINUTE"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' months", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' MONTH"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' years", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' YEAR"}
+{"read": "presto", "sql": "CARDINALITY(arr)", "write": "postgres", "want": "ARRAY_LENGTH(arr, 1)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "CAST(x AS TIME(5) WITH TIME ZONE)", "write": "postgres", "pretty": false, "identify": false, "want": "CAST(x AS TIMETZ(5))"}
+{"read": "presto", "sql": "SELECT COALESCE(ELEMENT_AT(MAP_FROM_ENTRIES(ARRAY[(51, '1')]), id), quantity) FROM my_table", "write": "postgres", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "presto", "sql": "SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT (ARRAY[1, 2, 3])[4]"}
+{"read": "presto", "sql": "SELECT U&'Hello winter \\2603 !'", "write": "postgres", "want": "SELECT U&'Hello winter \\2603 !'", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT DATE_ADD('MINUTE', 30, col)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT DATE_ADD('MINUTE', 30, col)"}
+{"read": "presto", "sql": "SELECT FROM_ISO8601_DATE('2020-05-11')", "write": "trino", "pretty": false, "identify": false, "want": "SELECT FROM_ISO8601_DATE('2020-05-11')"}
+{"read": "presto", "sql": "SELECT FROM_ISO8601_TIMESTAMP('2020-05-11T11:15:05')", "write": "trino", "pretty": false, "identify": false, "want": "SELECT FROM_ISO8601_TIMESTAMP('2020-05-11T11:15:05')"}
+{"read": "presto", "sql": "SELECT FROM_UNIXTIME(col) FROM tbl", "write": "trino", "pretty": false, "identify": false, "want": "SELECT FROM_UNIXTIME(col) FROM tbl"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' SeCoNds", "write": "trino", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' SECOND"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' days", "write": "trino", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' DAY"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' hours", "write": "trino", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' HOUR"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' minutes", "write": "trino", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' MINUTE"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' months", "write": "trino", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' MONTH"}
+{"read": "presto", "sql": "SELECT INTERVAL '1' years", "write": "trino", "pretty": false, "identify": false, "want": "SELECT INTERVAL '1' YEAR"}
+{"read": "presto", "sql": "SELECT SHA256(x)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT SHA256(x)"}
+{"read": "presto", "sql": "SELECT SHA512(x)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT SHA512(x)"}
+{"read": "presto", "sql": "SELECT WEEK_OF_YEAR(y)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT WEEK_OF_YEAR(y)"}
+{"read": "presto", "sql": "STRPOS(haystack, needle, occurrence)", "write": "trino", "pretty": false, "identify": false, "want": "STRPOS(haystack, needle, occurrence)"}
+{"read": "trino", "sql": "ARRAY_INTERSECT(x, y)", "write": "", "want": "ARRAY_INTERSECT(x, y)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "FROM_BASE32(x)", "write": "", "want": "FROM_BASE32(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "LEVENSHTEIN_DISTANCE(col1, col2)", "write": "", "want": "LEVENSHTEIN(col1, col2)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "LOG(b, n)", "write": "", "want": "LOG(b, n)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "LOG10(a)", "write": "", "want": "LOG(10, a)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "LOG2(a)", "write": "", "want": "LOG(2, a)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "POSITION(needle in haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "REGR_COUNT(x, y)", "write": "", "want": "REGR_COUNT(x, y)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "REGR_SLOPE(x, y)", "write": "", "want": "REGR_SLOPE(x, y)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "REVERSE(x)", "write": "", "want": "REVERSE(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT * FROM (SELECT 1 AS col) apply", "write": "", "want": "SELECT * FROM (SELECT 1 AS col) AS apply", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT 1 AS \"x\"\"\"", "write": "", "want": "SELECT 1 AS \"x\"\"\"", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT LOCALTIME", "write": "", "want": "SELECT LOCALTIME", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT LOCALTIME(2)", "write": "", "want": "SELECT LOCALTIME(2)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT LOCALTIMESTAMP", "write": "", "want": "SELECT LOCALTIMESTAMP", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT LOCALTIMESTAMP(2)", "write": "", "want": "SELECT LOCALTIMESTAMP(2)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT NORMALIZE('str')", "write": "", "want": "SELECT NORMALIZE('str')", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT NORMALIZE('str', nfkc)", "write": "", "want": "SELECT NORMALIZE('str', nfkc)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT array_position(array[1, 2, 3], 2)", "write": "", "want": "SELECT ARRAY_POSITION(ARRAY(1, 2, 3), 2)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SLICE(x, 1, 3)", "write": "", "want": "ARRAY_SLICE(x, 1, 3)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SOUNDEX(x)", "write": "", "want": "SOUNDEX(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "START TRANSACTION ISOLATION LEVEL REPEATABLE READ", "write": "", "want": "BEGIN ISOLATION LEVEL REPEATABLE READ", "pretty": false, "identify": false}
+{"read": "trino", "sql": "START TRANSACTION READ WRITE, ISOLATION LEVEL SERIALIZABLE", "write": "", "want": "BEGIN READ WRITE, ISOLATION LEVEL SERIALIZABLE", "pretty": false, "identify": false}
+{"read": "trino", "sql": "STRPOS(haystack, needle)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "TO_BASE32(x)", "write": "", "want": "TO_BASE32(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "TRANSLATE(x, y, z)", "write": "", "want": "TRANSLATE(x, y, z)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "UUID()", "write": "", "want": "UUID()", "pretty": false, "identify": false}
+{"read": "trino", "sql": "array_max(x)", "write": "", "want": "ARRAY_MAX(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "array_min(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "\n            WITH t(boxcrate) AS (\n              SELECT JSON '[{\"boxes\": [{\"name\": \"f1\", \"type\": \"plant\", \"color\": \"red\"}]}]'\n            )\n            SELECT\n              JSON_EXTRACT_SCALAR(boxes,'$.name')  AS name,\n              JSON_EXTRACT_SCALAR(boxes,'$.type')  AS type,\n              JSON_EXTRACT_SCALAR(boxes,'$.color') AS color\n            FROM t\n            CROSS JOIN UNNEST(CAST(boxcrate AS array(json))) AS x(tbox)\n            CROSS JOIN UNNEST(CAST(json_extract(tbox, '$.boxes') AS array(json))) AS y(boxes)\n        ", "write": "postgres", "want": "WITH t(boxcrate) AS (\n  SELECT\n    CAST('[{\"boxes\": [{\"name\": \"f1\", \"type\": \"plant\", \"color\": \"red\"}]}]' AS JSON)\n)\nSELECT\n  JSON_EXTRACT_PATH_TEXT(boxes, 'name') AS name,\n  JSON_EXTRACT_PATH_TEXT(boxes, 'type') AS type,\n  JSON_EXTRACT_PATH_TEXT(boxes, 'color') AS color\nFROM t\nCROSS JOIN JSON_ARRAY_ELEMENTS(CAST(boxcrate AS JSON)) AS x(tbox)\nCROSS JOIN JSON_ARRAY_ELEMENTS(CAST(JSON_EXTRACT_PATH(tbox, 'boxes') AS JSON)) AS y(boxes)", "pretty": true, "identify": false}
+{"read": "trino", "sql": "BITWISE_AND_AGG(x)", "write": "presto", "want": "BITWISE_AND_AGG(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "BITWISE_OR_AGG(x)", "write": "presto", "want": "BITWISE_OR_AGG(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "BITWISE_XOR_AGG(x)", "write": "presto", "want": "BITWISE_XOR_AGG(x)", "pretty": false, "identify": false}
