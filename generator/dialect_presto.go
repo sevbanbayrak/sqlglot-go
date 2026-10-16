@@ -23,18 +23,15 @@ func init() {
 		exp.KindDateDiff: func(g *Generator, e exp.Expression) string {
 			return g.funcCall("DATE_DIFF", []any{prestoUnit(e), e.Arg("expression"), e.Arg("this")}, "(", ")", true)
 		},
-		exp.KindDecode:         prestoCall("FROM_UTF8", "this", "replace"),
-		exp.KindEncode:         prestoCall("TO_UTF8", "this", "replace"),
-		exp.KindUnixToTime:     prestoCall("FROM_UNIXTIME", "this", "zone", "hours", "minutes"),
-		exp.KindGenerateSeries: prestoCall("SEQUENCE", "start", "end", "step"),
-		exp.KindStrPosition:    prestoCall("STRPOS", "this", "substr", "occurrence"),
-		exp.KindIf:             prestoCall("IF", "this", "true", "false"),
-		exp.KindAtTimeZone:     prestoCall("AT_TIMEZONE", "this", "zone"),
-		exp.KindDataType:       (*Generator).prestoDataTypeSQL,
-		exp.KindStruct:         (*Generator).prestoStructSQL,
-		exp.KindBracket:        (*Generator).prestoBracketSQL,
-		exp.KindInterval:       (*Generator).prestoIntervalSQL,
-		exp.KindTransaction:    (*Generator).prestoTransactionSQL,
+		exp.KindDecode:      prestoCall("FROM_UTF8", "this", "replace"),
+		exp.KindEncode:      prestoCall("TO_UTF8", "this", "replace"),
+		exp.KindIf:          prestoCall("IF", "this", "true", "false"),
+		exp.KindAtTimeZone:  prestoCall("AT_TIMEZONE", "this", "zone"),
+		exp.KindDataType:    (*Generator).prestoDataTypeSQL,
+		exp.KindStruct:      (*Generator).prestoStructSQL,
+		exp.KindBracket:     (*Generator).prestoBracketSQL,
+		exp.KindInterval:    (*Generator).prestoIntervalSQL,
+		exp.KindTransaction: (*Generator).prestoTransactionSQL,
 		exp.KindGroupConcat: func(g *Generator, e exp.Expression) string {
 			return g.funcCall("ARRAY_JOIN", []any{g.funcCall("ARRAY_AGG", []any{e.Arg("this")}, "(", ")", true), e.Arg("separator")}, "(", ")", true)
 		},
@@ -49,7 +46,6 @@ func init() {
 		exp.KindSHA2:               (*Generator).prestoSHA2SQL,
 		exp.KindFirst:              (*Generator).prestoFirstLastSQL,
 		exp.KindLast:               (*Generator).prestoFirstLastSQL,
-		exp.KindConcat:             (*Generator).prestoConcatSQL,
 		exp.KindCreate:             (*Generator).prestoCreateSQL,
 		exp.KindJSONFormat:         prestoCall("JSON_FORMAT", "this", "options"),
 		exp.KindJSONExtract: func(g *Generator, e exp.Expression) string {
@@ -58,9 +54,6 @@ func init() {
 				args = append(args, x)
 			}
 			return g.funcCall("JSON_EXTRACT", args, "(", ")", true)
-		},
-		exp.KindILike: func(g *Generator, e exp.Expression) string {
-			return "LOWER(" + g.sqlKey(e, "this") + ") LIKE LOWER(" + g.sqlKey(e, "expression") + ")"
 		},
 		exp.KindInitcap: func(g *Generator, e exp.Expression) string {
 			// presto.py:50-58.
@@ -81,7 +74,7 @@ func init() {
 	for kind, name := range map[exp.Kind]string{
 		exp.KindAnyValue: "ARBITRARY", exp.KindArrayContains: "CONTAINS", exp.KindArrayUniqueAgg: "SET_AGG", exp.KindArraySlice: "SLICE", exp.KindArraySize: "CARDINALITY",
 		exp.KindBitwiseAnd: "BITWISE_AND", exp.KindBitwiseOr: "BITWISE_OR", exp.KindBitwiseXor: "BITWISE_XOR", exp.KindBitwiseNot: "BITWISE_NOT", exp.KindBitwiseLeftShift: "BITWISE_LEFT_SHIFT", exp.KindBitwiseRightShift: "BITWISE_RIGHT_SHIFT",
-		exp.KindDayOfWeekIso: "DAY_OF_WEEK", exp.KindLogicalOr: "BOOL_OR", exp.KindStrToMap: "SPLIT_TO_MAP", exp.KindTrunc: "TRUNCATE", exp.KindVariancePop: "VAR_POP", exp.KindLevenshtein: "LEVENSHTEIN_DISTANCE", exp.KindUnhex: "FROM_HEX", exp.KindTimeToUnix: "TO_UNIXTIME", exp.KindMD5Digest: "MD5", exp.KindSubstring: "SUBSTR",
+		exp.KindDayOfWeekIso: "DAY_OF_WEEK", exp.KindLogicalOr: "BOOL_OR", exp.KindStrToMap: "SPLIT_TO_MAP", exp.KindTrunc: "TRUNCATE", exp.KindVariancePop: "VAR_POP", exp.KindUnhex: "FROM_HEX", exp.KindTimeToUnix: "TO_UNIXTIME", exp.KindMD5Digest: "MD5", exp.KindSubstring: "SUBSTR",
 	} {
 		table[kind] = prestoRename(name)
 	}
@@ -173,13 +166,6 @@ func prestoLiteralType(e exp.Expression) string {
 }
 
 // generator.py:3678-3680 with SUPPORTS_SINGLE_ARG_CONCAT = False (presto.py:271).
-func (g *Generator) prestoConcatSQL(e exp.Expression) string {
-	if args := e.Expressions(); len(args) == 1 {
-		return g.gen(args[0])
-	}
-	return g.concatSQL(e)
-}
-
 // presto.py:639-648: Presto has no CREATE VIEW column list.
 func (g *Generator) prestoCreateSQL(e exp.Expression) string {
 	if e.Text("kind") == "VIEW" {

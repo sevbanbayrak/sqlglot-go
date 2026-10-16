@@ -132,9 +132,11 @@ func (g *Generator) concatSQL(e expressions.Expression) string {
 		// for postgres (CONCAT_COALESCE=true).
 		return g.concatToDPipe(e)
 	}
-	// SUPPORTS_SINGLE_ARG_CONCAT defaults true and isn't overridden by base/mysql/postgres, so
-	// the single-arg passthrough (generator.py:3678-3680) never triggers here.
-	return g.funcCall("CONCAT", g.convertConcatArgs(e), "(", ")", true)
+	args := g.convertConcatArgs(e)
+	if !g.dialect.SupportsSingleArgConcat && len(args) == 1 {
+		return g.gen(args[0])
+	}
+	return g.funcCall("CONCAT", args, "(", ")", true)
 }
 
 // concatToDPipe ports concat_to_dpipe_sql (dialect.py:1804-1805): left-fold the CONCAT args
@@ -169,6 +171,13 @@ func (g *Generator) convertConcatArgs(e expressions.Expression) []any {
 			args = args[1:]
 		}
 		concatCoalesce = g.dialect.ConcatWsCoalesce
+	}
+	if g.dialect.StrictStringConcat && boolValue(e.Arg("safe")) {
+		cast := make([]any, len(args))
+		for i, a := range args {
+			cast[i] = expressions.New(expressions.KindCast, expressions.Args{"this": a, "to": expressions.DTypeText.IntoExpr(nil)})
+		}
+		args = cast
 	}
 	if concatCoalesce || !boolValue(e.Arg("coalesce")) {
 		return args

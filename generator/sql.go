@@ -425,10 +425,22 @@ func (g *Generator) binary(e expressions.Expression, op string) string {
 	return strings.Join(sqls, "")
 }
 
-func (g *Generator) addSQL(e expressions.Expression) string        { return g.binary(e, "+") }
-func (g *Generator) subSQL(e expressions.Expression) string        { return g.binary(e, "-") }
-func (g *Generator) mulSQL(e expressions.Expression) string        { return g.binary(e, "*") }
-func (g *Generator) divSQL(e expressions.Expression) string        { return g.binary(e, "/") }
+func (g *Generator) addSQL(e expressions.Expression) string { return g.binary(e, "+") }
+func (g *Generator) subSQL(e expressions.Expression) string { return g.binary(e, "-") }
+func (g *Generator) mulSQL(e expressions.Expression) string { return g.binary(e, "*") }
+
+// divSQL ports div_sql (generator.py:4578-4594). Without annotate_types no operand is known to
+// be real- or integer-typed, so only the untyped branches fire.
+func (g *Generator) divSQL(e expressions.Expression) string {
+	l, r := e.This(), e.Expr()
+	if !g.dialect.SafeDivision && boolValue(e.Arg("safe")) && r != nil {
+		r.Replace(expressions.New(expressions.KindNullif, expressions.Args{"this": r.Copy(), "expression": expressions.LiteralNumber(0)}))
+	}
+	if g.dialect.TypedDivision && !boolValue(e.Arg("typed")) && l != nil {
+		l.Replace(expressions.New(expressions.KindCast, expressions.Args{"this": l.Copy(), "to": expressions.DTypeDouble.IntoExpr(nil)}))
+	}
+	return g.binary(e, "/")
+}
 func (g *Generator) modSQL(e expressions.Expression) string        { return g.binary(e, "%") }
 func (g *Generator) eqSQL(e expressions.Expression) string         { return g.binary(e, "=") }
 func (g *Generator) neqSQL(e expressions.Expression) string        { return g.binary(e, "<>") }
@@ -998,6 +1010,9 @@ func (g *Generator) setOperationSQL(e expressions.Expression) string {
 	distinctOrAll := ""
 	if hasDistinct && !distinct {
 		distinctOrAll = " ALL"
+		if e.Kind() != expressions.KindUnion && !g.dialect.ExceptIntersectSupportAllClause {
+			g.unsupported(opName + " ALL is not supported")
+		}
 	}
 	sideKind := joinNonEmpty(" ", e.Text("side"), e.Text("kind"))
 	if sideKind != "" {
@@ -2311,8 +2326,18 @@ func unitToVarValue(unit expressions.Expression) expressions.Expression {
 	return expressions.Var(expressions.Args{"this": value})
 }
 
+// logSQL ports log_sql (generator.py:4620-4630).
 func (g *Generator) logSQL(e expressions.Expression) string {
-	return g.funcCall("LOG", []any{e.Arg("this"), e.Arg("expression")}, "(", ")", true)
+	this, expr := e.This(), e.Expr()
+	if base := g.dialect.LogBaseFirst; base != nil && !*base {
+		this, expr = expr, this
+	} else if base == nil && expr != nil {
+		if this != nil && (this.Name() == "2" || this.Name() == "10") {
+			return g.funcCall("LOG"+this.Name(), []any{expr}, "(", ")", true)
+		}
+		g.unsupported("Unsupported logarithm with base " + g.gen(this))
+	}
+	return g.funcCall("LOG", []any{this, expr}, "(", ")", true)
 }
 
 func (g *Generator) pivotInValueAliases(e expressions.Expression) []expressions.Expression {
