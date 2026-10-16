@@ -2124,3 +2124,10 @@ func ArgKeys(k Kind) []string {
 
 // ClassName returns the PascalCase class name for a Kind (e.g. "StddevPop").
 func ClassName(k Kind) string { return className[k] }
+
+// SQLNames holds upstream _sql_names[0] for generated function Kinds (kinds_funcs_gen.go);
+// the generator renders a Kind without a handler under this name before falling back to
+// camel-to-snake of its class name.
+var SQLNames = map[Kind]string{}
+
+func SQLName(k Kind) string { return SQLNames[k] }

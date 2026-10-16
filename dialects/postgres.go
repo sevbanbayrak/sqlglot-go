@@ -63,6 +63,12 @@ func Postgres() *Dialect {
 	d.Functions = map[string]func([]exp.Expression) exp.Expression{
 		"CHAR_LENGTH":      exp.FromArgListFunc(exp.KindLength),
 		"CHARACTER_LENGTH": exp.FromArgListFunc(exp.KindLength),
+		// parsers/postgres.py:112-114
+		"GET_BIT": func(args []exp.Expression) exp.Expression {
+			n := exp.FromArgList(exp.KindGetbit, args)
+			n.Set("zero_is_msb", true)
+			return n
+		},
 	}
 
 	cfg := tokens.BaseConfig()

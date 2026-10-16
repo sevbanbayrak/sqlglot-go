@@ -3592,7 +3592,8 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 		}
 		function := functions[upper]
 		knownFunction := function != nil && !anonymous && !opaque
-		alias := !knownFunction
+		// parser.py:1554 FUNCTIONS_WITH_ALIASED_ARGS = {"STRUCT"}.
+		alias := !knownFunction || upper == "STRUCT"
 		args := p.parseFunctionArgs(alias)
 		if knownFunction {
 			result = p.validateExpression(function(args), exprArgs(args))

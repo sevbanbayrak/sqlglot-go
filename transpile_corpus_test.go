@@ -44,7 +44,7 @@ const (
 
 // Monotonic floors over the whole corpus: raise them, never lower them.
 const (
-	minTranspilePass  = 719
+	minTranspilePass  = 757
 	minTranspileTotal = 1098
 )
 
