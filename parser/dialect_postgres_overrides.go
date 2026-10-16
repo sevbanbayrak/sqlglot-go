@@ -169,3 +169,14 @@ func (p *Parser) postgresExplainOption(name, value string) exp.Expression {
 	}
 	return p.expression(exp.CopyParameter(args), nil, nil)
 }
+
+// parseJSONBExists ports _parse_jsonb_exists (parsers/postgres.py:331-338); a missing path is
+// stored as False like upstream's `self._match(COMMA) and ...`.
+func (p *Parser) parseJSONBExists() exp.Expression {
+	this := p.parseBitwise()
+	var path any = false
+	if p.match(tokens.COMMA) {
+		path = p.dialect.ToJSONPath(p.parseBitwise())
+	}
+	return p.expression(exp.New(exp.KindJSONBExists, exp.Args{"this": this, "path": path}), nil, nil)
+}

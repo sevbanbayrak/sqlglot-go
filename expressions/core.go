@@ -390,6 +390,13 @@ func (n *Node) OutputName() string {
 		return n.Alias()
 	case KindCast, KindTryCast, KindCastToStrType:
 		return n.Name()
+	case KindJSONPath:
+		// JSONPath.output_name (expressions/query.py:1988-1991).
+		if parts := n.Expressions(); len(parts) > 0 {
+			if s, ok := parts[len(parts)-1].Arg("this").(string); ok {
+				return s
+			}
+		}
 	}
 	return ""
 }
@@ -1285,6 +1292,15 @@ func toSAny(node any, verbose bool, level int, reprStr bool) string {
 			return toS(nn, verbose, level, reprStr)
 		}
 	case []Expression:
+		items := make([]string, 0, len(v))
+		for _, item := range v {
+			items = append(items, toSAny(item, verbose, level+1, false))
+		}
+		if len(items) > 0 {
+			return "[" + indent + strings.Join(items, delim) + "]"
+		}
+		return "[]"
+	case []any:
 		items := make([]string, 0, len(v))
 		for _, item := range v {
 			items = append(items, toSAny(item, verbose, level+1, false))

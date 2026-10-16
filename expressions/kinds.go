@@ -340,6 +340,20 @@ const (
 	KindJSONKeyValue
 	KindOnCondition
 	KindJSONValue
+	// KindJSONPath and the JSONPathPart family port exp.JSONPath/exp.JSONPath* (expressions/
+	// query.py:1985-2033): plain Expression subclasses, so none get a traitsOf row. Part args
+	// hold raw Go values (string/int/bool) or child parts, exactly like upstream.
+	KindJSONPath
+	KindJSONPathFilter
+	KindJSONPathKey
+	KindJSONPathRecursive
+	KindJSONPathRoot
+	KindJSONPathScript
+	KindJSONPathSlice
+	KindJSONPathSelector
+	KindJSONPathSubscript
+	KindJSONPathUnion
+	KindJSONPathWildcard
 	// KindChr ports exp.Chr (string.py:23-26, `class Chr(Expression, Func)`,
 	// arg_types={"expressions": True, "charset": False}, is_var_len_args=True,
 	// _sql_names=["CHR", "CHAR"]): CHR(...)/CHAR(...) with an optional trailing
@@ -1324,6 +1338,19 @@ var argTypes = map[Kind][]argSpec{
 	KindTimeToStr:              {{"this", true}, {"format", true}, {"culture", false}, {"zone", false}},
 	KindStarMap:                defaultArgTypes,
 	KindVarMap:                 {{"keys", true}, {"values", true}},
+
+	// JSONPath and its parts (expressions/query.py:1985-2033).
+	KindJSONPath:          {{"expressions", true}},
+	KindJSONPathFilter:    {{"this", true}},
+	KindJSONPathKey:       {{"this", true}, {"quoted", false}},
+	KindJSONPathRecursive: {{"this", false}},
+	KindJSONPathRoot:      {},
+	KindJSONPathScript:    {{"this", true}},
+	KindJSONPathSlice:     {{"start", false}, {"end", false}, {"step", false}},
+	KindJSONPathSelector:  {{"this", true}},
+	KindJSONPathSubscript: {{"this", true}},
+	KindJSONPathUnion:     {{"expressions", true}},
+	KindJSONPathWildcard:  {},
 }
 
 var traitsOf = map[Kind]Trait{
@@ -1911,6 +1938,17 @@ var className = map[Kind]string{
 	KindJSONKeyValue:                        "JSONKeyValue",
 	KindOnCondition:                         "OnCondition",
 	KindJSONValue:                           "JSONValue",
+	KindJSONPath:                            "JSONPath",
+	KindJSONPathFilter:                      "JSONPathFilter",
+	KindJSONPathKey:                         "JSONPathKey",
+	KindJSONPathRecursive:                   "JSONPathRecursive",
+	KindJSONPathRoot:                        "JSONPathRoot",
+	KindJSONPathScript:                      "JSONPathScript",
+	KindJSONPathSlice:                       "JSONPathSlice",
+	KindJSONPathSelector:                    "JSONPathSelector",
+	KindJSONPathSubscript:                   "JSONPathSubscript",
+	KindJSONPathUnion:                       "JSONPathUnion",
+	KindJSONPathWildcard:                    "JSONPathWildcard",
 	KindChr:                                 "Chr",
 	KindStrToDate:                           "StrToDate",
 	KindStrToTime:                           "StrToTime",

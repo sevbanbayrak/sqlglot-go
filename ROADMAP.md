@@ -268,6 +268,18 @@ athena/trino/presto/hive wired into `corpus_test.go` with monotonic floors. The 
   tokens, `INSERT … DIRECTORY … STORED AS`, Trino `DECLARE`/`SQL SECURITY`. The only remaining
   corpus gap is Trino inline `WITH FUNCTION` routines (48 rows), deferred: Athena rejects them.
 
+## JSONPath model — DONE (branch feat/jsonpath)
+
+JSON paths are no longer kept as raw string literals: `jsonpath/` ports `jsonpath.py` (tokenizer +
+`parse`), `expressions` gains `JSONPath` and the `JSONPath*` part kinds, and `Dialect.ToJSONPath`
+(dialect.py `to_json_path`) feeds `JSON_EXTRACT`/`JSON_EXTRACT_SCALAR`/`JSON_EXTRACT_PATH_TEXT`/
+`JSON_KEYS`/`JSON_VALUE`, the `->`/`->>` operators, Hive `GET_JSON_OBJECT` and Postgres
+`JSONB_EXISTS`; Postgres `JSON_EXTRACT_PATH[_TEXT]` and its `->`/`->>` use `BuildJSONExtractPath`
+(`build_json_extract_path`). The generator renders paths per dialect (`generator/jsonpath.go`:
+`jsonpath_sql`, `json_path_part`, `JSON_PATH_PART_TRANSFORMS`, `SUPPORTED_JSON_PATH_PARTS`,
+`json_extract_segments`). Transpile corpus 1515 → 1533/1601; identity corpora unchanged. Tests:
+`tests/test_jsonpath.py` incl. the `cts.json` compliance fixture.
+
 ## Athena support (Presto/Trino/Hive parser chain), scoped to lineage — DONE
 
 **DONE (2026-07, main @ e428a54).** All 4 slices landed + merged, each `go test ./...` green with

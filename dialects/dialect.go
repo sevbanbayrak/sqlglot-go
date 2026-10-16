@@ -2,9 +2,14 @@ package dialects
 
 import (
 	"fmt"
+	"log"
+	"regexp"
+	"strconv"
 	"strings"
 
+	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/jsonpath"
 	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
@@ -258,11 +263,10 @@ type Dialect struct {
 	// (False) when a param has a scalar value.
 	CopyParamsEqRequired bool
 	// JSONArrowsRequireJSONType ports the parser flag JSON_ARROWS_REQUIRE_JSON_TYPE
-	// (parsers/postgres.py:191); base/mysql leave it False. When set, a JSON `->`/`->>` RHS
-	// that is a literal marks the built JSONExtract/JSONExtractScalar node's only_json_types
-	// arg (mirroring build_json_extract_path's arrow_req_json_type branch, dialect.py:
-	// 2092-2124), which the generator uses to choose operator-form (`->`/`->>`) over
-	// function-form (JSON_EXTRACT_PATH/JSON_EXTRACT_PATH_TEXT) rendering.
+	// (parsers/postgres.py:191); base/mysql leave it False. It becomes the `->`/`->>` node's
+	// only_json_types (parser.py:295-316; postgres via BuildJSONExtractPath's
+	// arrow_req_json_type), which the postgres generator uses to choose operator-form over
+	// JSON_EXTRACT_PATH[_TEXT] rendering.
 	JSONArrowsRequireJSONType bool
 	// JSONOperatorsAreBinary ports the v30.17.0 COLUMN_OPERATORS/JSON_OPERATORS split
 	// (parsers/postgres.py:192-219, parser.py:6312-6313): when set, the JSON operators
@@ -286,6 +290,28 @@ type Dialect struct {
 	// when set, a string-literal `this` is wrapped in `CAST(... AS JSON)` before rendering the
 	// JSON_EXTRACT_SCALAR arrow form.
 	JSONTypeRequiredForExtraction bool
+	// JSONPathVarTokens ports the dialect's JSONPathTokenizer.VAR_TOKENS (jsonpath.py:40-42);
+	// nil means the base {VAR}. Hive adds DASH (dialects/hive.py:85-89).
+	JSONPathVarTokens map[tokens.TokenType]bool
+	// JSONPathSingleDotIsWildcard ports JSON_PATH_SINGLE_DOT_IS_WILDCARD (dialect.py:688).
+	JSONPathSingleDotIsWildcard bool
+	// StrictJSONPathSyntax ports STRICT_JSON_PATH_SYNTAX (dialect.py:685): whether an
+	// unparseable JSON path literal logs a warning in ToJSONPath.
+	StrictJSONPathSyntax bool
+	// JSONExtractScalarScalarOnly ports JSON_EXTRACT_SCALAR_SCALAR_ONLY (dialect.py:774).
+	JSONExtractScalarScalarOnly bool
+	// JSONPathBracketedKeySupported, JSONPathSingleQuoteEscape, JSONPathKeyQuotedForcesBrackets
+	// and QuoteJSONPath port the generator flags of the same names (generator.py:503-512,561);
+	// mysql disables bracketed keys (generators/mysql.py:133), hive escapes with single quotes
+	// (generators/hive.py:236).
+	JSONPathBracketedKeySupported   bool
+	JSONPathSingleQuoteEscape       bool
+	JSONPathKeyQuotedForcesBrackets bool
+	QuoteJSONPath                   bool
+	// SafeJSONPathKeyRE ports the generator's SAFE_JSON_PATH_KEY_RE (default
+	// exp.SAFE_IDENTIFIER_RE; generators/hive.py:237 allows dashes). Python's `\w` is
+	// Unicode-aware, so it is spelled [\p{L}\p{N}_] here.
+	SafeJSONPathKeyRE *regexp.Regexp
 	// StrictCast ports parser.py:1755 STRICT_CAST: whether CAST and :: build Cast (true)
 	// or the dialect's permissive TryCast form (false).
 	StrictCast bool
@@ -410,7 +436,7 @@ var trueValue = true
 
 func Base() *Dialect {
 	datePartMapping := baseDatePartMapping()
-	return &Dialect{
+	d := &Dialect{
 		Name:                     "base",
 		QuoteStart:               "'",
 		QuoteEnd:                 "'",
@@ -435,6 +461,12 @@ func Base() *Dialect {
 		SupportsValuesDefault: true,
 		// dialect.py:757 NORMALIZE_NOT_NULL = True (base); postgres overrides to False.
 		NormalizeNotNull: true,
+		// dialect.py:685 STRICT_JSON_PATH_SYNTAX = True; generator.py:506,561
+		// JSON_PATH_BRACKETED_KEY_SUPPORTED = QUOTE_JSON_PATH = True.
+		StrictJSONPathSyntax:          true,
+		JSONPathBracketedKeySupported: true,
+		QuoteJSONPath:                 true,
+		SafeJSONPathKeyRE:             regexp.MustCompile(`^[_a-zA-Z][\p{L}\p{N}_]*$`),
 		// generator.py:374 DUPLICATE_KEY_UPDATE_WITH_SET = True (base); MySQL overrides to
 		// False (generators/mysql.py:137).
 		DuplicateKeyUpdateWithSet: true,
@@ -558,6 +590,17 @@ func Base() *Dialect {
 		// True (parsers/presto.py:61).
 		ZoneAwareTimestampConstructor: false,
 	}
+	// parser.py:426-431: the base FUNCTIONS entries whose builders take the dialect. Dialect
+	// constructors add to this map rather than replacing it.
+	d.Functions = map[string]func([]exp.Expression) exp.Expression{
+		"JSON_EXTRACT":           buildExtractJSONWithPath(d, exp.KindJSONExtract),
+		"JSON_EXTRACT_SCALAR":    buildExtractJSONWithPath(d, exp.KindJSONExtractScalar),
+		"JSON_EXTRACT_PATH_TEXT": buildExtractJSONWithPath(d, exp.KindJSONExtractScalar),
+		"JSON_KEYS": func(args []exp.Expression) exp.Expression {
+			return exp.New(exp.KindJSONKeys, exp.Args{"this": hiveSeqGet(args, 0), "expression": d.ToJSONPath(hiveSeqGet(args, 1))})
+		},
+	}
+	return d
 }
 
 var datePartMapping = map[string]string{
@@ -1225,4 +1268,83 @@ func (d *Dialect) GenerateValuesAliases(values exp.Expression) []exp.Expression 
 		aliases = append(aliases, exp.ToIdentifier(fmt.Sprintf("_col_%d", i)))
 	}
 	return aliases
+}
+
+// ToJSONPath ports to_json_path (dialect.py:1153-1166): a Literal path is parsed into an
+// exp.JSONPath (a number literal n as `[n]`); on a JSONPath syntax error the original
+// expression is returned. A tokenizer error propagates as a panic, like upstream's TokenError.
+func (d *Dialect) ToJSONPath(path exp.Expression) exp.Expression {
+	if path == nil || path.Kind() != exp.KindLiteral {
+		return path
+	}
+	pathText := path.Name()
+	if path.IsNumber() {
+		pathText = "[" + pathText + "]"
+	}
+	parsed, err := jsonpath.Parse(pathText, jsonpath.Options{
+		VarTokens:                       d.JSONPathVarTokens,
+		SingleDotIsWildcard:             d.JSONPathSingleDotIsWildcard,
+		UnescapedSequences:              d.TokenizerConfig.UnescapedSequences,
+		NumbersCanBeUnderscoreSeparated: d.TokenizerConfig.NumbersCanBeUnderscoreSeparated,
+		IdentifiersCanStartWithDigit:    d.TokenizerConfig.IdentifiersCanStartWithDigit,
+	})
+	if err == nil {
+		return parsed
+	}
+	if _, ok := err.(*sqlerrors.ParseError); !ok {
+		panic(err)
+	}
+	trimmed := strings.TrimLeft(pathText, " \t\n\r\v\f")
+	if d.StrictJSONPathSyntax && !strings.HasPrefix(trimmed, "lax") && !strings.HasPrefix(trimmed, "strict") {
+		log.Printf("Invalid JSON path syntax. %s", err)
+	}
+	return path
+}
+
+// buildExtractJSONWithPath ports build_extract_json_with_path (parser.py:110-122).
+func buildExtractJSONWithPath(d *Dialect, kind exp.Kind) func([]exp.Expression) exp.Expression {
+	return func(args []exp.Expression) exp.Expression {
+		expression := exp.New(kind, exp.Args{"this": hiveSeqGet(args, 0), "expression": d.ToJSONPath(hiveSeqGet(args, 1))})
+		if len(args) > 2 && kind == exp.KindJSONExtract {
+			expression.Set("expressions", args[2:])
+		}
+		if kind == exp.KindJSONExtractScalar {
+			expression.Set("scalar_only", d.JSONExtractScalarScalarOnly)
+		}
+		return expression
+	}
+}
+
+// BuildJSONExtractPath ports build_json_extract_path (dialect.py:2205-2247) with its default
+// zero_based_indexing=True and json_type=None, the only values the ported dialects use.
+func BuildJSONExtractPath(kind exp.Kind, arrowReqJSONType bool) func([]exp.Expression) exp.Expression {
+	return func(args []exp.Expression) exp.Expression {
+		segments := []exp.Expression{exp.New(exp.KindJSONPathRoot, nil)}
+		for _, arg := range args[1:] {
+			if arg == nil || arg.Kind() != exp.KindLiteral {
+				// We use the fallback parser because we can't really transpile non-literals safely
+				node := exp.New(kind, exp.Args{"this": hiveSeqGet(args, 0), "expression": hiveSeqGet(args, 1)})
+				if len(args) > 2 {
+					node.Set("expressions", args[2:])
+				}
+				return node
+			}
+
+			text := arg.Name()
+			if index, err := strconv.Atoi(strings.TrimSpace(text)); err == nil && (!arrowReqJSONType || !arg.IsString()) {
+				segments = append(segments, exp.New(exp.KindJSONPathSubscript, exp.Args{"this": index}))
+			} else {
+				segments = append(segments, exp.New(exp.KindJSONPathKey, exp.Args{"this": text}))
+			}
+		}
+
+		node := exp.New(kind, exp.Args{
+			"this":       hiveSeqGet(args, 0),
+			"expression": exp.New(exp.KindJSONPath, exp.Args{"expressions": segments}),
+		})
+		if kind != exp.KindJSONBExtract && kind != exp.KindJSONBExtractScalar {
+			node.Set("only_json_types", arrowReqJSONType)
+		}
+		return node
+	}
 }

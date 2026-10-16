@@ -96,6 +96,9 @@ func (g *Generator) isDialect(name string) bool {
 }
 
 func (g *Generator) lookupDispatch(kind expressions.Kind) func(*Generator, expressions.Expression) string {
+	if expressions.IsJSONPathPart(kind) && !g.jsonPathPartSupported(kind) {
+		return nil
+	}
 	for key := g.overrideKey(); key != ""; key = dialectParents[key] {
 		if handler := dialectDispatch[key][kind]; handler != nil {
 			return handler

@@ -14,3 +14,6 @@ func JSONObjectAgg(args Args) Expression      { return newNode(KindJSONObjectAgg
 func JSONKeyValue(args Args) Expression       { return newNode(KindJSONKeyValue, args) }
 func OnCondition(args Args) Expression        { return newNode(KindOnCondition, args) }
 func JSONValue(args Args) Expression          { return newNode(KindJSONValue, args) }
+
+// IsJSONPathPart reports whether k is a JSONPathPart subclass (expressions/query.py:1993-2033).
+func IsJSONPathPart(k Kind) bool { return k > KindJSONPath && k <= KindJSONPathWildcard }

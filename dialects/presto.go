@@ -99,7 +99,7 @@ func Presto() *Dialect {
 	d.ZoneAwareTimestampConstructor = true
 
 	// parsers/presto.py:74-139.
-	d.Functions = map[string]func([]exp.Expression) exp.Expression{
+	for name, builder := range map[string]func([]exp.Expression) exp.Expression{
 		"ARBITRARY":            exp.FromArgListFunc(exp.KindAnyValue),
 		"APPROX_DISTINCT":      exp.FromArgListFunc(exp.KindApproxDistinct),
 		"APPROX_PERCENTILE":    prestoBuildApproxPercentile,
@@ -148,6 +148,8 @@ func Presto() *Dialect {
 		"LOCALTIME":         exp.FromArgListFunc(exp.KindLocaltime),
 		"LOCALTIMESTAMP":    exp.FromArgListFunc(exp.KindLocaltimestamp),
 		"WEEK":              exp.FromArgListFunc(exp.KindWeekOfYear),
+	} {
+		d.Functions[name] = builder
 	}
 
 	cfg := tokens.BaseConfig()

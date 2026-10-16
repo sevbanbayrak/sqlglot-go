@@ -7,22 +7,24 @@ import (
 )
 
 func TestJSONOperators(t *testing.T) {
+	// `->`/`->>` convert the literal RHS via to_json_path (parser.py:295-316); `#>`/`#>>` keep it.
 	cases := []struct {
-		sql  string
-		kind exp.Kind
+		sql     string
+		kind    exp.Kind
+		rhsKind exp.Kind
 	}{
-		{"SELECT a -> 'b'", exp.KindJSONExtract},
-		{"SELECT a ->> 'b'", exp.KindJSONExtractScalar},
-		{"SELECT a #> '{b}'", exp.KindJSONBExtract},
-		{"SELECT a #>> '{b}'", exp.KindJSONBExtractScalar},
+		{"SELECT a -> 'b'", exp.KindJSONExtract, exp.KindJSONPath},
+		{"SELECT a ->> 'b'", exp.KindJSONExtractScalar, exp.KindJSONPath},
+		{"SELECT a #> '{b}'", exp.KindJSONBExtract, exp.KindLiteral},
+		{"SELECT a #>> '{b}'", exp.KindJSONBExtractScalar, exp.KindLiteral},
 	}
 	for _, tc := range cases {
 		projection := parseOne(t, tc.sql).Expressions()[0]
 		if projection.Kind() != tc.kind {
 			t.Fatalf("%s: projection kind = %v, want %v:\n%s", tc.sql, projection.Kind(), tc.kind, projection.ToS())
 		}
-		if rhs := exprArg(t, projection, "expression"); rhs.Kind() != exp.KindLiteral {
-			t.Fatalf("%s: RHS kind = %v, want Literal:\n%s", tc.sql, rhs.Kind(), projection.ToS())
+		if rhs := exprArg(t, projection, "expression"); rhs.Kind() != tc.rhsKind {
+			t.Fatalf("%s: RHS kind = %v, want %v:\n%s", tc.sql, rhs.Kind(), tc.rhsKind, projection.ToS())
 		}
 	}
 

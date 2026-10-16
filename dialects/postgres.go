@@ -73,9 +73,12 @@ func Postgres() *Dialect {
 	// CHAR_LENGTH and CHARACTER_LENGTH all render identically as LENGTH(...), no generator
 	// override needed - see the default className fallback) gets these two spellings here.
 	// "LENGTH" itself is left unregistered: it already round-trips correctly as Anonymous.
-	d.Functions = map[string]func([]exp.Expression) exp.Expression{
+	for name, builder := range map[string]func([]exp.Expression) exp.Expression{
 		"CHAR_LENGTH":      exp.FromArgListFunc(exp.KindLength),
 		"CHARACTER_LENGTH": exp.FromArgListFunc(exp.KindLength),
+		// parsers/postgres.py:115-116
+		"JSON_EXTRACT_PATH":      BuildJSONExtractPath(exp.KindJSONExtract, false),
+		"JSON_EXTRACT_PATH_TEXT": BuildJSONExtractPath(exp.KindJSONExtractScalar, false),
 		// parsers/postgres.py:112-114
 		"GET_BIT": func(args []exp.Expression) exp.Expression {
 			n := exp.FromArgList(exp.KindGetbit, args)
@@ -98,6 +101,8 @@ func Postgres() *Dialect {
 		// parsers/postgres.py:122-123
 		"TO_CHAR": postgresBuildFormattedTime(exp.KindTimeToStr),
 		"TO_DATE": postgresBuildFormattedTime(exp.KindStrToDate),
+	} {
+		d.Functions[name] = builder
 	}
 
 	cfg := tokens.BaseConfig()

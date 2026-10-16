@@ -84,8 +84,8 @@ func TestPostgresFunctionsOverlayKeys(t *testing.T) {
 	}
 }
 
-// TestMySQLFunctionsRoundTrip exercises the full merge path (parser/parser.go's
-// mergedDialectFunctions plus the funcTokens gate for the DATABASE/MOD/SCHEMA keyword
+// TestMySQLFunctionsRoundTrip exercises the full lookup path (parser/parser_functions.go's
+// dialectFunction plus the funcTokens gate for the DATABASE/MOD/SCHEMA keyword
 // tokens) end to end via the public sqlglot API, one case per parity_gaps.txt row closed.
 func TestMySQLFunctionsRoundTrip(t *testing.T) {
 	cases := []struct{ sql, want string }{

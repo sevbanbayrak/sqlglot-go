@@ -4,101 +4,47 @@ import "github.com/sevbanbayrak/sqlglot-go/expressions"
 
 // jsonExtractArgs returns the positional argument list for the *function* rendering of an
 // exp.JSONExtract/JSONExtractScalar node: `this`, `expression`, then the variadic `expressions`
-// tail. The tail is populated only for JSONExtract parsed from the 3+-arg function form
-// (jsonExtractFunction, expressions/functions.go) - e.g. JSON_EXTRACT(a, '$.b', '$.c') - because
-// upstream build_extract_json_with_path (parser.py:104-118) drops the tail for JSONExtractScalar.
-// Arrow-created nodes and scalar nodes only set this/expression, so the tail is empty and this
-// collapses to the two-operand list the operator branches also use.
+// tail (only JSONExtract keeps it, build_extract_json_with_path parser.py:110-122).
 func jsonExtractArgs(e expressions.Expression) []any {
 	return append([]any{e.Arg("this"), e.Arg("expression")}, listFromValue(e.Arg("expressions"))...)
 }
 
-// This file ports the JSON `->`/`->>`/`#>`/`#>>` rendering for exp.JSONExtract/
-// JSONExtractScalar/JSONBExtract/JSONBExtractScalar. Upstream drives this via json_extract_
-// segments (dialect.py:2133-2158), which renders the operator form by walking an exp.JSONPath's
-// segments. This port never builds a JSONPath (the RHS stays the raw literal/expression parsed
-// at parser/parser.go's columnOperators ARROW/DARROW - see that file's comment for why), so
-// json_extract_segments' "path isn't a JSONPath" fallback (rename_func) would always fire; these
-// methods instead implement each dialect's TRANSFORMS entry directly against the simplified
-// only_json_types signal, which is equivalent for every corpus case (see ROADMAP's JSONPath
-// deferral note).
-
-// pgJSONPathIsInfix ports _json_extract_sql's first branch (generators/postgres.py:186-192,
-// v30.17.0): a single non-literal path segment with no variadic tail renders infix, not
-// JSON_EXTRACT_PATH[_TEXT] (which is jsonb-unsafe). This port has no JSONPath/Variadic node;
-// the equivalent test is "expression is not a string Literal" (a bare literal path takes the
-// only_json_types branch instead, and a numeric index is likewise infix upstream).
-func pgJSONPathIsInfix(e expressions.Expression) bool {
-	path := asExpression(e.Arg("expression"))
-	if path == nil || len(listFromValue(e.Arg("expressions"))) > 0 {
-		return false
+// postgresJSONExtractSQL ports _json_extract_sql (generators/postgres.py:183-198).
+func (g *Generator) postgresJSONExtractSQL(e expressions.Expression, name, op string) string {
+	path := e.Expr()
+	// Single non-literal segment: render as infix, not JSON_EXTRACT_PATH[_TEXT] (jsonb-unsafe).
+	if (path == nil || (path.Kind() != expressions.KindJSONPath && path.Kind() != expressions.KindVariadic)) && len(listFromValue(e.Arg("expressions"))) == 0 {
+		return g.binary(e, op)
 	}
-	return path.Kind() != expressions.KindLiteral || !path.IsString()
+
+	if truthy(e.Arg("only_json_types")) {
+		return g.jsonExtractSegments(e, name, false, op)
+	}
+	return g.jsonExtractSegments(e, name, true, "")
 }
 
-// jsonExtractSQL ports the base/mysql default (functionFallbackSQL - neither dialect overrides
-// exp.JSONExtract in TRANSFORMS), postgres's _json_extract_sql("JSON_EXTRACT_PATH", "->")
-// (generators/postgres.py:322), and Trino's JSON_QUERY-specific override
-// (generators/trino.py:50-68). The Postgres branch stays first so its existing extraction
-// spelling remains authoritative even if a caller supplies a JSONExtract with json_query set.
+// jsonExtractSQL is the base default for exp.JSONExtract (function_fallback_sql).
 func (g *Generator) jsonExtractSQL(e expressions.Expression) string {
-	if g.dialect.Name == "postgres" {
-		if boolValue(e.Arg("only_json_types")) || pgJSONPathIsInfix(e) {
-			return g.binary(e, "->")
-		}
-		return g.funcCall("JSON_EXTRACT_PATH", jsonExtractArgs(e), "(", ")", true)
-	}
-	if g.isDialect("trino") && boolValue(e.Arg("json_query")) {
-		path := g.sqlKey(e, "expression")
-
-		option := g.sqlKey(e, "option")
-		if option != "" {
-			option = " " + option
-		}
-
-		quote := g.sqlKey(e, "quote")
-		if quote != "" {
-			quote = " " + quote
-		}
-
-		onCondition := g.sqlKey(e, "on_condition")
-		if onCondition != "" {
-			onCondition = " " + onCondition
-		}
-
-		return g.funcCall("JSON_QUERY", []any{e.Arg("this"), path + option + quote + onCondition}, "(", ")", true)
-	}
 	return g.funcCall("JSON_EXTRACT", jsonExtractArgs(e), "(", ")", true)
 }
 
-// jsonExtractScalarSQL ports base's default (functionFallbackSQL), mysql's
-// exp.JSONExtractScalar: arrow_json_extract_sql (generators/mysql.py:178, dialect.py:1210-1215),
-// and postgres's _json_extract_sql("JSON_EXTRACT_PATH_TEXT", "->>") (generators/postgres.py:323)
-// - postgres's own TRANSFORMS entry takes precedence over the generic JSON_TYPE_REQUIRED_FOR_
-// EXTRACTION-gated arrow_json_extract_sql helper mysql shares, exactly mirroring upstream's
-// per-dialect TRANSFORMS dict precedence.
+// jsonExtractScalarSQL is the base default for exp.JSONExtractScalar (function_fallback_sql).
 func (g *Generator) jsonExtractScalarSQL(e expressions.Expression) string {
-	if g.dialect.Name == "postgres" {
-		if boolValue(e.Arg("only_json_types")) || pgJSONPathIsInfix(e) {
-			return g.binary(e, "->>")
-		}
-		return g.funcCall("JSON_EXTRACT_PATH_TEXT", jsonExtractArgs(e), "(", ")", true)
-	}
-	if g.dialect.JSONTypeRequiredForExtraction {
-		return g.arrowJSONExtractScalarSQL(e)
-	}
 	return g.funcCall("JSON_EXTRACT_SCALAR", jsonExtractArgs(e), "(", ")", true)
 }
 
-// arrowJSONExtractScalarSQL ports arrow_json_extract_sql (dialect.py:1210-1215): a string-
-// literal `this` is wrapped in CAST(... AS JSON) before rendering the `->>` operator form.
-func (g *Generator) arrowJSONExtractScalarSQL(e expressions.Expression) string {
-	if this := asExpression(e.Arg("this")); this != nil && this.Kind() == expressions.KindLiteral && this.IsString() {
+// arrowJSONExtractSQL ports arrow_json_extract_sql (dialect.py:1250-1255): a string-literal
+// `this` is wrapped in CAST(... AS JSON) when the dialect requires a JSON operand.
+func (g *Generator) arrowJSONExtractSQL(e expressions.Expression) string {
+	if this := e.This(); g.dialect.JSONTypeRequiredForExtraction && this != nil && this.Kind() == expressions.KindLiteral && this.IsString() {
 		cast := expressions.Cast(expressions.Args{
 			"this": this,
 			"to":   expressions.DataType(expressions.Args{"this": expressions.DTypeJSON}),
 		})
 		e.Set("this", cast)
+	}
+	if e.Kind() == expressions.KindJSONExtract {
+		return g.binary(e, "->")
 	}
 	return g.binary(e, "->>")
 }
