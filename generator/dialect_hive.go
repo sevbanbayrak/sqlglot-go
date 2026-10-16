@@ -132,7 +132,14 @@ func init() {
 			}
 			return g.funcCall("STRUCT", args, "(", ")", true)
 		},
-		expressions.KindVarMap:            (*Generator).hiveVarMapSQL,
+		expressions.KindVarMap: (*Generator).hiveVarMapSQL,
+		expressions.KindExists: func(g *Generator, e expressions.Expression) string {
+			// hive.py:587-591: EXISTS(array, lambda) is a function call, not the predicate.
+			if e.Expr() != nil {
+				return g.functionFallbackSQL(e)
+			}
+			return g.existsSQL(e)
+		},
 		expressions.KindRegexpExtract:     (*Generator).hiveRegexpExtractSQL,
 		expressions.KindRegexpExtractAll:  (*Generator).hiveRegexpExtractSQL,
 		expressions.KindJSONExtract:       hiveCall("GET_JSON_OBJECT", "this", "expression"),

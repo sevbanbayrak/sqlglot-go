@@ -62,8 +62,8 @@ func TestTableSample(t *testing.T) {
 		table := exprArg(t, selectExpr, "from_").This()
 		sample := exprArg(t, table, "sample")
 		field := exprArg(t, sample, "bucket_field")
-		if field.Kind() != exp.KindAnonymous || field.Name() != "RAND" {
-			t.Fatalf("bucket_field should be Anonymous(RAND):\n%s", selectExpr.ToS())
+		if field.Kind() != exp.KindRand {
+			t.Fatalf("bucket_field should be Rand:\n%s", selectExpr.ToS())
 		}
 		got, err := generateSQL(t, selectExpr, "")
 		if err != nil {

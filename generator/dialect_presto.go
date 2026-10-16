@@ -69,6 +69,10 @@ func init() {
 			}
 			return "REGEXP_REPLACE(" + g.sqlKey(e, "this") + ", '(\\w)(\\w*)', x -> UPPER(x[1]) || LOWER(x[2]))"
 		},
+		// generators/presto.py:366: the unit arg is dropped.
+		exp.KindLastDay: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("LAST_DAY_OF_MONTH", []any{e.This()}, "(", ")", true)
+		},
 		exp.KindXor: func(g *Generator, e exp.Expression) string {
 			a, b := g.sqlKey(e, "this"), g.sqlKey(e, "expression")
 			return "(" + a + " AND (NOT " + b + ")) OR ((NOT " + a + ") AND " + b + ")"

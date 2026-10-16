@@ -30,6 +30,9 @@ func (g *Generator) sqlName(kind expressions.Kind) string {
 	if name, ok := sqlNameOverrides[kind]; ok {
 		return name
 	}
+	if name := expressions.SQLName(kind); name != "" {
+		return name
+	}
 	return camelToSnake(expressions.ClassName(kind))
 }
 
