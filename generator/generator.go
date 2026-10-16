@@ -9,6 +9,7 @@ import (
 	"github.com/sevbanbayrak/sqlglot-go/dialects"
 	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
 	"github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/transforms"
 )
 
 const sentinelLineBreak = "__SQLGLOT_GO_SENTINEL_LINE_BREAK__"
@@ -212,8 +213,22 @@ func (g *Generator) Generate(e expressions.Expression) (sql string, err error) {
 	return sql, nil
 }
 
+// preprocess ports Generator.preprocess (generator.py:975-995). ENSURE_BOOLS is false for every
+// ported dialect, so only the nested-CTE hoist is here.
 func (g *Generator) preprocess(e expressions.Expression) expressions.Expression {
-	// Base EXPRESSIONS_WITHOUT_NESTED_CTES is empty and ENSURE_BOOLS is false, so preprocessing is a no-op for slice 2.
+	if e.Parent() != nil {
+		return e
+	}
+	for _, kind := range g.dialect.ExpressionsWithoutNestedCtes {
+		if e.Kind() != kind {
+			continue
+		}
+		for _, with := range e.FindAll(expressions.KindWith) {
+			if with.Parent() != e {
+				return transforms.MoveCtesToTopLevel(e)
+			}
+		}
+	}
 	return e
 }
 

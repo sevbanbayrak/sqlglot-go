@@ -13,6 +13,8 @@ import (
 func Trino() *Dialect {
 	d := Presto()
 	d.Name = "trino"
+	// dialects/trino.py:12.
+	d.ConcatWsCoalesce = true
 	d.SupportsUserDefinedTypes = false
 	d.Functions["VERSION"] = exp.FromArgListFunc(exp.KindCurrentVersion)
 	// ARRAY_FIRST is inherited from the upstream base function registry, but that

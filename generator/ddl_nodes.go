@@ -164,7 +164,7 @@ func (g *Generator) indexSQL(e expressions.Expression) string {
 	}
 	table := g.sqlKey(e, "table")
 	if table != "" {
-		table = "ON " + table
+		table = g.dialect.IndexOn + " " + table
 	}
 	index := ""
 	if table == "" {

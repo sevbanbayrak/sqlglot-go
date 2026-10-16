@@ -10,6 +10,10 @@ import (
 func Presto() *Dialect {
 	d := Base()
 	d.Name = "presto"
+	// generators/presto.py:268-280.
+	d.Nvl2Supported = false
+	d.PadFillPatternIsRequired = true
+	d.ArraySizeName = "CARDINALITY"
 	// generators/presto.py:439-500.
 	d.ReservedKeywords = map[string]bool{
 		"alter":             true,

@@ -902,7 +902,35 @@ var generatedFuncNames = map[string]Kind{
 	"XOR":                             KindXor,
 }
 
+// generatedTimeUnitKinds subclass upstream TimeUnit (core.py:2037): FromArgList folds their
+// unit arg into an upper-cased Var.
+var generatedTimeUnitKinds = []Kind{
+	KindDateAdd,
+	KindDateBin,
+	KindDateDiff,
+	KindDateSub,
+	KindDatetimeAdd,
+	KindDatetimeDiff,
+	KindDatetimeSub,
+	KindDatetimeTrunc,
+	KindLastDay,
+	KindTimeAdd,
+	KindTimeDiff,
+	KindTimeSlice,
+	KindTimeSub,
+	KindTimeTrunc,
+	KindTimestampAdd,
+	KindTimestampDiff,
+	KindTimestampSub,
+	KindTimestampTrunc,
+	KindTsOrDsAdd,
+	KindTsOrDsDiff,
+}
+
 func init() {
+	for _, k := range generatedTimeUnitKinds {
+		timeUnitKinds[k] = true
+	}
 	for _, f := range generatedFuncs {
 		className[f.kind] = f.class
 		argTypes[f.kind] = f.args

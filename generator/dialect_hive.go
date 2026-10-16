@@ -9,6 +9,7 @@ import (
 
 	"github.com/sevbanbayrak/sqlglot-go/dialects"
 	"github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/transforms"
 )
 
 // Hive overrides follow generators/hive.py:260-393 and 474-642.
@@ -144,14 +145,108 @@ func init() {
 		expressions.KindRegexpExtractAll:  (*Generator).hiveRegexpExtractSQL,
 		expressions.KindJSONExtract:       hiveCall("GET_JSON_OBJECT", "this", "expression"),
 		expressions.KindJSONExtractScalar: hiveCall("GET_JSON_OBJECT", "this", "expression"),
-		expressions.KindGenerateSeries:    hiveCall("SEQUENCE", "start", "end", "step"),
-		expressions.KindArraySize:         hiveCall("SIZE", "this"),
-		expressions.KindStrToMap:          hiveCall("STR_TO_MAP", "this", "pair_delim", "key_value_delim"),
+		expressions.KindGenerateSeries:    (*Generator).sequenceSQL,
+		expressions.KindGenerateDateArray: (*Generator).sequenceSQL,
+		expressions.KindDateSub:           (*Generator).hiveAddDateSQL,
+		expressions.KindDateDiff:          (*Generator).hiveDateDiffSQL,
+		expressions.KindTsOrDsDiff:        (*Generator).hiveDateDiffSQL,
+		expressions.KindDateStrToDate: func(g *Generator, e expressions.Expression) string {
+			return g.gen(expressions.New(expressions.KindCast, expressions.Args{"this": e.This(), "to": expressions.DTypeDate.IntoExpr(nil)}))
+		},
+		expressions.KindDateToDi: func(g *Generator, e expressions.Expression) string {
+			return "CAST(DATE_FORMAT(" + g.sqlKey(e, "this") + ", 'yyyyMMdd') AS INT)"
+		},
+		expressions.KindDiToDate: func(g *Generator, e expressions.Expression) string {
+			return "TO_DATE(CAST(" + g.sqlKey(e, "this") + " AS STRING), 'yyyyMMdd')"
+		},
+		expressions.KindTsOrDiToDi: func(g *Generator, e expressions.Expression) string {
+			return "CAST(SUBSTR(REPLACE(CAST(" + g.sqlKey(e, "this") + " AS STRING), '-', ''), 1, 8) AS INT)"
+		},
+		expressions.KindUnixToTime: func(g *Generator, e expressions.Expression) string {
+			// hive.py:188-194
+			scale := asExpression(e.Arg("scale"))
+			if scale == nil || (scale.IsNumber() && scale.Name() == "0") {
+				return g.funcCall("FROM_UNIXTIME", g.fallbackArgs(e), "(", ")", true)
+			}
+			return "FROM_UNIXTIME(" + g.sqlKey(e, "this") + " / POW(10, " + g.gen(scale) + "))"
+		},
+		expressions.KindIf: func(g *Generator, e expressions.Expression) string {
+			return g.funcCall("IF", []any{e.This(), e.Arg("true"), e.Arg("false")}, "(", ")", true)
+		},
+		expressions.KindILike: func(g *Generator, e expressions.Expression) string {
+			// dialect.py:1269-1276 no_ilike_sql
+			return g.likeSQL(expressions.Like(expressions.Args{
+				"this":       expressions.New(expressions.KindLower, expressions.Args{"this": e.This()}),
+				"expression": expressions.New(expressions.KindLower, expressions.Args{"this": e.Expr()}),
+				"negate":     e.Arg("negate"),
+			}))
+		},
+		expressions.KindTrim: (*Generator).trimSQLStandard,
+		expressions.KindStrPosition: func(g *Generator, e expressions.Expression) string {
+			return g.funcCall("LOCATE", []any{e.Arg("substr"), e.Arg("this"), e.Arg("position")}, "(", ")", true)
+		},
+		expressions.KindTimeStrToTime: func(g *Generator, e expressions.Expression) string { return timeStrToTimeSQL(g, e, false) },
+		expressions.KindLevenshtein: func(g *Generator, e expressions.Expression) string {
+			g.unsupportedArgs(e, "ins_cost", "del_cost", "sub_cost", "max_dist")
+			return g.funcCall("LEVENSHTEIN", []any{e.This(), e.Expr()}, "(", ")", true)
+		},
+		expressions.KindLeft: func(g *Generator, e expressions.Expression) string {
+			return g.gen(expressions.New(expressions.KindSubstring, expressions.Args{"this": e.This(), "start": expressions.LiteralNumber(1), "length": e.Expr()}))
+		},
+		expressions.KindRight: func(g *Generator, e expressions.Expression) string {
+			start := expressions.Sub(expressions.Args{
+				"this":       expressions.New(expressions.KindLength, expressions.Args{"this": e.This().Copy()}),
+				"expression": expressions.Paren(expressions.Args{"this": expressions.Sub(expressions.Args{"this": e.Expr(), "expression": expressions.LiteralNumber(1)})}),
+			})
+			return g.gen(expressions.New(expressions.KindSubstring, expressions.Args{"this": e.This(), "start": start}))
+		},
+		expressions.KindArrayToString: func(g *Generator, e expressions.Expression) string {
+			return g.funcCall("CONCAT_WS", []any{e.Expr(), e.This()}, "(", ")", true)
+		},
+		expressions.KindMap: (*Generator).hiveVarMapSQL,
+		expressions.KindSplit: func(g *Generator, e expressions.Expression) string {
+			return g.funcCall("SPLIT", []any{e.This(), g.funcCall("CONCAT", []any{"'\\\\Q'", e.Expr(), "'\\\\E'"}, "(", ")", true)}, "(", ")", true)
+		},
+		expressions.KindArraySort: func(g *Generator, e expressions.Expression) string {
+			if e.Expr() != nil {
+				g.unsupported("Hive's SORT_ARRAY does not support a comparator.")
+			}
+			return g.funcCall("SORT_ARRAY", []any{e.This()}, "(", ")", true)
+		},
+		expressions.KindWith: func(g *Generator, e expressions.Expression) string {
+			// dialect.py:1284-1288 no_recursive_cte_sql
+			if boolValue(e.Arg("recursive")) {
+				g.unsupported("Recursive CTEs are unsupported")
+				e.Set("recursive", false)
+			}
+			return g.withSQL(e)
+		},
+		expressions.KindTable: func(g *Generator, e expressions.Expression) string {
+			if out := transforms.UnnestGenerateSeries(e); out.Kind() != expressions.KindTable {
+				return g.gen(out)
+			}
+			return g.tableSQL(e)
+		},
+		expressions.KindSelect: func(g *Generator, e expressions.Expression) string {
+			// generators/hive.py:359-366 Select preprocess chain.
+			out := transforms.EliminateQualify(e)
+			out = transforms.EliminateDistinctOn(out)
+			out, err := transforms.UnnestToExplode(out, false)
+			if err != nil {
+				g.unsupported(err.Error())
+			}
+			out = transforms.AnyToExists(out)
+			if out.Kind() != expressions.KindSelect {
+				return g.gen(out)
+			}
+			return g.selectSQL(out)
+		},
+		expressions.KindStrToMap: hiveCall("STR_TO_MAP", "this", "pair_delim", "key_value_delim"),
 		expressions.KindTimestampTrunc: func(g *Generator, e expressions.Expression) string {
 			return g.funcCall("TRUNC", []any{e.This(), expressions.LiteralString(e.Text("unit"))}, "(", ")", true)
 		},
 	}
-	for k, name := range map[expressions.Kind]string{expressions.KindAnyValue: "FIRST", expressions.KindFromBase64: "UNBASE64", expressions.KindToBase64: "BASE64", expressions.KindJSONFormat: "TO_JSON", expressions.KindQuantile: "PERCENTILE", expressions.KindApproxQuantile: "PERCENTILE_APPROX", expressions.KindRegexpSplit: "SPLIT", expressions.KindArrayUniqueAgg: "COLLECT_SET", expressions.KindTimeStrToDate: "TO_DATE", expressions.KindTimeStrToUnix: "UNIX_TIMESTAMP", expressions.KindTimeToUnix: "UNIX_TIMESTAMP", expressions.KindWeekOfYear: "WEEKOFYEAR", expressions.KindDayOfMonth: "DAYOFMONTH", expressions.KindDayOfWeek: "DAYOFWEEK", expressions.KindUnnest: "EXPLODE", expressions.KindStarMap: "MAP"} {
+	for k, name := range map[expressions.Kind]string{expressions.KindAnyValue: "FIRST", expressions.KindFromBase64: "UNBASE64", expressions.KindToBase64: "BASE64", expressions.KindJSONFormat: "TO_JSON", expressions.KindQuantile: "PERCENTILE", expressions.KindApproxQuantile: "PERCENTILE_APPROX", expressions.KindRegexpSplit: "SPLIT", expressions.KindArrayUniqueAgg: "COLLECT_SET", expressions.KindTimeStrToDate: "TO_DATE", expressions.KindTimeStrToUnix: "UNIX_TIMESTAMP", expressions.KindTimeToUnix: "UNIX_TIMESTAMP", expressions.KindWeekOfYear: "WEEKOFYEAR", expressions.KindDayOfMonth: "DAYOFMONTH", expressions.KindDayOfWeek: "DAYOFWEEK", expressions.KindUnnest: "EXPLODE", expressions.KindStarMap: "MAP", expressions.KindUnixToTimeStr: "FROM_UNIXTIME", expressions.KindIsNan: "ISNAN", expressions.KindArrayConcat: "CONCAT", expressions.KindNumberToStr: "FORMAT_NUMBER", expressions.KindUnicode: "ASCII"} {
 		name := name
 		handlers[k] = func(g *Generator, e expressions.Expression) string {
 			return g.funcCall(name, g.fallbackArgs(e), "(", ")", true)
@@ -336,6 +431,9 @@ func (g *Generator) hiveDataTypeSQL(e expressions.Expression) string {
 
 // generators/hive.py:118-139.
 func (g *Generator) hiveAddDateSQL(e expressions.Expression) string {
+	if e.Kind() == expressions.KindTsOrDsAdd && e.Arg("unit") == nil {
+		return g.funcCall("DATE_ADD", []any{e.This(), e.Expr()}, "(", ")", true)
+	}
 	unit := strings.ToUpper(e.Text("unit"))
 	name := "DATE_ADD"
 	mult := 1
@@ -351,20 +449,70 @@ func (g *Generator) hiveAddDateSQL(e expressions.Expression) string {
 		name = "ADD_MONTHS"
 		mult = 12
 	}
-	inc := e.Expr()
-	sql := g.gen(inc)
-	if mult != 1 {
-		if inc != nil && inc.Kind() == expressions.KindLiteral {
-			if n, err := strconv.ParseFloat(inc.Name(), 64); err == nil {
-				sql = strconv.FormatFloat(n*float64(mult), 'f', -1, 64)
-			} else {
-				g.unsupported("Invalid date increment")
-			}
+	if e.Kind() == expressions.KindDateSub {
+		mult *= -1
+	}
+	var inc any = e.Expr()
+	if lit := asExpression(inc); lit != nil && lit.Kind() == expressions.KindLiteral {
+		if n, err := strconv.ParseFloat(lit.Name(), 64); err == nil {
+			inc = strconv.FormatFloat(n*float64(mult), 'f', -1, 64)
 		} else {
-			sql = "(" + sql + ") * " + strconv.Itoa(mult)
+			g.unsupported("Invalid date increment")
+		}
+	} else if mult != 1 {
+		if lit != nil && lit.Is(expressions.TraitBinary) {
+			inc = expressions.Paren(expressions.Args{"this": lit})
+		}
+		inc = expressions.Mul(expressions.Args{"this": inc, "expression": expressions.LiteralNumber(mult)})
+	}
+	return g.funcCall(name, []any{e.This(), inc}, "(", ")", true)
+}
+
+// hiveDateDiffSQL ports _date_diff_sql (hive.py:127-149).
+func (g *Generator) hiveDateDiffSQL(e expressions.Expression) string {
+	unit := strings.ToUpper(e.Text("unit"))
+	if factor, ok := map[string]string{"MILLISECOND": " * 1000", "SECOND": "", "MINUTE": " / 60", "HOUR": " / 3600"}[unit]; ok {
+		secDiff := "UNIX_TIMESTAMP(" + g.sqlKey(e, "this") + ") - UNIX_TIMESTAMP(" + g.sqlKey(e, "expression") + ")"
+		if factor != "" {
+			return "(" + secDiff + ")" + factor
+		}
+		return secDiff
+	}
+	monthsBetween := unit == "YEAR" || unit == "QUARTER" || unit == "MONTH"
+	sqlFunc := "DATEDIFF"
+	if monthsBetween {
+		sqlFunc = "MONTHS_BETWEEN"
+	}
+	multiplier := map[string]int{"YEAR": 12, "QUARTER": 3, "WEEK": 7}[unit]
+	multiplierSQL := ""
+	if multiplier > 1 {
+		multiplierSQL = " / " + strconv.Itoa(multiplier)
+	}
+	diff := sqlFunc + "(" + g.formatArgs([]any{e.This(), e.Expr()}, ", ") + ")"
+	if monthsBetween || multiplierSQL != "" {
+		diff = "CAST(" + diff + multiplierSQL + " AS INT)"
+	}
+	return diff
+}
+
+// sequenceSQL ports sequence_sql (dialect.py:2396-2443) without the is_end_exclusive branch,
+// which needs simplify and is only set by dialects outside this port.
+func (g *Generator) sequenceSQL(e expressions.Expression) string {
+	start, end, step := asExpression(e.Arg("start")), asExpression(e.Arg("end")), asExpression(e.Arg("step"))
+	var targetType expressions.Expression
+	if start != nil && start.Kind() == expressions.KindCast {
+		targetType = asExpression(start.Arg("to"))
+	} else if end != nil && end.Kind() == expressions.KindCast {
+		targetType = asExpression(end.Arg("to"))
+	}
+	if start != nil && end != nil && targetType != nil && (expressions.IsType(targetType, expressions.DTypeDate) || expressions.IsType(targetType, expressions.DTypeTimestamp)) {
+		if start.Kind() == expressions.KindCast && asExpression(start.Arg("to")) == targetType {
+			end = expressions.New(expressions.KindCast, expressions.Args{"this": end, "to": targetType.Copy()})
+		} else {
+			start = expressions.New(expressions.KindCast, expressions.Args{"this": start, "to": targetType.Copy()})
 		}
 	}
-	return g.funcCall(name, []any{e.This(), sql}, "(", ")", true)
+	return g.funcCall("SEQUENCE", []any{start, end, step}, "(", ")", true)
 }
 
 // generators/hive.py:449-460 omits braces for SET assignments.
