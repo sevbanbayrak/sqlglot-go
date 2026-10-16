@@ -11,6 +11,8 @@ func init() {
 	dispatch[expressions.KindNvl2] = (*Generator).nvl2SQL
 	dispatch[expressions.KindArrayAny] = (*Generator).arrayAnySQL
 	dispatch[expressions.KindConcatWs] = (*Generator).concatWsSQL
+	dispatch[expressions.KindMedian] = (*Generator).medianSQL
+	dispatch[expressions.KindTsOrDsToDate] = (*Generator).tsOrDsToDateSQL
 	// generator.py:4821 kwarg_sql
 	dispatch[expressions.KindKwarg] = func(g *Generator, e expressions.Expression) string { return g.binary(e, "=>") }
 }
@@ -53,9 +55,14 @@ func (g *Generator) nvl2SQL(e expressions.Expression) string {
 	return g.gen(expressions.Case(args))
 }
 
-// arrayAnySQL ports arrayany_sql (generator.py:5252-5266) for dialects that cannot implement
-// ARRAY_ANY (CAN_IMPLEMENT_ARRAY_ANY is false for every ported dialect).
+// arrayAnySQL ports arrayany_sql (generator.py:5252-5266).
 func (g *Generator) arrayAnySQL(e expressions.Expression) string {
+	if g.dialect.CanImplementArrayAny {
+		filtered := expressions.New(expressions.KindArrayFilter, expressions.Args{"this": e.This(), "expression": e.Expr()})
+		filteredNotEmpty := expressions.NEQ(expressions.Args{"this": expressions.New(expressions.KindArraySize, expressions.Args{"this": filtered}), "expression": expressions.LiteralNumber(0)})
+		originalIsEmpty := expressions.EQ(expressions.Args{"this": expressions.New(expressions.KindArraySize, expressions.Args{"this": e.This().Copy()}), "expression": expressions.LiteralNumber(0)})
+		return g.gen(expressions.Paren(expressions.Args{"this": expressions.Or(expressions.Args{"this": originalIsEmpty, "expression": filteredNotEmpty})}))
+	}
 	if g.dialect.Name != "" {
 		g.unsupported("ARRAY_ANY is unsupported")
 	}
@@ -88,4 +95,40 @@ func init() {
 	dispatch[expressions.KindVarMap] = func(g *Generator, e expressions.Expression) string {
 		return g.funcCall("MAP", []any{e.Arg("keys"), e.Arg("values")}, "(", ")", true)
 	}
+}
+
+// medianSQL ports median_sql (generator.py:5862-5868).
+func (g *Generator) medianSQL(e expressions.Expression) string {
+	if !g.dialect.SupportsMedian {
+		return g.gen(expressions.New(expressions.KindPercentileCont, expressions.Args{"this": e.This(), "expression": expressions.LiteralNumber(0.5)}))
+	}
+	return g.functionFallbackSQL(e)
+}
+
+// formatTime is Generator.format_time (generator.py:4712-4722) over the dialect's FormatTime.
+func (g *Generator) formatTime(e expressions.Expression) expressions.Expression {
+	format := asExpression(e.Arg("format"))
+	if format != nil && format.IsString() && g.dialect.FormatTime != nil {
+		return expressions.LiteralString(g.dialect.FormatTime(format.Name()))
+	}
+	return format
+}
+
+// tsOrDsToDateSQL ports tsordstodate_sql (generator.py:5202-5220); the this.is_type(DATE) test
+// is reduced to an explicit DATE cast, since annotate_types never runs here.
+func (g *Generator) tsOrDsToDateSQL(e expressions.Expression) string {
+	this := e.This()
+	safe := e.Arg("safe")
+	if format := g.formatTime(e); format != nil && format.IsString() && format.Name() != g.dialect.TimeFormat && format.Name() != g.dialect.DateFormat {
+		strToTime := expressions.New(expressions.KindStrToTime, expressions.Args{"this": this, "format": e.Arg("format"), "safe": safe})
+		return g.gen(expressions.New(expressions.KindCast, expressions.Args{"this": strToTime, "to": expressions.DTypeDate.IntoExpr(nil)}))
+	}
+	if this.Kind() == expressions.KindTsOrDsToDate || (this.Kind() == expressions.KindCast && expressions.IsType(asExpression(this.Arg("to")), expressions.DTypeDate)) {
+		return g.gen(this)
+	}
+	kind := expressions.KindCast
+	if boolValue(safe) {
+		kind = expressions.KindTryCast
+	}
+	return g.gen(expressions.New(kind, expressions.Args{"this": this, "to": expressions.DTypeDate.IntoExpr(nil)}))
 }

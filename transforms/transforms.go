@@ -587,3 +587,17 @@ func UnnestGenerateDateArrayUsingRecursiveCte(e exp.Expression) exp.Expression {
 	}
 	return e
 }
+
+// AddWithinGroupForPercentiles ports add_within_group_for_percentiles (transforms.py:555-567).
+func AddWithinGroupForPercentiles(e exp.Expression) exp.Expression {
+	if (e.Kind() != exp.KindPercentileCont && e.Kind() != exp.KindPercentileDisc) || e.Expr() == nil {
+		return e
+	}
+	if p := e.Parent(); p != nil && p.Kind() == exp.KindWithinGroup {
+		return e
+	}
+	column := e.This().Pop()
+	e.Set("this", e.Expr().Pop())
+	order := exp.Order(exp.Args{"expressions": []exp.Expression{exp.Ordered(exp.Args{"this": column})}})
+	return exp.New(exp.KindWithinGroup, exp.Args{"this": e, "expression": order})
+}

@@ -226,6 +226,18 @@ type Dialect struct {
 	// NullOrderingSupported ports NULL_ORDERING_SUPPORTED (generator.py:301): nil is upstream's
 	// None (simulate NULLS FIRST/LAST with a CASE sort key).
 	NullOrderingSupported *bool
+	// SupportsMedian / SupportsBetweenFlags / CanImplementArrayAny port the generator flags
+	// SUPPORTS_MEDIAN (generator.py:576), SUPPORTS_BETWEEN_FLAGS (608) and
+	// CAN_IMPLEMENT_ARRAY_ANY (520).
+	SupportsMedian       bool
+	SupportsBetweenFlags bool
+	CanImplementArrayAny bool
+	// TimeFormat / DateFormat port the dialect's TIME_FORMAT / DATE_FORMAT (dialect.py:443-445)
+	// without the surrounding quotes; FormatTime is Generator.format_time under the dialect's
+	// INVERSE_TIME_MAPPING (nil is the identity mapping of the base dialect).
+	TimeFormat string
+	DateFormat string
+	FormatTime func(string) string
 	// TablesampleKeywords ports the generator flag TABLESAMPLE_KEYWORDS (generator.py:424): the
 	// keyword(s) to use when generating a sample clause.
 	TablesampleKeywords string
@@ -482,6 +494,9 @@ func Base() *Dialect {
 		ExceptIntersectSupportAllClause: true,
 		UpdateStatementSupportsFrom:     true,
 		NullOrderingSupported:           &trueValue,
+		SupportsMedian:                  true,
+		TimeFormat:                      "%Y-%m-%d %H:%M:%S",
+		DateFormat:                      "%Y-%m-%d",
 		IndexOn:                         "ON",
 		Nvl2Supported:                   true,
 		ArraySizeName:                   "ARRAY_LENGTH",
