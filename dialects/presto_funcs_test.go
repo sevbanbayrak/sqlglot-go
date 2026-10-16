@@ -3,9 +3,9 @@ package dialects_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // prestoOverlayKeys is the exact key set registered by dialects.Presto().Functions (the

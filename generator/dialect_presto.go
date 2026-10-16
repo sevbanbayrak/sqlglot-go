@@ -1,10 +1,10 @@
 package generator
 
 import (
-	"github.com/ridi-oss/sqlglot-go/dialects"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
 	"strings"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // generators/presto.py:303; cross-dialect Select preprocessing is intentionally omitted.

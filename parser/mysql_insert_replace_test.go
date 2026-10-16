@@ -3,9 +3,9 @@ package parser_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/generator"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
 )
 
 func assertMySQLSetInsertShape(t *testing.T, insert exp.Expression, columns []string, values []string) {

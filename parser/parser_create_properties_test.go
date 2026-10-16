@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 func createProperties(t *testing.T, create exp.Expression) []exp.Expression {

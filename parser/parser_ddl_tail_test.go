@@ -3,7 +3,7 @@ package parser_test
 import (
 	"testing"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // roundTripCase asserts that sql parses+generates back to want under dialect - the same

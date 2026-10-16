@@ -18,310 +18,310 @@ merged, tags the version and publishes the GitHub release. See
 [AGENTS.md § Releasing](./AGENTS.md#releasing). Entries for **v0.5.0 and earlier** were written by hand
 before release-please was adopted.
 
-## [0.37.4](https://github.com/ridi-oss/sqlglot-go/compare/v0.37.3...v0.37.4) (2026-10-12)
+## [0.37.4](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.37.3...v0.37.4) (2026-10-12)
 
 
 ### Bug Fixes
 
-* **parser:** parse RETURNS TABLE (...) and PostgreSQL RETURNS SETOF ([#114](https://github.com/ridi-oss/sqlglot-go/issues/114)) ([e836199](https://github.com/ridi-oss/sqlglot-go/commit/e836199b77563f6467819202db953b6fee6fb023))
+* **parser:** parse RETURNS TABLE (...) and PostgreSQL RETURNS SETOF ([#114](https://github.com/sevbanbayrak/sqlglot-go/issues/114)) ([e836199](https://github.com/sevbanbayrak/sqlglot-go/commit/e836199b77563f6467819202db953b6fee6fb023))
 
-## [0.37.3](https://github.com/ridi-oss/sqlglot-go/compare/v0.37.2...v0.37.3) (2026-10-12)
-
-
-### Bug Fixes
-
-* **parser:** parse repeated ADD CONSTRAINT and COMMENT ... IS NULL ([#112](https://github.com/ridi-oss/sqlglot-go/issues/112)) ([9da4b6b](https://github.com/ridi-oss/sqlglot-go/commit/9da4b6bbf2a7b24708bb4b1dada9ea3a9a179fe4))
-
-## [0.37.2](https://github.com/ridi-oss/sqlglot-go/compare/v0.37.1...v0.37.2) (2026-09-28)
+## [0.37.3](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.37.2...v0.37.3) (2026-10-12)
 
 
 ### Bug Fixes
 
-* **optimizer:** UNNEST ordinality column resolves after the alias-column pop ([#110](https://github.com/ridi-oss/sqlglot-go/issues/110)) ([c8019a6](https://github.com/ridi-oss/sqlglot-go/commit/c8019a652ce1222089ab89e3dc20610cb785abf9))
+* **parser:** parse repeated ADD CONSTRAINT and COMMENT ... IS NULL ([#112](https://github.com/sevbanbayrak/sqlglot-go/issues/112)) ([9da4b6b](https://github.com/sevbanbayrak/sqlglot-go/commit/9da4b6bbf2a7b24708bb4b1dada9ea3a9a179fe4))
 
-## [0.37.1](https://github.com/ridi-oss/sqlglot-go/compare/v0.37.0...v0.37.1) (2026-09-28)
-
-
-### Bug Fixes
-
-* **parser:** PostgreSQL rejects UNNEST ... WITH OFFSET ([#108](https://github.com/ridi-oss/sqlglot-go/issues/108)) ([98bd9be](https://github.com/ridi-oss/sqlglot-go/commit/98bd9be80fbdc5607171a85c2a5e6e63b225d3e6))
-
-## [0.37.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.36.1...v0.37.0) (2026-09-14)
-
-
-### Features
-
-* **parser:** source spans on bind parameters ([#105](https://github.com/ridi-oss/sqlglot-go/issues/105)) ([6408741](https://github.com/ridi-oss/sqlglot-go/commit/640874197b0cfc4dcd452fb80797a06082b7d613))
-
-## [0.36.1](https://github.com/ridi-oss/sqlglot-go/compare/v0.36.0...v0.36.1) (2026-09-11)
+## [0.37.2](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.37.1...v0.37.2) (2026-09-28)
 
 
 ### Bug Fixes
 
-* **parser:** PIVOT and UNPIVOT stay usable as table and CTE aliases ([#103](https://github.com/ridi-oss/sqlglot-go/issues/103)) ([720488b](https://github.com/ridi-oss/sqlglot-go/commit/720488b188bcf20576bdf8bff501ea2a933a0039))
+* **optimizer:** UNNEST ordinality column resolves after the alias-column pop ([#110](https://github.com/sevbanbayrak/sqlglot-go/issues/110)) ([c8019a6](https://github.com/sevbanbayrak/sqlglot-go/commit/c8019a652ce1222089ab89e3dc20610cb785abf9))
 
-## [0.36.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.35.0...v0.36.0) (2026-09-11)
-
-
-### Features
-
-* **parser:** Presto, Trino and Hive parser drift vs sqlglot v30.17.0 ([#101](https://github.com/ridi-oss/sqlglot-go/issues/101)) ([9627433](https://github.com/ridi-oss/sqlglot-go/commit/9627433c42aa428109dce89ac1e113be2b073a93))
-
-## [0.35.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.34.0...v0.35.0) (2026-09-11)
+## [0.37.1](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.37.0...v0.37.1) (2026-09-28)
 
 
-### Features
+### Bug Fixes
 
-* **generator:** Presto, Trino, Hive and Athena generators ([#99](https://github.com/ridi-oss/sqlglot-go/issues/99)) ([be93bfc](https://github.com/ridi-oss/sqlglot-go/commit/be93bfced796aa0c5de48f2a3714bde68879897b))
+* **parser:** PostgreSQL rejects UNNEST ... WITH OFFSET ([#108](https://github.com/sevbanbayrak/sqlglot-go/issues/108)) ([98bd9be](https://github.com/sevbanbayrak/sqlglot-go/commit/98bd9be80fbdc5607171a85c2a5e6e63b225d3e6))
 
-## [0.34.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.33.0...v0.34.0) (2026-09-11)
+## [0.37.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.36.1...v0.37.0) (2026-09-14)
 
 
 ### Features
 
-* **athena:** enabler parity with mysql/postgres — settings, per-statement routing, engine identities, SHOW/EXPLAIN/UNLOAD ([#97](https://github.com/ridi-oss/sqlglot-go/issues/97)) ([3914a0e](https://github.com/ridi-oss/sqlglot-go/commit/3914a0ef2bef7553b02979c1e99a21f6fde42e1c))
+* **parser:** source spans on bind parameters ([#105](https://github.com/sevbanbayrak/sqlglot-go/issues/105)) ([6408741](https://github.com/sevbanbayrak/sqlglot-go/commit/640874197b0cfc4dcd452fb80797a06082b7d613))
 
-## [0.33.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.32.0...v0.33.0) (2026-09-02)
+## [0.36.1](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.36.0...v0.36.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **parser:** PIVOT and UNPIVOT stay usable as table and CTE aliases ([#103](https://github.com/sevbanbayrak/sqlglot-go/issues/103)) ([720488b](https://github.com/sevbanbayrak/sqlglot-go/commit/720488b188bcf20576bdf8bff501ea2a933a0039))
+
+## [0.36.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.35.0...v0.36.0) (2026-09-11)
 
 
 ### Features
 
-* release nudge for the EXPLAIN unification ([#94](https://github.com/ridi-oss/sqlglot-go/issues/94)) ([439b7d3](https://github.com/ridi-oss/sqlglot-go/commit/439b7d3870524d8d01f7bdf16999ae0b5dd19a31))
+* **parser:** Presto, Trino and Hive parser drift vs sqlglot v30.17.0 ([#101](https://github.com/sevbanbayrak/sqlglot-go/issues/101)) ([9627433](https://github.com/sevbanbayrak/sqlglot-go/commit/9627433c42aa428109dce89ac1e113be2b073a93))
+
+## [0.35.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.34.0...v0.35.0) (2026-09-11)
+
+
+### Features
+
+* **generator:** Presto, Trino, Hive and Athena generators ([#99](https://github.com/sevbanbayrak/sqlglot-go/issues/99)) ([be93bfc](https://github.com/sevbanbayrak/sqlglot-go/commit/be93bfced796aa0c5de48f2a3714bde68879897b))
+
+## [0.34.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.33.0...v0.34.0) (2026-09-11)
+
+
+### Features
+
+* **athena:** enabler parity with mysql/postgres — settings, per-statement routing, engine identities, SHOW/EXPLAIN/UNLOAD ([#97](https://github.com/sevbanbayrak/sqlglot-go/issues/97)) ([3914a0e](https://github.com/sevbanbayrak/sqlglot-go/commit/3914a0ef2bef7553b02979c1e99a21f6fde42e1c))
+
+## [0.33.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.32.0...v0.33.0) (2026-09-02)
+
+
+### Features
+
+* release nudge for the EXPLAIN unification ([#94](https://github.com/sevbanbayrak/sqlglot-go/issues/94)) ([439b7d3](https://github.com/sevbanbayrak/sqlglot-go/commit/439b7d3870524d8d01f7bdf16999ae0b5dd19a31))
 
 
 ### Documentation
 
-* nested parens in squash bodies silently break release-please ([#96](https://github.com/ridi-oss/sqlglot-go/issues/96)) ([68d58b0](https://github.com/ridi-oss/sqlglot-go/commit/68d58b0bf7c92194434d72682df0c9400618726f))
+* nested parens in squash bodies silently break release-please ([#96](https://github.com/sevbanbayrak/sqlglot-go/issues/96)) ([68d58b0](https://github.com/sevbanbayrak/sqlglot-go/commit/68d58b0bf7c92194434d72682df0c9400618726f))
 
-## [0.32.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.31.0...v0.32.0) (2026-09-02)
-
-
-### Features
-
-* **schema:** implicit system-column marking — NewMappingSchemaWithImplicit ([#91](https://github.com/ridi-oss/sqlglot-go/issues/91)) ([8c52aff](https://github.com/ridi-oss/sqlglot-go/commit/8c52aff5701cf8e13507d7c9ea8148487e287ec3))
-
-## [0.31.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.30.0...v0.31.0) (2026-08-31)
+## [0.32.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.31.0...v0.32.0) (2026-09-02)
 
 
 ### Features
 
-* **parser:** sqlglot v30.17.0 upstream delta — release note for [#87](https://github.com/ridi-oss/sqlglot-go/issues/87) ([#89](https://github.com/ridi-oss/sqlglot-go/issues/89)) ([fda36b3](https://github.com/ridi-oss/sqlglot-go/commit/fda36b33985b2365971a8f358b06b2be588a8d9d))
+* **schema:** implicit system-column marking — NewMappingSchemaWithImplicit ([#91](https://github.com/sevbanbayrak/sqlglot-go/issues/91)) ([8c52aff](https://github.com/sevbanbayrak/sqlglot-go/commit/8c52aff5701cf8e13507d7c9ea8148487e287ec3))
 
-## [0.30.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.29.0...v0.30.0) (2026-08-31)
-
-
-### Features
-
-* opaque_functions setting + EngineCatalog identity resolution ([#86](https://github.com/ridi-oss/sqlglot-go/issues/86)) ([e20cfdf](https://github.com/ridi-oss/sqlglot-go/commit/e20cfdfa7895415ea3e60969b6651a1b41fd6fe2))
-
-## [0.29.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.28.3...v0.29.0) (2026-08-31)
+## [0.31.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.30.0...v0.31.0) (2026-08-31)
 
 
 ### Features
 
-* **parser:** parse MySQL compound-statement grammar; routine bodies structural ([#84](https://github.com/ridi-oss/sqlglot-go/issues/84)) ([8d4debe](https://github.com/ridi-oss/sqlglot-go/commit/8d4debe5cade185cc037011d6390179d5faf4909))
+* **parser:** sqlglot v30.17.0 upstream delta — release note for [#87](https://github.com/sevbanbayrak/sqlglot-go/issues/87) ([#89](https://github.com/sevbanbayrak/sqlglot-go/issues/89)) ([fda36b3](https://github.com/sevbanbayrak/sqlglot-go/commit/fda36b33985b2365971a8f358b06b2be588a8d9d))
 
-## [0.28.3](https://github.com/ridi-oss/sqlglot-go/compare/v0.28.2...v0.28.3) (2026-08-31)
+## [0.30.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.29.0...v0.30.0) (2026-08-31)
+
+
+### Features
+
+* opaque_functions setting + EngineCatalog identity resolution ([#86](https://github.com/sevbanbayrak/sqlglot-go/issues/86)) ([e20cfdf](https://github.com/sevbanbayrak/sqlglot-go/commit/e20cfdfa7895415ea3e60969b6651a1b41fd6fe2))
+
+## [0.29.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.28.3...v0.29.0) (2026-08-31)
+
+
+### Features
+
+* **parser:** parse MySQL compound-statement grammar; routine bodies structural ([#84](https://github.com/sevbanbayrak/sqlglot-go/issues/84)) ([8d4debe](https://github.com/sevbanbayrak/sqlglot-go/commit/8d4debe5cade185cc037011d6390179d5faf4909))
+
+## [0.28.3](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.28.2...v0.28.3) (2026-08-31)
 
 
 ### Bug Fixes
 
-* **parser:** unterminated BEGIN body and bare MySQL END fail closed ([#82](https://github.com/ridi-oss/sqlglot-go/issues/82)) ([afa4141](https://github.com/ridi-oss/sqlglot-go/commit/afa4141d3012dc5f76b1d03a6cd190ddd69755a6))
+* **parser:** unterminated BEGIN body and bare MySQL END fail closed ([#82](https://github.com/sevbanbayrak/sqlglot-go/issues/82)) ([afa4141](https://github.com/sevbanbayrak/sqlglot-go/commit/afa4141d3012dc5f76b1d03a6cd190ddd69755a6))
 
-## [0.28.2](https://github.com/ridi-oss/sqlglot-go/compare/v0.28.1...v0.28.2) (2026-08-31)
-
-
-### Bug Fixes
-
-* **parser:** routine bodies are one statement through END for TRIGGER, FUNCTION, BEGIN ATOMIC ([#80](https://github.com/ridi-oss/sqlglot-go/issues/80)) ([ef2541f](https://github.com/ridi-oss/sqlglot-go/commit/ef2541f5721c886b66037884b3d9e159deaabf24))
-
-## [0.28.1](https://github.com/ridi-oss/sqlglot-go/compare/v0.28.0...v0.28.1) (2026-08-30)
+## [0.28.2](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.28.1...v0.28.2) (2026-08-31)
 
 
 ### Bug Fixes
 
-* **parser:** END terminates a routine's BEGIN...END block ([#78](https://github.com/ridi-oss/sqlglot-go/issues/78)) ([d135436](https://github.com/ridi-oss/sqlglot-go/commit/d135436ee2cacdd8c16c9ffc84a34ccd2c06ec0d))
+* **parser:** routine bodies are one statement through END for TRIGGER, FUNCTION, BEGIN ATOMIC ([#80](https://github.com/sevbanbayrak/sqlglot-go/issues/80)) ([ef2541f](https://github.com/sevbanbayrak/sqlglot-go/commit/ef2541f5721c886b66037884b3d9e159deaabf24))
 
-## [0.28.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.27.0...v0.28.0) (2026-08-30)
+## [0.28.1](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.28.0...v0.28.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* **parser:** END terminates a routine's BEGIN...END block ([#78](https://github.com/sevbanbayrak/sqlglot-go/issues/78)) ([d135436](https://github.com/sevbanbayrak/sqlglot-go/commit/d135436ee2cacdd8c16c9ffc84a34ccd2c06ec0d))
+
+## [0.28.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.27.0...v0.28.0) (2026-08-30)
 
 
 ### Features
 
-* **parser:** parse procedure BEGIN...END blocks and PG dollar-quoted bodies ([#76](https://github.com/ridi-oss/sqlglot-go/issues/76)) ([e37f2d0](https://github.com/ridi-oss/sqlglot-go/commit/e37f2d015b59489ce8f41d9889cbf99aa1250f02))
-* **parser:** statement-level source spans + trailing-semicolon comment parity ([#77](https://github.com/ridi-oss/sqlglot-go/issues/77)) ([ce6d667](https://github.com/ridi-oss/sqlglot-go/commit/ce6d667995949e3674a241c4e8be401b9c7d3f96))
+* **parser:** parse procedure BEGIN...END blocks and PG dollar-quoted bodies ([#76](https://github.com/sevbanbayrak/sqlglot-go/issues/76)) ([e37f2d0](https://github.com/sevbanbayrak/sqlglot-go/commit/e37f2d015b59489ce8f41d9889cbf99aa1250f02))
+* **parser:** statement-level source spans + trailing-semicolon comment parity ([#77](https://github.com/sevbanbayrak/sqlglot-go/issues/77)) ([ce6d667](https://github.com/sevbanbayrak/sqlglot-go/commit/ce6d667995949e3674a241c4e8be401b9c7d3f96))
 
 
 ### Documentation
 
-* slim DEVIATIONS.md to an intent ledger ([#74](https://github.com/ridi-oss/sqlglot-go/issues/74)) ([f0022ce](https://github.com/ridi-oss/sqlglot-go/commit/f0022ce2cb70b8c7ceff0ef65c1cd94aca41d756))
+* slim DEVIATIONS.md to an intent ledger ([#74](https://github.com/sevbanbayrak/sqlglot-go/issues/74)) ([f0022ce](https://github.com/sevbanbayrak/sqlglot-go/commit/f0022ce2cb70b8c7ceff0ef65c1cd94aca41d756))
 
-## [0.27.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.26.0...v0.27.0) (2026-08-30)
-
-
-### Features
-
-* **expressions:** capture verbatim span text on the node at parse time ([#72](https://github.com/ridi-oss/sqlglot-go/issues/72)) ([09d2878](https://github.com/ridi-oss/sqlglot-go/commit/09d2878345ec782b6a674837c6ea541775150055))
-
-## [0.26.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.25.0...v0.26.0) (2026-08-29)
+## [0.27.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.26.0...v0.27.0) (2026-08-30)
 
 
 ### Features
 
-* **parser:** record source spans on SELECT projections ([#69](https://github.com/ridi-oss/sqlglot-go/issues/69)) ([375188c](https://github.com/ridi-oss/sqlglot-go/commit/375188c51c560700fdf1b15f71bc941b4e0078a6))
+* **expressions:** capture verbatim span text on the node at parse time ([#72](https://github.com/sevbanbayrak/sqlglot-go/issues/72)) ([09d2878](https://github.com/sevbanbayrak/sqlglot-go/commit/09d2878345ec782b6a674837c6ea541775150055))
 
-## [0.25.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.24.0...v0.25.0) (2026-08-28)
-
-
-### Features
-
-* **parser:** parse MySQL SHOW GRANTS FOR user@host [USING roles] ([#67](https://github.com/ridi-oss/sqlglot-go/issues/67)) ([5863085](https://github.com/ridi-oss/sqlglot-go/commit/5863085caf18d0651401c05f07c03c6d174c63ce))
-
-## [0.24.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.23.0...v0.24.0) (2026-08-13)
+## [0.26.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.25.0...v0.26.0) (2026-08-29)
 
 
 ### Features
 
-* **parser:** structure MySQL CREATE/ALTER/DROP USER|ROLE with kind=USER/ROLE ([#65](https://github.com/ridi-oss/sqlglot-go/issues/65)) ([b46ceec](https://github.com/ridi-oss/sqlglot-go/commit/b46ceec5285763743f5416a4b7708eae386cd693))
+* **parser:** record source spans on SELECT projections ([#69](https://github.com/sevbanbayrak/sqlglot-go/issues/69)) ([375188c](https://github.com/sevbanbayrak/sqlglot-go/commit/375188c51c560700fdf1b15f71bc941b4e0078a6))
 
-## [0.23.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.22.0...v0.23.0) (2026-08-05)
-
-
-### Features
-
-* **expressions:** add statement-discriminator contract + Into/Keyword accessors ([#63](https://github.com/ridi-oss/sqlglot-go/issues/63)) ([bb17b5b](https://github.com/ridi-oss/sqlglot-go/commit/bb17b5b903ed1f045c758be96102ec8643fb344b))
-
-## [0.22.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.21.0...v0.22.0) (2026-08-04)
+## [0.25.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.24.0...v0.25.0) (2026-08-28)
 
 
 ### Features
 
-* **parser:** structure MySQL DROP INDEX ... ON table (incl. db-qualified target) ([#61](https://github.com/ridi-oss/sqlglot-go/issues/61)) ([f875948](https://github.com/ridi-oss/sqlglot-go/commit/f875948d504eef003b2846e53c3688e5d6684603))
+* **parser:** parse MySQL SHOW GRANTS FOR user@host [USING roles] ([#67](https://github.com/sevbanbayrak/sqlglot-go/issues/67)) ([5863085](https://github.com/sevbanbayrak/sqlglot-go/commit/5863085caf18d0651401c05f07c03c6d174c63ce))
 
-## [0.21.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.20.0...v0.21.0) (2026-08-04)
-
-
-### Features
-
-* **parser:** fix MySQL replication/admin statement kinds and TABLE value constructor ([#59](https://github.com/ridi-oss/sqlglot-go/issues/59)) ([9a0f61f](https://github.com/ridi-oss/sqlglot-go/commit/9a0f61facbb28979facef9bbd9c8f491211b5eeb))
-
-## [0.20.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.19.0...v0.20.0) (2026-07-24)
+## [0.24.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.23.0...v0.24.0) (2026-08-13)
 
 
 ### Features
 
-* **parser:** model Postgres [NOT] DEFERRABLE transaction mode ([#57](https://github.com/ridi-oss/sqlglot-go/issues/57)) ([cde680f](https://github.com/ridi-oss/sqlglot-go/commit/cde680f626c85f21ade7be9d2969e432b4c2bd0b))
+* **parser:** structure MySQL CREATE/ALTER/DROP USER|ROLE with kind=USER/ROLE ([#65](https://github.com/sevbanbayrak/sqlglot-go/issues/65)) ([b46ceec](https://github.com/sevbanbayrak/sqlglot-go/commit/b46ceec5285763743f5416a4b7708eae386cd693))
 
-## [0.19.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.18.0...v0.19.0) (2026-07-23)
-
-
-### Features
-
-* **parser:** structure Postgres multi-value SET (SET var = a, b) ([#55](https://github.com/ridi-oss/sqlglot-go/issues/55)) ([73805c8](https://github.com/ridi-oss/sqlglot-go/commit/73805c861b41f27a3d60678a48e78747d28f308e))
-
-## [0.18.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.17.0...v0.18.0) (2026-07-23)
+## [0.23.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.22.0...v0.23.0) (2026-08-05)
 
 
 ### Features
 
-* **parser:** structure MySQL SET ROLE / SET DEFAULT ROLE ([#53](https://github.com/ridi-oss/sqlglot-go/issues/53)) ([3666851](https://github.com/ridi-oss/sqlglot-go/commit/3666851c2bde204fa627e4f474fbe3552aca9bcc))
+* **expressions:** add statement-discriminator contract + Into/Keyword accessors ([#63](https://github.com/sevbanbayrak/sqlglot-go/issues/63)) ([bb17b5b](https://github.com/sevbanbayrak/sqlglot-go/commit/bb17b5b903ed1f045c758be96102ec8643fb344b))
 
-## [0.17.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.16.0...v0.17.0) (2026-07-23)
+## [0.22.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.21.0...v0.22.0) (2026-08-04)
 
 
 ### Features
 
-* **dialects:** opt-in MySQL sql_mode=ANSI_QUOTES (mysql_ansi_quotes) ([#50](https://github.com/ridi-oss/sqlglot-go/issues/50)) ([6e66a15](https://github.com/ridi-oss/sqlglot-go/commit/6e66a15ca9df77036ddd061a01e0dbbdb517f322))
+* **parser:** structure MySQL DROP INDEX ... ON table (incl. db-qualified target) ([#61](https://github.com/sevbanbayrak/sqlglot-go/issues/61)) ([f875948](https://github.com/sevbanbayrak/sqlglot-go/commit/f875948d504eef003b2846e53c3688e5d6684603))
+
+## [0.21.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.20.0...v0.21.0) (2026-08-04)
+
+
+### Features
+
+* **parser:** fix MySQL replication/admin statement kinds and TABLE value constructor ([#59](https://github.com/sevbanbayrak/sqlglot-go/issues/59)) ([9a0f61f](https://github.com/sevbanbayrak/sqlglot-go/commit/9a0f61facbb28979facef9bbd9c8f491211b5eeb))
+
+## [0.20.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.19.0...v0.20.0) (2026-07-24)
+
+
+### Features
+
+* **parser:** model Postgres [NOT] DEFERRABLE transaction mode ([#57](https://github.com/sevbanbayrak/sqlglot-go/issues/57)) ([cde680f](https://github.com/sevbanbayrak/sqlglot-go/commit/cde680f626c85f21ade7be9d2969e432b4c2bd0b))
+
+## [0.19.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.18.0...v0.19.0) (2026-07-23)
+
+
+### Features
+
+* **parser:** structure Postgres multi-value SET (SET var = a, b) ([#55](https://github.com/sevbanbayrak/sqlglot-go/issues/55)) ([73805c8](https://github.com/sevbanbayrak/sqlglot-go/commit/73805c861b41f27a3d60678a48e78747d28f308e))
+
+## [0.18.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.17.0...v0.18.0) (2026-07-23)
+
+
+### Features
+
+* **parser:** structure MySQL SET ROLE / SET DEFAULT ROLE ([#53](https://github.com/sevbanbayrak/sqlglot-go/issues/53)) ([3666851](https://github.com/sevbanbayrak/sqlglot-go/commit/3666851c2bde204fa627e4f474fbe3552aca9bcc))
+
+## [0.17.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.16.0...v0.17.0) (2026-07-23)
+
+
+### Features
+
+* **dialects:** opt-in MySQL sql_mode=ANSI_QUOTES (mysql_ansi_quotes) ([#50](https://github.com/sevbanbayrak/sqlglot-go/issues/50)) ([6e66a15](https://github.com/sevbanbayrak/sqlglot-go/commit/6e66a15ca9df77036ddd061a01e0dbbdb517f322))
 
 
 ### Bug Fixes
 
-* **parser:** resolve pg_catalog builtin type names in Postgres typed literals ([#51](https://github.com/ridi-oss/sqlglot-go/issues/51)) ([6581a9a](https://github.com/ridi-oss/sqlglot-go/commit/6581a9a7a1dbd3594020df4a1744a52451c8f502))
+* **parser:** resolve pg_catalog builtin type names in Postgres typed literals ([#51](https://github.com/sevbanbayrak/sqlglot-go/issues/51)) ([6581a9a](https://github.com/sevbanbayrak/sqlglot-go/commit/6581a9a7a1dbd3594020df4a1744a52451c8f502))
 
-## [0.16.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.15.2...v0.16.0) (2026-07-23)
+## [0.16.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.15.2...v0.16.0) (2026-07-23)
 
 
 ### Features
 
-* **parser:** structure session/privilege statements pm reads as raw Command ([#48](https://github.com/ridi-oss/sqlglot-go/issues/48)) ([c76d0ce](https://github.com/ridi-oss/sqlglot-go/commit/c76d0ced4267a4ce02e4fc49b23fbe9d5f1d6770))
+* **parser:** structure session/privilege statements pm reads as raw Command ([#48](https://github.com/sevbanbayrak/sqlglot-go/issues/48)) ([c76d0ce](https://github.com/sevbanbayrak/sqlglot-go/commit/c76d0ced4267a4ce02e4fc49b23fbe9d5f1d6770))
 
-## [0.15.2](https://github.com/ridi-oss/sqlglot-go/compare/v0.15.1...v0.15.2) (2026-07-23)
+## [0.15.2](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.15.1...v0.15.2) (2026-07-23)
 
 
 ### Bug Fixes
 
-* **parser:** resolve pg_catalog-qualified builtin type names to the builtin node ([#46](https://github.com/ridi-oss/sqlglot-go/issues/46)) ([dfba2e8](https://github.com/ridi-oss/sqlglot-go/commit/dfba2e830de1b5702bddef36323be21a52f26828))
+* **parser:** resolve pg_catalog-qualified builtin type names to the builtin node ([#46](https://github.com/sevbanbayrak/sqlglot-go/issues/46)) ([dfba2e8](https://github.com/sevbanbayrak/sqlglot-go/commit/dfba2e830de1b5702bddef36323be21a52f26828))
 
-## [0.15.1](https://github.com/ridi-oss/sqlglot-go/compare/v0.15.0...v0.15.1) (2026-07-23)
-
-
-### Bug Fixes
-
-* **parser:** reject engine-invalid string aliases and table identifiers per dialect ([#44](https://github.com/ridi-oss/sqlglot-go/issues/44)) ([cb269c7](https://github.com/ridi-oss/sqlglot-go/commit/cb269c797fa0022d2fffc0ced56864d02118ca9f))
-
-## [0.15.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.14.0...v0.15.0) (2026-07-23)
-
-
-### Features
-
-* **parser:** parse SAVEPOINT and RELEASE SAVEPOINT to a Savepoint node ([#42](https://github.com/ridi-oss/sqlglot-go/issues/42)) ([1009b98](https://github.com/ridi-oss/sqlglot-go/commit/1009b9874bf026e658174936a978e42467ed4013))
-
-## [0.14.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.13.0...v0.14.0) (2026-07-23)
-
-
-### Features
-
-* **parser:** recognize bare niladic system functions and Postgres START TRANSACTION ([#40](https://github.com/ridi-oss/sqlglot-go/issues/40)) ([33e1afc](https://github.com/ridi-oss/sqlglot-go/commit/33e1afcfeb623396f0995b5534d130d9916499f0))
-
-## [0.13.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.12.0...v0.13.0) (2026-07-22)
-
-
-### Features
-
-* **postgres:** release user-type space typed-literal parsing ([#38](https://github.com/ridi-oss/sqlglot-go/issues/38)) ([acc4c4c](https://github.com/ridi-oss/sqlglot-go/commit/acc4c4c11bba2993a4f9cd8be6b196e36909e141))
-
-## [0.12.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.11.0...v0.12.0) (2026-07-22)
-
-
-### Features
-
-* **mysql:** structurally parse SELECT ... INTO OUTFILE/DUMPFILE ([#35](https://github.com/ridi-oss/sqlglot-go/issues/35)) ([954c202](https://github.com/ridi-oss/sqlglot-go/commit/954c2029f1085a55584106b260c59d289a8d463d))
-
-## [0.11.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.10.0...v0.11.0) (2026-07-22)
-
-
-### Features
-
-* **postgres:** structurally parse SET special-forms ([#33](https://github.com/ridi-oss/sqlglot-go/issues/33)) ([259a8b7](https://github.com/ridi-oss/sqlglot-go/commit/259a8b7cd9063c894699ce7d3a199fa286196a3a))
-
-## [0.10.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.9.0...v0.10.0) (2026-07-22)
-
-
-### Features
-
-* **mysql:** structurally parse DESCRIBE tbl [col|wild] ([#31](https://github.com/ridi-oss/sqlglot-go/issues/31)) ([c6d1d5d](https://github.com/ridi-oss/sqlglot-go/commit/c6d1d5d32a8dfed93c6b9dd6230d3bbc11219ae5))
-
-## [0.9.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.8.1...v0.9.0) (2026-07-21)
-
-
-### Features
-
-* decode Postgres U& unicode escapes; MySQL RESET to Command ([#29](https://github.com/ridi-oss/sqlglot-go/issues/29)) ([2c45ded](https://github.com/ridi-oss/sqlglot-go/commit/2c45ded3445a10a2de98113c0db409221573b931))
-
-## [0.8.1](https://github.com/ridi-oss/sqlglot-go/compare/v0.8.0...v0.8.1) (2026-07-21)
+## [0.15.1](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.15.0...v0.15.1) (2026-07-23)
 
 
 ### Bug Fixes
 
-* **optimizer:** fold an injected table alias with its relation-level role ([#27](https://github.com/ridi-oss/sqlglot-go/issues/27)) ([ba889a5](https://github.com/ridi-oss/sqlglot-go/commit/ba889a5e99ac7376305e9edbb7ed5ad452d88e81))
+* **parser:** reject engine-invalid string aliases and table identifiers per dialect ([#44](https://github.com/sevbanbayrak/sqlglot-go/issues/44)) ([cb269c7](https://github.com/sevbanbayrak/sqlglot-go/commit/cb269c797fa0022d2fffc0ced56864d02118ca9f))
 
-## [0.8.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.7.0...v0.8.0) (2026-07-21)
+## [0.15.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.14.0...v0.15.0) (2026-07-23)
 
 
 ### Features
 
-* name the polymorphic dialect/schema args (DialectType, SchemaType, IdentifierName) ([#25](https://github.com/ridi-oss/sqlglot-go/issues/25)) ([99d1b71](https://github.com/ridi-oss/sqlglot-go/commit/99d1b71296df8152d33d4981af90ff11f0ea05e8))
+* **parser:** parse SAVEPOINT and RELEASE SAVEPOINT to a Savepoint node ([#42](https://github.com/sevbanbayrak/sqlglot-go/issues/42)) ([1009b98](https://github.com/sevbanbayrak/sqlglot-go/commit/1009b9874bf026e658174936a978e42467ed4013))
 
-## [0.7.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.6.2...v0.7.0) (2026-07-20)
+## [0.14.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.13.0...v0.14.0) (2026-07-23)
+
+
+### Features
+
+* **parser:** recognize bare niladic system functions and Postgres START TRANSACTION ([#40](https://github.com/sevbanbayrak/sqlglot-go/issues/40)) ([33e1afc](https://github.com/sevbanbayrak/sqlglot-go/commit/33e1afcfeb623396f0995b5534d130d9916499f0))
+
+## [0.13.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.12.0...v0.13.0) (2026-07-22)
+
+
+### Features
+
+* **postgres:** release user-type space typed-literal parsing ([#38](https://github.com/sevbanbayrak/sqlglot-go/issues/38)) ([acc4c4c](https://github.com/sevbanbayrak/sqlglot-go/commit/acc4c4c11bba2993a4f9cd8be6b196e36909e141))
+
+## [0.12.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.11.0...v0.12.0) (2026-07-22)
+
+
+### Features
+
+* **mysql:** structurally parse SELECT ... INTO OUTFILE/DUMPFILE ([#35](https://github.com/sevbanbayrak/sqlglot-go/issues/35)) ([954c202](https://github.com/sevbanbayrak/sqlglot-go/commit/954c2029f1085a55584106b260c59d289a8d463d))
+
+## [0.11.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.10.0...v0.11.0) (2026-07-22)
+
+
+### Features
+
+* **postgres:** structurally parse SET special-forms ([#33](https://github.com/sevbanbayrak/sqlglot-go/issues/33)) ([259a8b7](https://github.com/sevbanbayrak/sqlglot-go/commit/259a8b7cd9063c894699ce7d3a199fa286196a3a))
+
+## [0.10.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.9.0...v0.10.0) (2026-07-22)
+
+
+### Features
+
+* **mysql:** structurally parse DESCRIBE tbl [col|wild] ([#31](https://github.com/sevbanbayrak/sqlglot-go/issues/31)) ([c6d1d5d](https://github.com/sevbanbayrak/sqlglot-go/commit/c6d1d5d32a8dfed93c6b9dd6230d3bbc11219ae5))
+
+## [0.9.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.8.1...v0.9.0) (2026-07-21)
+
+
+### Features
+
+* decode Postgres U& unicode escapes; MySQL RESET to Command ([#29](https://github.com/sevbanbayrak/sqlglot-go/issues/29)) ([2c45ded](https://github.com/sevbanbayrak/sqlglot-go/commit/2c45ded3445a10a2de98113c0db409221573b931))
+
+## [0.8.1](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.8.0...v0.8.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **optimizer:** fold an injected table alias with its relation-level role ([#27](https://github.com/sevbanbayrak/sqlglot-go/issues/27)) ([ba889a5](https://github.com/sevbanbayrak/sqlglot-go/commit/ba889a5e99ac7376305e9edbb7ed5ad452d88e81))
+
+## [0.8.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.7.0...v0.8.0) (2026-07-21)
+
+
+### Features
+
+* name the polymorphic dialect/schema args (DialectType, SchemaType, IdentifierName) ([#25](https://github.com/sevbanbayrak/sqlglot-go/issues/25)) ([99d1b71](https://github.com/sevbanbayrak/sqlglot-go/commit/99d1b71296df8152d33d4981af90ff11f0ea05e8))
+
+## [0.7.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.6.2...v0.7.0) (2026-07-20)
 
 
 ### ⚠ BREAKING CHANGES
@@ -330,45 +330,45 @@ before release-please was adopted.
 
 ### Refactoring
 
-* rename Table/Column schema qualifier arg `db` → `schema` ([#23](https://github.com/ridi-oss/sqlglot-go/issues/23)) ([cbfcdaf](https://github.com/ridi-oss/sqlglot-go/commit/cbfcdaf0c7c16babc5777899c0e2a7acbbfdffa4))
+* rename Table/Column schema qualifier arg `db` → `schema` ([#23](https://github.com/sevbanbayrak/sqlglot-go/issues/23)) ([cbfcdaf](https://github.com/sevbanbayrak/sqlglot-go/commit/cbfcdaf0c7c16babc5777899c0e2a7acbbfdffa4))
 
-## [0.6.2](https://github.com/ridi-oss/sqlglot-go/compare/v0.6.1...v0.6.2) (2026-07-18)
+## [0.6.2](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.6.1...v0.6.2) (2026-07-18)
 
 
 ### CI
 
-* bump googleapis/release-please-action from 4 to 5 ([#20](https://github.com/ridi-oss/sqlglot-go/issues/20)) ([28f2923](https://github.com/ridi-oss/sqlglot-go/commit/28f29239756e0679b58e3de9ed4d76bd71b0e022))
+* bump googleapis/release-please-action from 4 to 5 ([#20](https://github.com/sevbanbayrak/sqlglot-go/issues/20)) ([28f2923](https://github.com/sevbanbayrak/sqlglot-go/commit/28f29239756e0679b58e3de9ed4d76bd71b0e022))
 
-## [0.6.1](https://github.com/ridi-oss/sqlglot-go/compare/v0.6.0...v0.6.1) (2026-07-18)
+## [0.6.1](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.6.0...v0.6.1) (2026-07-18)
 
 
 ### Bug Fixes
 
-* fold search-path/db/catalog identifiers role-aware in qualify_tables ([#18](https://github.com/ridi-oss/sqlglot-go/issues/18)) ([49965a3](https://github.com/ridi-oss/sqlglot-go/commit/49965a32c7427ae606f2cbe34a8d4464a8a65839))
-* match MySQL identifier normalization to the engine in bulk schema build ([#17](https://github.com/ridi-oss/sqlglot-go/issues/17)) ([f774e7d](https://github.com/ridi-oss/sqlglot-go/commit/f774e7d61bc2b951eb4b356051ff9a1da04c100a))
+* fold search-path/db/catalog identifiers role-aware in qualify_tables ([#18](https://github.com/sevbanbayrak/sqlglot-go/issues/18)) ([49965a3](https://github.com/sevbanbayrak/sqlglot-go/commit/49965a32c7427ae606f2cbe34a8d4464a8a65839))
+* match MySQL identifier normalization to the engine in bulk schema build ([#17](https://github.com/sevbanbayrak/sqlglot-go/issues/17)) ([f774e7d](https://github.com/sevbanbayrak/sqlglot-go/commit/f774e7d61bc2b951eb4b356051ff9a1da04c100a))
 
 
 ### Documentation
 
-* set sqlglot-go port copyright holder to RIDI Corporation ([#15](https://github.com/ridi-oss/sqlglot-go/issues/15)) ([404884d](https://github.com/ridi-oss/sqlglot-go/commit/404884da8c828e78a16b4d89d3c3ee3d3b5b735f))
+* set sqlglot-go port copyright holder to RIDI Corporation ([#15](https://github.com/sevbanbayrak/sqlglot-go/issues/15)) ([404884d](https://github.com/sevbanbayrak/sqlglot-go/commit/404884da8c828e78a16b4d89d3c3ee3d3b5b735f))
 
-## [0.6.0](https://github.com/ridi-oss/sqlglot-go/compare/v0.5.0...v0.6.0) (2026-07-13)
+## [0.6.0](https://github.com/sevbanbayrak/sqlglot-go/compare/v0.5.0...v0.6.0) (2026-07-13)
 
 
 ### ⚠ BREAKING CHANGES
 
-* the import path is now github.com/ridi-oss/sqlglot-go.
+* the import path is now github.com/sevbanbayrak/sqlglot-go.
 
 ### Features
 
-* move Go module path to github.com/ridi-oss/sqlglot-go ([16c71dc](https://github.com/ridi-oss/sqlglot-go/commit/16c71dcdb0c3d8bc991b705b4a583350f38f3032))
+* move Go module path to github.com/sevbanbayrak/sqlglot-go ([16c71dc](https://github.com/sevbanbayrak/sqlglot-go/commit/16c71dcdb0c3d8bc991b705b4a583350f38f3032))
 
 
 ### Documentation
 
-* add CONTRIBUTING, SECURITY, and CODE_OF_CONDUCT ([0d95f2f](https://github.com/ridi-oss/sqlglot-go/commit/0d95f2f1a9389cb8f2911432916c0ea58f738354))
-* add status badges to README ([964a0df](https://github.com/ridi-oss/sqlglot-go/commit/964a0df4b8d1c40abc5493f57196f6e3a509f471))
-* adopt release-please in CHANGELOG and release process ([d329b32](https://github.com/ridi-oss/sqlglot-go/commit/d329b32518b6cb32fb28c4171781d47436716033))
+* add CONTRIBUTING, SECURITY, and CODE_OF_CONDUCT ([0d95f2f](https://github.com/sevbanbayrak/sqlglot-go/commit/0d95f2f1a9389cb8f2911432916c0ea58f738354))
+* add status badges to README ([964a0df](https://github.com/sevbanbayrak/sqlglot-go/commit/964a0df4b8d1c40abc5493f57196f6e3a509f471))
+* adopt release-please in CHANGELOG and release process ([d329b32](https://github.com/sevbanbayrak/sqlglot-go/commit/d329b32518b6cb32fb28c4171781d47436716033))
 
 ## [0.5.0] - 2026-07-12
 
@@ -482,10 +482,10 @@ fidelity floor holds.
   the `Scope` API.
 - MySQL + Postgres dialect wiring; the lineage probe path (94/94 parity vs Python sqlglot 30.12.0).
 
-[0.5.0]: https://github.com/ridi-oss/sqlglot-go/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/ridi-oss/sqlglot-go/compare/v0.3.2...v0.4.0
-[0.3.2]: https://github.com/ridi-oss/sqlglot-go/compare/v0.3.1...v0.3.2
-[0.3.1]: https://github.com/ridi-oss/sqlglot-go/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/ridi-oss/sqlglot-go/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/ridi-oss/sqlglot-go/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/ridi-oss/sqlglot-go/releases/tag/v0.1.0
+[0.5.0]: https://github.com/sevbanbayrak/sqlglot-go/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/sevbanbayrak/sqlglot-go/compare/v0.3.2...v0.4.0
+[0.3.2]: https://github.com/sevbanbayrak/sqlglot-go/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/sevbanbayrak/sqlglot-go/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/sevbanbayrak/sqlglot-go/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/sevbanbayrak/sqlglot-go/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/sevbanbayrak/sqlglot-go/releases/tag/v0.1.0

@@ -1,7 +1,7 @@
 package generator
 
 import (
-	"github.com/ridi-oss/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/expressions"
 	"strings"
 )
 

@@ -3,7 +3,7 @@ package generator
 import (
 	"strings"
 
-	"github.com/ridi-oss/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // groupConcatSQL ports groupconcat_sql (dialects/dialect.py:2423-2467), dialect-gated per

@@ -1,6 +1,6 @@
 package generator
 
-import "github.com/ridi-oss/sqlglot-go/expressions"
+import "github.com/sevbanbayrak/sqlglot-go/expressions"
 
 // matchRecognizeMeasureSQL ports matchrecognizemeasure_sql (generator.py:3234-3240).
 func (g *Generator) matchRecognizeMeasureSQL(e expressions.Expression) string {

@@ -3,7 +3,7 @@ package generator
 import (
 	"strings"
 
-	"github.com/ridi-oss/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // dayOfMonthSQL/dayOfWeekSQL/dayOfYearSQL/weekOfYearSQL port generators/mysql.py:170-173's

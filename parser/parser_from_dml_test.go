@@ -3,7 +3,7 @@ package parser_test
 import (
 	"testing"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // TestParseJoinNestedFallback covers the nested-join ON/USING fallback ported into

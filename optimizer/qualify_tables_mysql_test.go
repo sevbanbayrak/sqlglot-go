@@ -3,11 +3,11 @@ package optimizer_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/optimizer"
-	"github.com/ridi-oss/sqlglot-go/schema"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
 // Under MySQL lower_case_table_names=0 a search-path schema name is case-SENSITIVE and must be stamped

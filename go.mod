@@ -1,5 +1,5 @@
-module github.com/ridi-oss/sqlglot-go
+module github.com/sevbanbayrak/sqlglot-go
 
 go 1.23
 
-replace github.com/ridi-oss/sqlglot-go => /Users/sjcho/repos/sqlglot-go
+replace github.com/sevbanbayrak/sqlglot-go => /Users/sjcho/repos/sqlglot-go

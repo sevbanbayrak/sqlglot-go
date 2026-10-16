@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/schema"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
 const (

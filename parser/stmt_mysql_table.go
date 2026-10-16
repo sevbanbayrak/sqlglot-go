@@ -1,8 +1,8 @@
 package parser
 
 import (
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 // parseMysqlTableStatement models MySQL 8.0.19+ `TABLE tbl` — the table value constructor that is

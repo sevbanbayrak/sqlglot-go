@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	sqlerrors "github.com/ridi-oss/sqlglot-go/errors"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 func parseFirstWithDialect(d *dialects.Dialect, sql string) (exp.Expression, error) {

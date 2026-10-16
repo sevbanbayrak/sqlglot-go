@@ -3,7 +3,7 @@ package parser_test
 import (
 	"testing"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // Projection source spans (DEVIATIONS.md §6.2): each top-level SELECT-list expression carries

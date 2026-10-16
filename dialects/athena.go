@@ -4,7 +4,7 @@ import (
 	"maps"
 	"strings"
 
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 // Athena routes each statement through Hive or Athena-extended Trino.

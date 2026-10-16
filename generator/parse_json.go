@@ -1,6 +1,6 @@
 package generator
 
-import "github.com/ridi-oss/sqlglot-go/expressions"
+import "github.com/sevbanbayrak/sqlglot-go/expressions"
 
 // parseJSONSQL ports parsejson_sql (generator.py:5548-5552) with the per-dialect
 // PARSE_JSON_NAME: base/hive PARSE_JSON, presto JSON_PARSE, mysql none (bare value), and

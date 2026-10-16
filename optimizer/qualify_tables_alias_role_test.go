@@ -3,10 +3,10 @@ package optimizer_test
 import (
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	"github.com/ridi-oss/sqlglot-go/generator"
-	"github.com/ridi-oss/sqlglot-go/optimizer"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	"github.com/sevbanbayrak/sqlglot-go/generator"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
 )
 
 // TestQualifyTablesDefaultAliasRelationRole is a regression test for the role-aware fold of the

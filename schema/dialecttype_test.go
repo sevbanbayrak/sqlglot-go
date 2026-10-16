@@ -3,9 +3,9 @@ package schema_test
 import (
 	"testing"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/schema"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
 // TestSchemaDialectTypeArgs guards the polymorphic dialect contract of the Schema interface:

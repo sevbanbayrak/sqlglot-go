@@ -3,7 +3,7 @@ package parser_test
 import (
 	"testing"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 func exprArg(t *testing.T, expression exp.Expression, key string) exp.Expression {

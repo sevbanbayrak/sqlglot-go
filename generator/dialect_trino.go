@@ -3,7 +3,7 @@ package generator
 import (
 	"strings"
 
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // generators/trino.py:22-53.

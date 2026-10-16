@@ -3,10 +3,10 @@ package optimizer
 import (
 	"fmt"
 
-	"github.com/ridi-oss/sqlglot-go/dialects"
-	sqlerrors "github.com/ridi-oss/sqlglot-go/errors"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/schema"
+	"github.com/sevbanbayrak/sqlglot-go/dialects"
+	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
 type sourceColumnsKey struct {

@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	sqlglot "github.com/ridi-oss/sqlglot-go"
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
+	sqlglot "github.com/sevbanbayrak/sqlglot-go"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 )
 
 // Bind parameters carry source spans (DEVIATIONS.md §6.2) so ordered binding can follow lexical

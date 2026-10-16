@@ -1,8 +1,8 @@
 package parser
 
 import (
-	exp "github.com/ridi-oss/sqlglot-go/expressions"
-	"github.com/ridi-oss/sqlglot-go/tokens"
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 
 // Account-management object statements — MySQL CREATE/ALTER/DROP {USER|ROLE}.
