@@ -206,6 +206,17 @@ type Dialect struct {
 	// TablesampleWithMethod ports the generator flag TABLESAMPLE_WITH_METHOD (generator.py:427):
 	// whether the TABLESAMPLE clause supports a method name, like BERNOULLI.
 	TablesampleWithMethod bool
+	// Generator flags consulted by the shared renderers (generator.py:343-602), set per
+	// dialect from each generators/<dialect>.py class.
+	LimitFetch                   string
+	IndexOn                      string
+	PadFillPatternIsRequired     bool
+	Nvl2Supported                bool
+	ArraySizeName                string
+	ArraySizeDimRequired         *bool
+	ExpressionsWithoutNestedCtes []exp.Kind
+	// ConcatWsCoalesce ports the dialect flag CONCAT_WS_COALESCE (dialects/dialect.py:437).
+	ConcatWsCoalesce bool
 	// TablesampleKeywords ports the generator flag TABLESAMPLE_KEYWORDS (generator.py:424): the
 	// keyword(s) to use when generating a sample clause.
 	TablesampleKeywords string
@@ -454,6 +465,10 @@ func Base() *Dialect {
 		// generator.py:427 TABLESAMPLE_WITH_METHOD = True (base); no dialect override
 		// within base/mysql/postgres.
 		TablesampleWithMethod: true,
+		LimitFetch:            "ALL",
+		IndexOn:               "ON",
+		Nvl2Supported:         true,
+		ArraySizeName:         "ARRAY_LENGTH",
 		// generator.py:424 TABLESAMPLE_KEYWORDS = "TABLESAMPLE" (base); no dialect override
 		// within base/mysql/postgres.
 		TablesampleKeywords: "TABLESAMPLE",

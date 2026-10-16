@@ -60,7 +60,7 @@ def main():
     F = parser.Parser.FUNCTIONS
     special = {n for n in parser.Parser.FUNCTION_PARSERS}
     skipped_special, skipped_custom = [], []
-    new_classes, extra_names = [], []
+    new_classes, extra_names, time_unit_kinds = [], [], []
 
     for cls in sorted(exp.ALL_FUNCTIONS, key=lambda c: c.__name__):
         name = cls.__name__
@@ -77,6 +77,8 @@ def main():
         wanted = [n for n in plain if n not in known_names]
         if name in known_classes:
             extra_names.extend((n, name) for n in wanted)
+            if "TimeUnit" in [b.__name__ for b in cls.__mro__[1:]]:
+                time_unit_kinds.append(name)
             continue
         keys = list(cls.arg_types)
         var_len = bool(cls.is_var_len_args)
@@ -87,6 +89,8 @@ def main():
             keys.append(cls.var_len_arg_key)
         bases = [b.__name__ for b in cls.__mro__[1:]]
         traits = [TRAITS[b] for b in TRAITS if b in bases]
+        if "TimeUnit" in bases:
+            time_unit_kinds.append(name)
         new_classes.append({
             "class": name,
             "sql_name": sql_names[0],
@@ -122,7 +126,14 @@ def main():
     lines += ["}", "", "var generatedFuncNames = map[string]Kind{"]
     for n, cls in extra_names:
         lines.append('\t"%s": Kind%s,' % (n, cls))
+    lines += ["}", "", "// generatedTimeUnitKinds subclass upstream TimeUnit (core.py:2037): FromArgList folds their",
+              "// unit arg into an upper-cased Var.", "var generatedTimeUnitKinds = []Kind{"]
+    for cls in time_unit_kinds:
+        lines.append("\tKind%s," % cls)
     lines += ["}", "", "func init() {",
+              "\tfor _, k := range generatedTimeUnitKinds {",
+              "\t\ttimeUnitKinds[k] = true",
+              "\t}",
               "\tfor _, f := range generatedFuncs {",
               "\t\tclassName[f.kind] = f.class",
               "\t\targTypes[f.kind] = f.args",

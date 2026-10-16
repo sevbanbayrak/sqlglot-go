@@ -542,6 +542,23 @@ func (g *Generator) prependCtes(e expressions.Expression, sql string) string {
 func (g *Generator) queryModifiers(e expressions.Expression, sqls ...string) string {
 	limit := asExpression(e.Arg("limit"))
 	fetch := limit != nil && limit.Kind() == expressions.KindFetch
+	// generator.py:3277-3285: LIMIT_FETCH rewrites between the two spellings; a bare
+	// "FETCH FIRST ROWS ONLY" means one row.
+	if g.dialect.LimitFetch == "LIMIT" && fetch {
+		var count any = expressions.LiteralNumber(1)
+		if c := asExpression(limit.Arg("count")); c != nil {
+			count = c.Copy()
+		}
+		limit = expressions.New(expressions.KindLimit, expressions.Args{"expression": count})
+		fetch = false
+	} else if g.dialect.LimitFetch == "FETCH" && limit != nil && limit.Kind() == expressions.KindLimit {
+		var count any
+		if c := limit.Expr(); c != nil {
+			count = c.Copy()
+		}
+		limit = expressions.New(expressions.KindFetch, expressions.Args{"direction": "FIRST", "count": count})
+		fetch = true
+	}
 	parts := append([]string{}, sqls...)
 	for _, join := range listFromValue(e.Arg("joins")) {
 		parts = append(parts, g.gen(join))
@@ -2173,19 +2190,20 @@ func (g *Generator) arrayAggSQL(e expressions.Expression) string { return g.func
 // dimension arg, warn on anything else), true for postgres (keep it, defaulting to `1`
 // when omitted) - modeled here as a dialect-name check, matching the existing
 // g.dialect.Name-gated overrides elsewhere in this package (e.g. varianceSQL).
+// arraySizeSQL ports arraysize_sql (generator.py:5886-5899).
 func (g *Generator) arraySizeSQL(e expressions.Expression) string {
 	dim := asExpression(e.Arg("expression"))
-	if g.dialect.Name == "postgres" {
-		if dim == nil {
-			dim = expressions.LiteralNumber(1)
-		}
-	} else if dim != nil {
+	required := g.dialect.ArraySizeDimRequired
+	if dim != nil && required == nil {
 		if !(dim.IsInt() && dim.Name() == "1") {
 			g.unsupported("Cannot transpile dimension argument for ARRAY_LENGTH")
 		}
 		dim = nil
 	}
-	return g.funcCall("ARRAY_LENGTH", []any{e.Arg("this"), dim}, "(", ")", true)
+	if required != nil && *required && dim == nil {
+		dim = expressions.LiteralNumber(1)
+	}
+	return g.funcCall(g.dialect.ArraySizeName, []any{e.Arg("this"), dim}, "(", ")", true)
 }
 
 func (g *Generator) initcapSQL(e expressions.Expression) string {

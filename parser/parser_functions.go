@@ -19,6 +19,7 @@ func seqGet[T any](s []T, i int) T {
 // falls through to the Anonymous branch in parseFunctionCall.
 var opaqueDroppedFunctionParsers = map[string]bool{
 	"CONCAT":    true,
+	"CONCAT_WS": true,
 	"DATE_PART": true,
 }
 
@@ -237,6 +238,17 @@ func (p *Parser) parseConcat() exp.Expression {
 		"expressions": args,
 		"safe":        !p.dialect.StrictStringConcat,
 		"coalesce":    p.dialect.ConcatCoalesce,
+	}), exprArgs(args))
+}
+
+// parseConcatWs ports the FUNCTIONS "CONCAT_WS" builder (parser.py:350-354), dialect-aware
+// like parseConcat.
+func (p *Parser) parseConcatWs() exp.Expression {
+	args := p.parseFunctionArgs(false)
+	return p.validateExpression(exp.New(exp.KindConcatWs, exp.Args{
+		"expressions": args,
+		"safe":        !p.dialect.StrictStringConcat,
+		"coalesce":    p.dialect.ConcatWsCoalesce,
 	}), exprArgs(args))
 }
 
@@ -472,6 +484,7 @@ func init() {
 	// builders it needs the dialect (safe/coalesce), so it lives here in the dialect-aware
 	// FUNCTION_PARSERS map instead. CONCAT_WS is left Anonymous - see parseConcat's note.
 	functionParsers["CONCAT"] = (*Parser).parseConcat
+	functionParsers["CONCAT_WS"] = (*Parser).parseConcatWs
 
 	// VARIADIC is postgres-only (parsers/postgres.py:142 NO_PAREN_FUNCTION_PARSERS). The base
 	// singleton retains this pre-existing entry for zero behavior change;

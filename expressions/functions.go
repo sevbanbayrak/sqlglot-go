@@ -1,6 +1,20 @@
 package expressions
 
+// timeUnitKinds is filled from kinds_funcs_gen.go: Kinds whose upstream class subclasses
+// TimeUnit, so a positional unit arg is normalized like the TimeUnit constructor does.
+var timeUnitKinds = map[Kind]bool{}
+
 func FromArgList(kind Kind, args []Expression) Expression {
+	node := fromArgList(kind, args)
+	if timeUnitKinds[kind] {
+		if unit, ok := node.Arg("unit").(Expression); ok && unit != nil {
+			node.Set("unit", TimeUnitVar(unit))
+		}
+	}
+	return node
+}
+
+func fromArgList(kind Kind, args []Expression) Expression {
 	specs := argTypesFor(kind)
 	m := Args{}
 	if len(specs) == 0 {

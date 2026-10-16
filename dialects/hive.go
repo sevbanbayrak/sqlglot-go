@@ -12,6 +12,15 @@ import (
 func Hive() *Dialect {
 	d := Base()
 	d.Name = "hive"
+	// generators/hive.py:227-251 and dialects/hive.py:23.
+	d.LimitFetch = "LIMIT"
+	d.TablesampleWithMethod = false
+	d.IndexOn = "ON TABLE"
+	d.Nvl2Supported = false
+	d.PadFillPatternIsRequired = true
+	d.ArraySizeName = "SIZE"
+	d.ExpressionsWithoutNestedCtes = []exp.Kind{exp.KindInsert, exp.KindSelect, exp.KindSubquery, exp.KindUnion, exp.KindExcept, exp.KindIntersect}
+	d.ConcatWsCoalesce = true
 	d.QuoteStart = "'"
 	d.QuoteEnd = "'"
 	d.IdentifierStart = "`"

@@ -162,7 +162,15 @@ func (g *Generator) concatToDPipe(e expressions.Expression) string {
 // literal is left alone).
 func (g *Generator) convertConcatArgs(e expressions.Expression) []any {
 	args := listFromValue(e.Arg("expressions"))
-	if g.dialect.ConcatCoalesce || !boolValue(e.Arg("coalesce")) {
+	concatCoalesce := g.dialect.ConcatCoalesce
+	if e.Kind() == expressions.KindConcatWs {
+		// generator.py:3680-3690: skip the delimiter and read CONCAT_WS_COALESCE instead.
+		if len(args) > 0 {
+			args = args[1:]
+		}
+		concatCoalesce = g.dialect.ConcatWsCoalesce
+	}
+	if concatCoalesce || !boolValue(e.Arg("coalesce")) {
 		return args
 	}
 	wrapped := make([]any, len(args))

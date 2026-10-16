@@ -73,6 +73,10 @@ func parseMySQLVersion(value string) (int, error) {
 func MySQL() *Dialect {
 	d := Base()
 	d.Name = "mysql"
+	// generators/mysql.py:130-274.
+	d.Nvl2Supported = false
+	d.PadFillPatternIsRequired = true
+	d.LimitFetch = "LIMIT"
 	// generators/mysql.py:118 SUPPORTS_ALTER_COLUMN_NULLABILITY = True.
 	d.SupportsAlterColumnNullability = true
 	d.QuoteStart = "'"
