@@ -1,6 +1,7 @@
 package dialects
 
 import (
+	"regexp"
 	"strings"
 
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
@@ -44,10 +45,14 @@ func Hive() *Dialect {
 	// dialects/hive.py:25 and dialect.py:682-683.
 	d.RegexpExtractDefaultGroup = 1
 	d.RegexpExtractPositionOverflowReturnsNull = true
+	// dialects/hive.py:85-89 JSONPathTokenizer.VAR_TOKENS; generators/hive.py:236-237.
+	d.JSONPathVarTokens = map[tokens.TokenType]bool{tokens.VAR: true, tokens.DASH: true}
+	d.JSONPathSingleQuoteEscape = true
+	d.SafeJSONPathKeyRE = regexp.MustCompile(`^[_\-a-zA-Z][\-\p{L}\p{N}_]*$`)
 
 	// parsers/hive.py:70-120 FUNCTIONS overlay. The callbacks build the canonical expression
 	// Kinds directly because this port keeps the base registry and dialect overlays separate.
-	d.Functions = map[string]func([]exp.Expression) exp.Expression{
+	for name, builder := range map[string]func([]exp.Expression) exp.Expression{
 		"BASE64":          exp.FromArgListFunc(exp.KindToBase64),
 		"COLLECT_LIST":    hiveBuildCollectList,
 		"COLLECT_SET":     exp.FromArgListFunc(exp.KindArrayUniqueAgg),
@@ -59,7 +64,7 @@ func Hive() *Dialect {
 		"FIRST":           hiveBuildWithIgnoreNulls(exp.KindFirst),
 		"FIRST_VALUE":     hiveBuildWithIgnoreNulls(exp.KindFirstValue),
 		"FROM_UNIXTIME":   hiveBuildFromUnixTime,
-		"GET_JSON_OBJECT": hiveBuildGetJSONObject,
+		"GET_JSON_OBJECT": hiveBuildGetJSONObject(d),
 		"LAST":            hiveBuildWithIgnoreNulls(exp.KindLast),
 		// Func classes are registered by name upstream (parser.py:373), so the parenthesized
 		// niladic forms build the same nodes as the bare keywords.
@@ -85,6 +90,8 @@ func Hive() *Dialect {
 		"UNBASE64":           exp.FromArgListFunc(exp.KindFromBase64),
 		"UNIX_TIMESTAMP":     hiveBuildUnixTimestamp,
 		"YEAR":               hiveBuildYear,
+	} {
+		d.Functions[name] = builder
 	}
 
 	cfg := tokens.BaseConfig()
@@ -285,14 +292,14 @@ func hiveBuildLogarithm(d *Dialect) func([]exp.Expression) exp.Expression {
 	}
 }
 
-func hiveBuildGetJSONObject(args []exp.Expression) exp.Expression {
-	// parsers/hive.py:94-96 calls dialect.to_json_path. This repository intentionally defers
-	// the JSONPath subsystem, so preserve the parsed path expression raw rather than silently
-	// approximating JSONPath semantics.
-	return exp.New(exp.KindJSONExtractScalar, exp.Args{
-		"this":       hiveSeqGet(args, 0),
-		"expression": hiveSeqGet(args, 1),
-	})
+func hiveBuildGetJSONObject(d *Dialect) func([]exp.Expression) exp.Expression {
+	// parsers/hive.py:93-95.
+	return func(args []exp.Expression) exp.Expression {
+		return exp.New(exp.KindJSONExtractScalar, exp.Args{
+			"this":       hiveSeqGet(args, 0),
+			"expression": d.ToJSONPath(hiveSeqGet(args, 1)),
+		})
+	}
 }
 
 func hiveBuildTimestampTrunc(args []exp.Expression) exp.Expression {

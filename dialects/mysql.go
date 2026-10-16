@@ -116,6 +116,8 @@ func MySQL() *Dialect {
 	d.LockingReadsSupported = true
 	// generators/mysql.py:142 JSON_TYPE_REQUIRED_FOR_EXTRACTION = True.
 	d.JSONTypeRequiredForExtraction = true
+	// generators/mysql.py:133 JSON_PATH_BRACKETED_KEY_SUPPORTED = False.
+	d.JSONPathBracketedKeySupported = false
 	// parsers/mysql.py:303 VALUES_FOLLOWED_BY_PAREN = False.
 	d.ValuesFollowedByParen = false
 	// generators/mysql.py:150 UPDATE_STATEMENT_SUPPORTS_FROM = False.
@@ -147,7 +149,7 @@ func MySQL() *Dialect {
 	// (parser.py:405) and TIME_STR_TO_UNIX (temporal.py:472) are also base-scope upstream but
 	// kept mysql-local for now (not needed to close any base/postgres parity gap; deferred to
 	// avoid changing base STR_POSITION/TIME_STR_TO_UNIX rendering that no fixture exercises).
-	d.Functions = map[string]func([]exp.Expression) exp.Expression{
+	for name, builder := range map[string]func([]exp.Expression) exp.Expression{
 		"CURDATE":          exp.FromArgListFunc(exp.KindCurrentDate),
 		"CURTIME":          exp.FromArgListFunc(exp.KindCurrentTime),
 		"DATABASE":         exp.FromArgListFunc(exp.KindCurrentSchema),
@@ -162,6 +164,8 @@ func MySQL() *Dialect {
 				"this": hiveSeqGet(args, 0), "expression": hiveSeqGet(args, 1), "date_part_boundary": true,
 			})
 		},
+	} {
+		d.Functions[name] = builder
 	}
 
 	for _, unit := range []string{

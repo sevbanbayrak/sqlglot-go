@@ -2225,6 +2225,9 @@ func (p *Parser) parseBitwise() exp.Expression {
 		} else if p.dialect.JSONOperatorsAreBinary && jsonOperatorTokens[p.curr.TokenType] {
 			// JSON_OPERATORS at the bitwise tier (parser.py:6312-6313, v30.17.0).
 			op := columnOperators[p.curr.TokenType]
+			if pgOp := postgresJSONOperators[p.curr.TokenType]; pgOp != nil {
+				op = pgOp
+			}
 			p.advance()
 			this = op(p, this, p.parseTerm())
 		} else {
@@ -2651,22 +2654,6 @@ func (p *Parser) parseColumnReference() exp.Expression {
 
 type columnOpFunc func(p *Parser, this, field exp.Expression) exp.Expression
 
-// arrowJSONExtractArgs builds the args for a JSON `->`/`->>` operator node (exp.JSONExtract/
-// JSONExtractScalar). build_json_extract_path (dialect.py:2092-2124) is not ported: this port
-// keeps the raw literal RHS instead of converting it to a JSONPath (see ROADMAP - JSONPath
-// deferral). The only signal that decision needs from that upstream builder is its
-// arrow_req_json_type branch, which sets only_json_types when the dialect requires it (postgres
-// only, JSONArrowsRequireJSONType) and the RHS is a bare Literal (so e.g. `x -> -1`'s Neg RHS
-// does NOT set only_json_types - only a bare literal does). The generator reads only_json_types
-// to choose operator-form (`->`/`->>`) over function-form (JSON_EXTRACT_PATH[_TEXT]) rendering.
-func arrowJSONExtractArgs(p *Parser, this, path exp.Expression) exp.Args {
-	args := exp.Args{"this": this, "expression": path}
-	if p.dialect.JSONArrowsRequireJSONType && path != nil && path.Kind() == exp.KindLiteral {
-		args["only_json_types"] = true
-	}
-	return args
-}
-
 var columnOperators = map[tokens.TokenType]columnOpFunc{
 	tokens.DOT: nil,
 	tokens.DCOLON: func(p *Parser, this, to exp.Expression) exp.Expression {
@@ -2675,13 +2662,21 @@ var columnOperators = map[tokens.TokenType]columnOpFunc{
 	tokens.DOTCOLON: func(p *Parser, this, to exp.Expression) exp.Expression {
 		return p.expression(exp.JSONCast(exp.Args{"this": this, "to": to}), nil, nil)
 	},
-	// ARROW/DARROW keep the raw literal RHS and gate only_json_types via arrowJSONExtractArgs
-	// (see its doc for the JSONPath-deferral rationale).
+	// build_json_extract / build_json_extract_scalar (parser.py:295-316).
 	tokens.ARROW: func(p *Parser, this, path exp.Expression) exp.Expression {
-		return p.expression(exp.JSONExtract(arrowJSONExtractArgs(p, this, path)), nil, nil)
+		return p.expression(exp.JSONExtract(exp.Args{
+			"this":            this,
+			"expression":      p.dialect.ToJSONPath(path),
+			"only_json_types": p.dialect.JSONArrowsRequireJSONType,
+		}), nil, nil)
 	},
 	tokens.DARROW: func(p *Parser, this, path exp.Expression) exp.Expression {
-		return p.expression(exp.JSONExtractScalar(arrowJSONExtractArgs(p, this, path)), nil, nil)
+		return p.expression(exp.JSONExtractScalar(exp.Args{
+			"this":            this,
+			"expression":      p.dialect.ToJSONPath(path),
+			"only_json_types": p.dialect.JSONArrowsRequireJSONType,
+			"scalar_only":     p.dialect.JSONExtractScalarScalarOnly,
+		}), nil, nil)
 	},
 	tokens.HASH_ARROW: func(p *Parser, this, path exp.Expression) exp.Expression {
 		return p.expression(exp.JSONBExtract(exp.Args{"this": this, "expression": path}), nil, nil)
@@ -2694,6 +2689,17 @@ var columnOperators = map[tokens.TokenType]columnOpFunc{
 	// mapping (tokens.py:161) rather than a dedicated keyword.
 	tokens.PLACEHOLDER: func(p *Parser, this, key exp.Expression) exp.Expression {
 		return p.expression(exp.JSONBContains(exp.Args{"this": this, "expression": key}), nil, nil)
+	},
+}
+
+// postgresJSONOperators ports the ARROW/DARROW entries of the Postgres JSON_OPERATORS
+// (parsers/postgres.py:206-216); the remaining entries are shared with columnOperators.
+var postgresJSONOperators = map[tokens.TokenType]columnOpFunc{
+	tokens.ARROW: func(p *Parser, this, path exp.Expression) exp.Expression {
+		return p.validateExpression(dialects.BuildJSONExtractPath(exp.KindJSONExtract, p.dialect.JSONArrowsRequireJSONType)([]exp.Expression{this, path}), nil)
+	},
+	tokens.DARROW: func(p *Parser, this, path exp.Expression) exp.Expression {
+		return p.validateExpression(dialects.BuildJSONExtractPath(exp.KindJSONExtractScalar, p.dialect.JSONArrowsRequireJSONType)([]exp.Expression{this, path}), nil)
 	},
 }
 
@@ -3601,10 +3607,12 @@ func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) e
 				return p.expression(subqueryPredicate(exp.Args{"this": expr}), nil, comments)
 			}
 		}
+		var function func([]exp.Expression) exp.Expression
 		if functions == nil {
-			functions = mergedDialectFunctions(p.dialect)
+			function = dialectFunction(p.dialect, upper)
+		} else {
+			function = functions[upper]
 		}
-		function := functions[upper]
 		knownFunction := function != nil && !anonymous && !opaque
 		// parser.py:1554 FUNCTIONS_WITH_ALIASED_ARGS = {"STRUCT"}.
 		alias := !knownFunction || upper == "STRUCT"

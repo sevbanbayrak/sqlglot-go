@@ -41,8 +41,12 @@ func TestHiveFunctionsOverlayKeys(t *testing.T) {
 		t.Fatalf("GetOrRaise(hive): %v", err)
 	}
 
+	baseFunctions := dialects.Base().Functions
 	gotKeys := make([]string, 0, len(hive.Functions))
 	for key, builder := range hive.Functions {
+		if baseFunctions[key] != nil {
+			continue
+		}
 		if builder == nil {
 			t.Errorf("hive.Functions[%q] = nil, want a builder", key)
 		}

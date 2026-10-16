@@ -65,7 +65,7 @@ func TestJSONQueryRenderingIsTrinoFamilyOnly(t *testing.T) {
 	}{
 		{"", "JSON_EXTRACT(content, 'lax $.HY.*')"},
 		{"mysql", "JSON_EXTRACT(content, 'lax $.HY.*')"},
-		{"postgres", "JSON_EXTRACT_PATH(content, 'lax $.HY.*')"},
+		{"postgres", "content -> 'lax $.HY.*'"},
 		{"trino", "JSON_QUERY(content, 'lax $.HY.*')"},
 		{"athena", "JSON_QUERY(content, 'lax $.HY.*')"},
 	}

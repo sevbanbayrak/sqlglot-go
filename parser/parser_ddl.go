@@ -983,6 +983,10 @@ func init() {
 	// parsers/postgres.py:89-91 replaces SET with SetConfigProperty(this=_parse_set()).
 	// parseSet intentionally retains upstream's whole-statement Command fallback behavior.
 	registerDialectParserOverrides("postgres", dialectParserOverrideSet{
+		// parsers/postgres.py:160.
+		FunctionParsers: map[string]parserOverrideFunc{
+			"JSONB_EXISTS": (*Parser).parseJSONBExists,
+		},
 		StatementParsers: map[tokens.TokenType]parserOverrideFunc{
 			tokens.DESCRIBE: (*Parser).parsePostgresExplain,
 		},

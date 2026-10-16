@@ -43,6 +43,9 @@ func init() {
 		}
 	}
 	table := map[exp.Kind]func(*Generator, exp.Expression) string{
+		// generators/mysql.py:168.
+		exp.KindJSONExtractScalar: (*Generator).arrowJSONExtractSQL,
+
 		exp.KindArrayAgg:         rename("GROUP_CONCAT"),
 		exp.KindArray:            unsupportedFallback("Arrays are not supported by MySQL"),
 		exp.KindArrayContainsAll: unsupportedFallback("Array operations are not supported by MySQL"),

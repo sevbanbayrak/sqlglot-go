@@ -37,6 +37,16 @@ func init() {
 		return g.functionFallbackSQL(e)
 	}
 	table := map[exp.Kind]func(*Generator, exp.Expression) string{
+		// generators/postgres.py:348-356.
+		exp.KindJSONExtract: func(g *Generator, e exp.Expression) string {
+			return g.postgresJSONExtractSQL(e, "JSON_EXTRACT_PATH", "->")
+		},
+		exp.KindJSONExtractScalar: func(g *Generator, e exp.Expression) string {
+			return g.postgresJSONExtractSQL(e, "JSON_EXTRACT_PATH_TEXT", "->>")
+		},
+		exp.KindJSONPathKey:       (*Generator).jsonPathKeyOnlyName,
+		exp.KindJSONPathRoot:      func(*Generator, exp.Expression) string { return "" },
+		exp.KindJSONPathSubscript: func(g *Generator, e exp.Expression) string { return g.jsonPathPart(e.Arg("this")) },
 		// generators/postgres.py:408
 		exp.KindUuid: func(*Generator, exp.Expression) string { return "GEN_RANDOM_UUID()" },
 		// dialect.py:2626-2644 getbit_sql; the integer-typed branch needs annotate_types, which
@@ -178,6 +188,8 @@ func init() {
 		},
 	}
 	registerDialectDispatch("postgres", table)
+	// generators/postgres.py:283-287.
+	registerJSONPathParts("postgres", exp.KindJSONPathKey, exp.KindJSONPathRoot, exp.KindJSONPathSubscript)
 }
 
 // postgresDateDiffSQL ports _date_diff_sql (generators/postgres.py:94-125).

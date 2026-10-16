@@ -45,6 +45,8 @@ func init() {
 		},
 	})
 	registerDialectPropertyLocations("trino", map[exp.Kind]propertyLocation{exp.KindLocationProperty: propertyLocationPostWith})
+	// generators/trino.py:49-53.
+	registerJSONPathParts("trino", exp.KindJSONPathKey, exp.KindJSONPathRoot, exp.KindJSONPathSubscript)
 }
 
 // groupConcatStandardSQL ports groupconcat_sql (dialects/dialect.py:2539-2587) with the LISTAGG

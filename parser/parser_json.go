@@ -97,11 +97,8 @@ func (p *Parser) parseJSONObject(agg bool) exp.Expression {
 	return p.expression(exp.JSONObject(args), nil, nil)
 }
 
-// parseJSONValue ports _parse_json_value (parser.py:10058-10072): JSON_VALUE(<doc>,
-// <path> [RETURNING <type>] [<on-condition>]). Unlike upstream, `path` is stored as the
-// raw parsed expression with no dialect.to_json_path normalization - this port doesn't
-// have a JSONPath subsystem (see the plan's JSONPath resolution note); the only signal the
-// corpus needs is literal-vs-non-literal RHS, which the raw expression already preserves.
+// parseJSONValue ports _parse_json_value (parser.py:10354-10370): JSON_VALUE(<doc>,
+// <path> [RETURNING <type>] [<on-condition>]).
 func (p *Parser) parseJSONValue() exp.Expression {
 	this := p.parseBitwise()
 	p.match(tokens.COMMA)
@@ -114,7 +111,7 @@ func (p *Parser) parseJSONValue() exp.Expression {
 
 	return p.expression(exp.JSONValue(exp.Args{
 		"this":         this,
-		"path":         path,
+		"path":         p.dialect.ToJSONPath(path),
 		"returning":    returning,
 		"on_condition": p.parseOnCondition(),
 	}), nil, nil)
@@ -152,8 +149,8 @@ func (p *Parser) parseJSONQueryQuote() exp.Expression {
 	}), nil, nil)
 }
 
-// parseJSONQuery ports TrinoParser._parse_json_query (parsers/trino.py:53-63). The path remains
-// the raw parsed expression because this port does not yet have dialect.to_json_path normalization.
+// parseJSONQuery ports TrinoParser._parse_json_query (parsers/trino.py:55-65); like upstream, the
+// path stays the raw parsed expression (no to_json_path).
 func (p *Parser) parseJSONQuery() exp.Expression {
 	this := p.parseBitwise()
 	var expression exp.Expression

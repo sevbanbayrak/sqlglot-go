@@ -34,27 +34,15 @@ func (p *Parser) opaqueAnonymous(name string, args []exp.Expression) exp.Express
 	return p.expression(exp.Anonymous(exp.Args{"this": name, "expressions": args}), nil, nil)
 }
 
-// mergedDialectFunctions is the parseFunctionCall functions==nil default: exp.FunctionByName
-// overlaid with the current dialect's own Functions additions/overrides (dialects.Dialect.
-// Functions, e.g. mysql's CURDATE/DAY_OF_MONTH/LCASE/... cluster in dialects/mysql.go, or
-// postgres's CHAR_LENGTH/CHARACTER_LENGTH in dialects/postgres.go). Mirrors upstream's
-// per-dialect `FUNCTIONS = {**parser.Parser.FUNCTIONS, ...}` class-attribute pattern, just
-// merged on demand instead of once at class-definition time, since this port has one shared
-// exp.FunctionByName base map rather than a per-dialect-class copy. A dialect with no
-// Functions overlay (the common case) skips the merge entirely and returns the base map
-// as-is.
-func mergedDialectFunctions(d *dialects.Dialect) map[string]func([]exp.Expression) exp.Expression {
-	if len(d.Functions) == 0 {
-		return exp.FunctionByName
+// dialectFunction is the parseFunctionCall functions==nil default: the current dialect's own
+// Functions additions/overrides (dialects.Dialect.Functions) overlaid on exp.FunctionByName.
+// Mirrors upstream's per-dialect `FUNCTIONS = {**parser.Parser.FUNCTIONS, ...}` without
+// materializing the merged map per call.
+func dialectFunction(d *dialects.Dialect, name string) func([]exp.Expression) exp.Expression {
+	if function := d.Functions[name]; function != nil {
+		return function
 	}
-	merged := make(map[string]func([]exp.Expression) exp.Expression, len(exp.FunctionByName)+len(d.Functions))
-	for name, builder := range exp.FunctionByName {
-		merged[name] = builder
-	}
-	for name, builder := range d.Functions {
-		merged[name] = builder
-	}
-	return merged
+	return exp.FunctionByName[name]
 }
 
 func (p *Parser) parseConvert(strict bool, safe any) exp.Expression {

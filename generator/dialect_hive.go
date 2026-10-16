@@ -253,7 +253,17 @@ func init() {
 			return g.funcCall(name, g.fallbackArgs(e), "(", ")", true)
 		}
 	}
+	// generators/hive.py:442-447.
+	handlers[expressions.KindJSONPathKey] = func(g *Generator, e expressions.Expression) string {
+		if this := e.This(); this != nil && this.Kind() == expressions.KindJSONPathWildcard {
+			g.unsupported("Unsupported wildcard in JSONPathKey expression")
+			return ""
+		}
+		return g.jsonPathKeySQL(e)
+	}
 	registerDialectDispatch("hive", handlers)
+	// generators/hive.py:253-258.
+	registerJSONPathParts("hive", expressions.KindJSONPathKey, expressions.KindJSONPathRoot, expressions.KindJSONPathSubscript, expressions.KindJSONPathWildcard)
 }
 
 func hiveCall(name string, keys ...string) func(*Generator, expressions.Expression) string {
