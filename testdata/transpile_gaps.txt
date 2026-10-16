@@ -1,0 +1,378 @@
+{"read":"","write":"athena","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle)"}
+{"read":"","write":"athena","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
+{"read":"","write":"hive","category":"generate: expected unsupported","sql":"ARRAY_ANY(arr, x -> pred)"}
+{"read":"","write":"hive","category":"generate: expected unsupported","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3)"}
+{"read":"","write":"hive","category":"generate: expected unsupported","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3, 4)"}
+{"read":"","write":"hive","category":"generate: expected unsupported","sql":"SELECT a, b, c, d, e FROM x CROSS JOIN UNNEST(y) AS t(a, b, c, d)"}
+{"read":"","write":"hive","category":"generate: expected unsupported","sql":"SELECT numbers, animals, n, a FROM (SELECT ARRAY(2, 5) AS numbers, ARRAY('dog', 'cat', 'bird') AS animals UNION ALL SELECT ARRAY(7, 8, 9), ARRAY('cow', 'pig')) AS x CROSS JOIN UNNEST(numbers, animals) AS t(n, a)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"\nWITH c AS (\n  WITH b AS (\n    WITH a1 AS (\n      SELECT 1\n    ), a2 AS (\n      SELECT 2\n    )\n    SELECT * FROM a1, a2\n  )\n  SELECT *\n  FROM b\n)\nSELECT *\nFROM c"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"\nWITH subquery1 AS (\n  WITH tmp AS (\n    SELECT\n      *\n    FROM table0\n  )\n  SELECT\n    *\n  FROM tmp\n), subquery2 AS (\n  WITH tmp2 AS (\n    SELECT\n      *\n    FROM table1\n    WHERE\n      a IN subquery1\n  )\n  SELECT\n    *\n  FROM tmp2\n)\nSELECT\n  *\nFROM subquery2\n"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"ARRAY_FILTER(the_array, x -> x > 0)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"CONCAT_WS('-', 'a', 'b')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"CONCAT_WS('-', x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"CREATE INDEX my_idx ON tbl(a, b)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"CREATE UNIQUE INDEX my_idx ON tbl(a, b)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"DATE_STR_TO_DATE(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"DATE_SUB('2020-01-01', 1)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"DATE_SUB('2020-01-01', 2, month)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"DATE_SUB(a, b)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"DATE_TO_DATE_STR(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"DATE_TO_DI(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"DI_TO_DATE(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"IF(x > 1, 1, 0)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"LTRIM('Hello World', 'H')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"RTRIM('Hello World', 'd')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT * FROM (SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq1) AS subq2"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT * FROM t FETCH FIRST ROWS ONLY"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT * FROM x CROSS JOIN UNNEST(a) AS j(lista) CROSS JOIN UNNEST(b) AS k(listb) CROSS JOIN UNNEST(c) AS l(listc)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) as foo FROM baz"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT LPAD('bar', 5)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT NVL2(a, b)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT NVL2(a, b, c)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT RPAD('bar', 5)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"SELECT a, b FROM x CROSS JOIN UNNEST(y) AS t (a, b)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TIME_STR_TO_TIME(col, 'America/Los_Angeles')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TIME_TO_STR(x, '%Y-%m-%d')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TIME_TO_TIME_STR(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TIME_TO_UNIX(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TRIM('abc', 'a')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TS_OR_DI_TO_DI(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TS_OR_DS_ADD('2021-02-01', 1, 'DAY')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TS_OR_DS_ADD(CURRENT_DATE, 1, 'DAY')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TS_OR_DS_ADD(x, 1, 'DAY')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x, '%-d')"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE_STR(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"UNIX_TO_STR(x, y)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"UNIX_TO_TIME(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"UNIX_TO_TIME_STR(x)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"VAR_MAP(a, b, c, d)"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"x ILIKE '%y'"}
+{"read":"","write":"hive","category":"generate: mismatch","sql":"x NOT ILIKE '%y'"}
+{"read":"","write":"mysql","category":"generate: expected unsupported","sql":"ARRAY_ANY(arr, x -> pred)"}
+{"read":"","write":"mysql","category":"generate: expected unsupported","sql":"DATE_TRUNC('millennium', x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"CURRENT_SCHEMA()"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_ADD(x, 1)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('DAY', x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('YEAR', x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('month', x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('quarter', x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('week', x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('year', x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"DAY(TS_OR_DS_TO_DATE(x))"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"JSON_ARRAY_APPEND(PARSE_JSON('[\"a\", \"b\", \"c\"]'), '$', 1)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"JSON_ARRAY_INSERT(PARSE_JSON('[\"a\", [\"b\", \"c\"], \"d\"]'), '$[1]', 1)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$[\"a b\"]')"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"JSON_REMOVE(PARSE_JSON('[\"a\", [\"b\", \"c\"], \"d\"]'), '$[1]', '$[1]')"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"JSON_SET(PARSE_JSON('{\"a\": 1}'), '$', PARSE_JSON('{\"b\": 2, \"c\": 3}'))"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"MONTH(TS_OR_DS_TO_DATE(x))"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK)) AS _q(date_week)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t FETCH FIRST 10 ROWS ONLY"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t FETCH FIRST ROWS ONLY"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT IS_ASCII(x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT LPAD('bar', 5)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT NVL2(a, b)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT NVL2(a, b, c)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT RPAD('bar', 5)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT a IS DISTINCT FROM b"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT a IS NOT DISTINCT FROM b"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"STR_TO_DATE(x, '%Y-%m-%dT%H:%M:%S')"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"STR_TO_TIME(x, '%Y-%m-%dT%H:%M:%S')"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"TS_OR_DS_ADD('2021-02-01', 1, 'DAY')"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x)"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x, '%B')"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"WITH dates AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))) SELECT * FROM dates"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"WITH dates1 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))), dates2 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-03-01', INTERVAL 1 MONTH))) SELECT * FROM dates1 CROSS JOIN dates2"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"YEAR(TS_OR_DS_TO_DATE(x))"}
+{"read":"","write":"mysql","category":"generate: mismatch","sql":"x ILIKE '%y'"}
+{"read":"","write":"postgres","category":"generate: expected unsupported","sql":"JSON_EXTRACT(x, '$.y.*')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"ARRAY_ANY(arr, x -> pred)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"ARRAY_PREPEND(arr, x)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"CURRENT_SCHEMA()"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"DATE_ADD(x, 1, 'DAY')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSONB_EXTRACT(x, 'y')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSONB_EXTRACT_SCALAR(x, 'y')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$.y')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$.y[*]')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$.y[0].z')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$[\"a b\"]')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT_SCALAR(x, '$.y')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT_SCALAR(x, '$.y[0].z')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_STRIP_NULLS(PARSE_JSON('[{\"f1\":1,\"f2\":null},2,null,3]'))"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3, 4)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"MEDIAN(x)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"MEDIAN(x) OVER ()"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"RAND()"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT * FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT COUNT_IF(col % 2 = 0) FROM foo"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT IS_ASCII(x)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT NVL2(a, b)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT NVL2(a, b, c)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT TIME_TO_UNIX(TIMESTAMP '2023-01-04 04:05:06.789')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT x BETWEEN ASYMMETRIC 10 AND 2"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT x BETWEEN SYMMETRIC 10 AND 2"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_TO_TIME('2020-01-01', '%Y-%m-%d')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_TO_TIME(x, '%y')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"TIMESTAMP_TRUNC(x, DAY, 'UTC')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"TIME_TO_STR(x, '%Y-%m-%d')"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"UNIX_TO_TIME(x)"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"UUID()"}
+{"read":"","write":"postgres","category":"generate: mismatch","sql":"a / b"}
+{"read":"","write":"presto","category":"generate: expected unsupported","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3)"}
+{"read":"","write":"presto","category":"generate: expected unsupported","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3, 4)"}
+{"read":"","write":"presto","category":"generate: expected unsupported","sql":"LOG(b, n)"}
+{"read":"","write":"presto","category":"generate: expected unsupported","sql":"SELECT 1 EXCEPT ALL SELECT 1"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"ARRAY_ANY(arr, x -> pred)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"ARRAY_FILTER(the_array, x -> x > 0)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"ARRAY_SLICE(x, 1, 3)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"CONCAT(a)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"CREATE TABLE a LIKE b"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"DATE_FROM_UNIX_DATE(1)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"DATE_STR_TO_DATE(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"DATE_TO_DATE_STR(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"DATE_TO_DI(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"DI_TO_DATE(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"LEVENSHTEIN(coalesce(col1, col2), coalesce(col2, col1))"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"LEVENSHTEIN(col1, col2)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"LOG(10, a)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"LOG(2, a)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"SELECT LPAD('bar', 5)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"SELECT NVL2(a, b)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"SELECT NVL2(a, b, c)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"SELECT RPAD('bar', 5)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"SORT_ARRAY(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position, occurrence)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"STR_TO_UNIX('2020-01-01', '%Y-%m-%d')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIMESTAMP_TRUNC(x, DAY, 'UTC')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_STR_TO_DATE('2020-01-01')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_STR_TO_TIME(col, 'America/Los_Angeles')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_STR_TO_UNIX('2020-01-01')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_TO_STR(x, '%Y-%m-%d')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_TO_TIME_STR(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TIME_TO_UNIX(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TS_OR_DI_TO_DI(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TS_OR_DS_ADD('2021-02-01', 1, 'DAY')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TS_OR_DS_ADD(CURRENT_DATE, 1, 'DAY')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TS_OR_DS_ADD(x, 1, 'DAY')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x, '%-d')"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE_STR(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"UNIX_TO_STR(x, y)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"UNIX_TO_TIME(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"UNIX_TO_TIME_STR(x)"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"a / b"}
+{"read":"","write":"presto","category":"generate: mismatch","sql":"x NOT ILIKE '%y'"}
+{"read":"","write":"trino","category":"generate: expected unsupported","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3)"}
+{"read":"","write":"trino","category":"generate: expected unsupported","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3, 4)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"ARRAY_ANY(arr, x -> pred)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"ARRAY_SLICE(x, 1, 3)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"ARRAY_SUM(ARRAY(1, 2))"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"CONCAT(a)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"CONCAT_WS('-', 'a', 'b')"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"CONCAT_WS('-', x)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"CREATE TABLE a LIKE b"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"DATE_FROM_UNIX_DATE(1)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"LEVENSHTEIN(col1, col2)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED AND target.a <> src.a THEN UPDATE SET target.b = 'FOO'\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED THEN UPDATE SET target.b = COALESCE(src.b, target.b)\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT LPAD('bar', 5)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT NVL2(a, b)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT NVL2(a, b, c)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT RPAD('bar', 5)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position, occurrence)"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01')"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME(col, 'America/Los_Angeles')"}
+{"read":"","write":"trino","category":"generate: mismatch","sql":"a / b"}
+{"read":"athena","write":"","category":"generate: mismatch","sql":"CHARINDEX(needle, haystack)"}
+{"read":"hive","write":"","category":"generate: mismatch","sql":"DATEDIFF(TO_DATE(y), x)"}
+{"read":"hive","write":"","category":"generate: mismatch","sql":"DATEDIFF(a, b)"}
+{"read":"hive","write":"","category":"generate: mismatch","sql":"INSTR(haystack, needle)"}
+{"read":"hive","write":"","category":"generate: mismatch","sql":"LOCATE(needle, haystack)"}
+{"read":"hive","write":"","category":"generate: mismatch","sql":"LOCATE(needle, haystack, position)"}
+{"read":"hive","write":"","category":"generate: mismatch","sql":"MAP(a, b, c, d)"}
+{"read":"hive","write":"postgres","category":"generate: mismatch","sql":"ROUND(x::DOUBLE, 4)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"COLLECT_LIST(x)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"DATEDIFF(TO_DATE(y), x)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"DATEDIFF(a, b)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"DATE_ADD('2020-01-01', 1)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"DATE_FORMAT('2020-01-01', 'yyyy-MM-dd HH:mm:ss')"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"DATE_SUB('2020-01-01', 1)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"DAY(x)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"LOCATE('a', x)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"LOCATE('a', x, 3)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"MAP(a, b)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"MAP(a, b, c, d)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"MONTH(x)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"PERCENTILE(x, 0.5)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM x LATERAL VIEW POSEXPLODE(MAP(col, 'val')) t AS pos, key, value"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"SELECT SORT_ARRAY(x, FALSE)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"SELECT a FROM x LATERAL VIEW EXPLODE(ARRAY(y)) t AS a"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"SELECT a FROM x LATERAL VIEW EXPLODE(y) t AS a"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"SELECT a FROM x LATERAL VIEW POSEXPLODE(y) t AS pos, col"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"SELECT a, b FROM x LATERAL VIEW EXPLODE(y) t AS a LATERAL VIEW EXPLODE(z) u AS b"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"UNIX_TIMESTAMP(x)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"YEAR(x)"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"from_unixtime(x, \"yyyy-MM-dd'T'HH\")"}
+{"read":"hive","write":"presto","category":"generate: mismatch","sql":"x DIV y"}
+{"read":"hive","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM x LATERAL VIEW POSEXPLODE(MAP(col, 'val')) t AS pos, key, value"}
+{"read":"hive","write":"trino","category":"generate: mismatch","sql":"SELECT a FROM x LATERAL VIEW POSEXPLODE(y) t AS pos, col"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"DAY(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"DAYOFMONTH(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"DAYOFWEEK(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"DAYOFYEAR(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"LOCATE(needle, haystack)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"LOCATE(needle, haystack, position)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"LOG(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"MONTH(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"MONTHNAME(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"SELECT ISNULL(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"WEEK(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"WEEKOFYEAR(x)"}
+{"read":"mysql","write":"","category":"generate: mismatch","sql":"YEAR(x)"}
+{"read":"mysql","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS NOT UNKNOWN"}
+{"read":"mysql","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS UNKNOWN"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT CHARACTER_LENGTH('foo')"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT CHAR_LENGTH('foo')"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT DATEDIFF(x, y)"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT DATE_ADD(CURRENT_TIMESTAMP, INTERVAL -1 QUARTER)"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2) FROM table1"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT FROM_UNIXTIME(col)"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT DATE_ADD(col, INTERVAL num_days DAY) FROM t"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"a / b"}
+{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"a XOR b"}
+{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"GROUP_CONCAT(a, b, c SEPARATOR ',')"}
+{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
+{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT DATEDIFF(x, y)"}
+{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT TO_DAYS(x)"}
+{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"STR_TO_DATE(x, '%Y-%m-%dT%T')"}
+{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"TIMESTAMP(x)"}
+{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"a / b"}
+{"read":"mysql","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
+{"read":"mysql","write":"trino","category":"generate: mismatch","sql":"a / b"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"ARRAY_PREPEND(x, arr)"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"DATE_TRUNC('day', x)"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"DATE_TRUNC('day', x::DATE)"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"DATE_TRUNC(year, x)"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"GEN_RANDOM_UUID()"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"RANDOM()"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"STRPOS(haystack, needle)"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"x -> 'y' -> 0 -> 'z'"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"x ->> 'y'"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"x / y ^ z"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"x ^ y"}
+{"read":"postgres","write":"","category":"generate: mismatch","sql":"x->'y'"}
+{"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
+{"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x # y"}
+{"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS NOT UNKNOWN"}
+{"read":"postgres","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS UNKNOWN"}
+{"read":"postgres","write":"athena","category":"generate: mismatch","sql":"SELECT U&'a\nb'"}
+{"read":"postgres","write":"athena","category":"generate: mismatch","sql":"SELECT U&'can''t'"}
+{"read":"postgres","write":"hive","category":"generate: expected unsupported","sql":"ARRAY_LENGTH(arr, foo)"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"SELECT * FROM GENERATE_SERIES(a, b)"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"SELECT * FROM x FETCH 1 ROW"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"SELECT UNNEST(ARRAY[1])"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"SELECT UNNEST(c) FROM t"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"SELECT col[1]"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"TRUNC(3.14159, 2)"}
+{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"WITH t AS (SELECT ARRAY[1, 2, 3] AS col) SELECT * FROM t WHERE 1 <= ANY(col) AND 2 = ANY(col)"}
+{"read":"postgres","write":"mysql","category":"generate: expected unsupported","sql":"SELECT ARRAY[1, 2, 3] @> ARRAY[1, 2]"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(DAY, TIMESTAMP '2001-02-16 20:38:40')"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(MONTH, TIMESTAMP '2001-02-16 20:38:40')"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(SECOND, TIMESTAMP '2001-02-16 20:38:40')"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(YEAR, TIMESTAMP '2001-02-16 20:38:40')"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT '11' || '22'"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t1 FULL OUTER JOIN t2 ON t1.x = t2.x"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t1 FULL OUTER JOIN t2 USING (x) "}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t1 FULL OUTER JOIN t2 USING (x, y) "}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM x FULL JOIN y ON x.id = y.id ORDER BY 1 LIMIT 0"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT EXTRACT(epoch FROM TIMESTAMP '2024-04-29 12:00:00')"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT TO_TIMESTAMP(col)"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT department, array_agg(name) AS employee_names FROM data GROUP BY department"}
+{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"UPDATE foo SET a = bar.a, b = bar.b FROM bar WHERE foo.id = bar.id"}
+{"read":"postgres","write":"mysql","category":"parse: Expecting )","sql":"SELECT CAST('2025-02-01 00:00:00' AS TIMESTAMP) - MAKE_INTERVAL(years => 1)"}
+{"read":"postgres","write":"mysql","category":"parse: Expecting )","sql":"SELECT NOW() + MAKE_INTERVAL(years => 1, months => 2, days => 3)"}
+{"read":"postgres","write":"mysql","category":"parse: Expecting )","sql":"SELECT NOW() - MAKE_INTERVAL(years => 1, months => 2, days => 3)"}
+{"read":"postgres","write":"presto","category":"generate: expected unsupported","sql":"ARRAY_LENGTH(arr, foo)"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"ARRAY_LENGTH(arr, 1)"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"CONCAT(a, b)"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"GENERATE_SERIES(a, b, '  2   days  ')"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT 'epoch'::TIMESTAMP"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM GENERATE_SERIES(a, b)"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4)"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4) AS s"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount)"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT U&'Hello winter \\2603 !'"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT U&'can''t'"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT UNNEST(ARRAY[1])"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"SELECT UNNEST(c) FROM t"}
+{"read":"postgres","write":"presto","category":"generate: mismatch","sql":"a || b"}
+{"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
+{"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES(a, b, '  2   days  ')"}
+{"read":"postgres","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM GENERATE_SERIES(a, b)"}
+{"read":"postgres","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4)"}
+{"read":"postgres","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM t CROSS JOIN GENERATE_SERIES(2, 4) AS s"}
+{"read":"postgres","write":"trino","category":"generate: mismatch","sql":"SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount)"}
+{"read":"postgres","write":"trino","category":"generate: mismatch","sql":"merge into x as x using (select id) as y on a = b WHEN matched then update set X.\"A\" = y.b"}
+{"read":"presto","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
+{"read":"presto","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
+{"read":"presto","write":"","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
+{"read":"presto","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"ARRAY_JOIN(x, '-', 'a')"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"CAST(MAP(ARRAY['a','b','c'], ARRAY[ARRAY[1], ARRAY[2], ARRAY[3]]) AS MAP(VARCHAR, ARRAY(INT)))"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"CAST(MAP(ARRAY['key'], ARRAY[1]) AS MAP(VARCHAR, INT))"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"CREATE TABLE x (w VARCHAR, y INTEGER, z INTEGER) WITH (PARTITIONED_BY=ARRAY['y', 'z'])"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"DATE_DIFF('hour', x, y)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"DATE_DIFF('millisecond', x, y)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"DATE_DIFF('minute', x, y)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"DATE_DIFF('second', x, y)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"FROM_BASE64(x)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"FROM_UNIXTIME(x)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"MAP(ARRAY[a, c], ARRAY[b, d])"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"SELECT * FROM x AS foo TABLESAMPLE BERNOULLI (1)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"SELECT a FROM x CROSS JOIN UNNEST(ARRAY(y)) AS t (a)"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"SELECT a FROM x CROSS JOIN UNNEST(ARRAY(y)) AS t (a) CROSS JOIN b"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"SPLIT(x, 'a.')"}
+{"read":"presto","write":"hive","category":"generate: mismatch","sql":"TO_BASE64(x)"}
+{"read":"presto","write":"mysql","category":"generate: mismatch","sql":"SELECT DATE_DIFF('DAY', y, x)"}
+{"read":"presto","write":"postgres","category":"generate: expected unsupported","sql":"SELECT COALESCE(ELEMENT_AT(MAP_FROM_ENTRIES(ARRAY[(51, '1')]), id), quantity) FROM my_table"}
+{"read":"presto","write":"postgres","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
+{"read":"trino","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
+{"read":"trino","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
+{"read":"trino","write":"postgres","category":"generate: mismatch","sql":"\n            WITH t(boxcrate) AS (\n              SELECT JSON '[{\"boxes\": [{\"name\": \"f1\", \"type\": \"plant\", \"color\": \"red\"}]}]'\n            )\n            SELECT\n              JSON_EXTRACT_SCALAR(boxes,'$.name')  AS name,\n              JSON_EXTRACT_SCALAR(boxes,'$.type')  AS type,\n              JSON_EXTRACT_SCALAR(boxes,'$.color') AS color\n            FROM t\n            CROSS JOIN UNNEST(CAST(boxcrate AS array(json))) AS x(tbox)\n            CROSS JOIN UNNEST(CAST(json_extract(tbox, '$.boxes') AS array(json))) AS y(boxes)\n        "}
