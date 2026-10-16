@@ -74,6 +74,20 @@ func Postgres() *Dialect {
 			n.Set("zero_is_msb", true)
 			return n
 		},
+		// parsers/postgres.py:109 build_timestamp_trunc
+		"DATE_TRUNC": func(args []exp.Expression) exp.Expression {
+			return exp.FromArgList(exp.KindTimestampTrunc, []exp.Expression{prestoSeqGet(args, 1), prestoSeqGet(args, 0)})
+		},
+		// parsers/postgres.py:120
+		"NOW": exp.FromArgListFunc(exp.KindCurrentTimestamp),
+		// parsers/postgres.py:34-41 _build_to_timestamp; the (text, text) form needs the Postgres
+		// TIME_MAPPING (build_formatted_time), not ported yet, so it stays Anonymous.
+		"TO_TIMESTAMP": func(args []exp.Expression) exp.Expression {
+			if len(args) == 1 {
+				return exp.FromArgList(exp.KindUnixToTime, args)
+			}
+			return exp.Anonymous(exp.Args{"this": "TO_TIMESTAMP", "expressions": args})
+		},
 	}
 
 	cfg := tokens.BaseConfig()

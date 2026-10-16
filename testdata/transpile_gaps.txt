@@ -1,30 +1,6 @@
-{"read":"","write":"mysql","category":"generate: expected unsupported","sql":"DATE_TRUNC('millennium', x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_ADD(x, 1)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('DAY', x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('YEAR', x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('month', x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('quarter', x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('week', x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC('year', x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"DAY(TS_OR_DS_TO_DATE(x))"}
 {"read":"","write":"mysql","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$[\"a b\"]')"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"MONTH(TS_OR_DS_TO_DATE(x))"}
 {"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK)) AS _q(date_week)"}
 {"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t QUALIFY COUNT(*) OVER () > 1"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT IS_ASCII(x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT a IS DISTINCT FROM b"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT a IS NOT DISTINCT FROM b"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"STR_TO_DATE(x, '%Y-%m-%dT%H:%M:%S')"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"STR_TO_TIME(x, '%Y-%m-%dT%H:%M:%S')"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"TS_OR_DS_ADD('2021-02-01', 1, 'DAY')"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x)"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x, '%B')"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"WITH dates AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))) SELECT * FROM dates"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"WITH dates1 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))), dates2 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-03-01', INTERVAL 1 MONTH))) SELECT * FROM dates1 CROSS JOIN dates2"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"YEAR(TS_OR_DS_TO_DATE(x))"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"x ILIKE '%y'"}
 {"read":"","write":"postgres","category":"generate: expected unsupported","sql":"JSON_EXTRACT(x, '$.y.*')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"ARRAY_ANY(arr, x -> pred)"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"ARRAY_PREPEND(arr, x)"}
@@ -50,10 +26,8 @@
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_TO_TIME('2020-01-01', '%Y-%m-%d')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_TO_TIME(x, '%y')"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"TIMESTAMP_TRUNC(x, DAY, 'UTC')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"TIME_TO_STR(x, '%Y-%m-%d')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"UNIX_TO_TIME(x)"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"UUID()"}
 {"read":"","write":"presto","category":"generate: mismatch","sql":"CREATE TABLE a LIKE b"}
 {"read":"","write":"presto","category":"generate: mismatch","sql":"DATE_FROM_UNIX_DATE(1)"}
@@ -124,24 +98,7 @@
 {"read":"postgres","write":"hive","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
 {"read":"postgres","write":"hive","category":"generate: mismatch","sql":"SELECT col[1]"}
 {"read":"postgres","write":"hive","category":"generate: mismatch","sql":"TRUNC(3.14159, 2)"}
-{"read":"postgres","write":"mysql","category":"generate: expected unsupported","sql":"SELECT ARRAY[1, 2, 3] @> ARRAY[1, 2]"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(DAY, TIMESTAMP '2001-02-16 20:38:40')"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(MONTH, TIMESTAMP '2001-02-16 20:38:40')"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(SECOND, TIMESTAMP '2001-02-16 20:38:40')"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"DATE_TRUNC(YEAR, TIMESTAMP '2001-02-16 20:38:40')"}
 {"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT '11' || '22'"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t1 FULL OUTER JOIN t2 ON t1.x = t2.x"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t1 FULL OUTER JOIN t2 USING (x) "}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t1 FULL OUTER JOIN t2 USING (x, y) "}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM x FULL JOIN y ON x.id = y.id ORDER BY 1 LIMIT 0"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT EXTRACT(epoch FROM TIMESTAMP '2024-04-29 12:00:00')"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT TO_TIMESTAMP(col)"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"SELECT department, array_agg(name) AS employee_names FROM data GROUP BY department"}
-{"read":"postgres","write":"mysql","category":"generate: mismatch","sql":"UPDATE foo SET a = bar.a, b = bar.b FROM bar WHERE foo.id = bar.id"}
-{"read":"postgres","write":"mysql","category":"parse: Expecting )","sql":"SELECT CAST('2025-02-01 00:00:00' AS TIMESTAMP) - MAKE_INTERVAL(years => 1)"}
-{"read":"postgres","write":"mysql","category":"parse: Expecting )","sql":"SELECT NOW() + MAKE_INTERVAL(years => 1, months => 2, days => 3)"}
-{"read":"postgres","write":"mysql","category":"parse: Expecting )","sql":"SELECT NOW() - MAKE_INTERVAL(years => 1, months => 2, days => 3)"}
 {"read":"postgres","write":"presto","category":"generate: expected unsupported","sql":"ARRAY_LENGTH(arr, foo)"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"ARRAY_LENGTH(arr, 1)"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
@@ -161,7 +118,6 @@
 {"read":"presto","write":"","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
 {"read":"presto","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
 {"read":"presto","write":"hive","category":"generate: mismatch","sql":"CREATE TABLE x (w VARCHAR, y INTEGER, z INTEGER) WITH (PARTITIONED_BY=ARRAY['y', 'z'])"}
-{"read":"presto","write":"mysql","category":"generate: mismatch","sql":"SELECT DATE_DIFF('DAY', y, x)"}
 {"read":"presto","write":"postgres","category":"generate: expected unsupported","sql":"SELECT COALESCE(ELEMENT_AT(MAP_FROM_ENTRIES(ARRAY[(51, '1')]), id), quantity) FROM my_table"}
 {"read":"presto","write":"postgres","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
 {"read":"trino","write":"","category":"generate: mismatch","sql":"LOG10(a)"}

@@ -713,6 +713,8 @@ const (
 	// `DECLARE <name> <type> [DEFAULT <expr>]` local variables (also T-SQL upstream).
 	KindDeclare
 	KindDeclareItem
+	// KindKwarg ports exp.Kwarg (core.py): a named argument `name => value` in a function call.
+	KindKwarg
 )
 
 type Trait uint32
@@ -794,6 +796,7 @@ var argTypes = map[Kind][]argSpec{
 	KindEQ:         {{"this", true}, {"expression", true}},
 	KindNEQ:        {{"this", true}, {"expression", true}},
 	KindNullSafeEQ: {{"this", true}, {"expression", true}},
+	KindKwarg:      {{"this", true}, {"expression", true}},
 	KindGT:         {{"this", true}, {"expression", true}},
 	KindGTE:        {{"this", true}, {"expression", true}},
 	KindLT:         {{"this", true}, {"expression", true}},
@@ -1336,6 +1339,7 @@ var traitsOf = map[Kind]Trait{
 	KindEQ:                 TraitCondition | TraitBinary | TraitPredicate,
 	KindNEQ:                TraitCondition | TraitBinary | TraitPredicate,
 	KindNullSafeEQ:         TraitCondition | TraitBinary | TraitPredicate,
+	KindKwarg:              TraitCondition | TraitBinary,
 	KindGT:                 TraitCondition | TraitBinary | TraitPredicate,
 	KindGTE:                TraitCondition | TraitBinary | TraitPredicate,
 	KindLT:                 TraitCondition | TraitBinary | TraitPredicate,
@@ -1646,6 +1650,7 @@ var className = map[Kind]string{
 	KindEQ:                                  "EQ",
 	KindNEQ:                                 "NEQ",
 	KindNullSafeEQ:                          "NullSafeEQ",
+	KindKwarg:                               "Kwarg",
 	KindGT:                                  "GT",
 	KindGTE:                                 "GTE",
 	KindLT:                                  "LT",

@@ -11,6 +11,8 @@ func init() {
 	dispatch[expressions.KindNvl2] = (*Generator).nvl2SQL
 	dispatch[expressions.KindArrayAny] = (*Generator).arrayAnySQL
 	dispatch[expressions.KindConcatWs] = (*Generator).concatWsSQL
+	// generator.py:4821 kwarg_sql
+	dispatch[expressions.KindKwarg] = func(g *Generator, e expressions.Expression) string { return g.binary(e, "=>") }
 }
 
 // unsupportedArgs ports the unsupported_args decorator (generator.py): warn for each named arg
