@@ -122,6 +122,9 @@ func MySQL() *Dialect {
 	d.UpdateStatementSupportsFrom = false
 	// generators/mysql.py:124 NULL_ORDERING_SUPPORTED = None.
 	d.NullOrderingSupported = nil
+	// dialects/mysql.py:27 TIME_FORMAT.
+	d.TimeFormat = "%Y-%m-%d %T"
+	d.FormatTime = MySQLFormatTime
 	// parsers/mysql.py:304 SUPPORTS_PARTITION_SELECTION = True: allow `FROM t PARTITION(p0)`.
 	d.SupportsPartitionSelection = true
 	// parsers/mysql.py:302 STRING_ALIASES = True: fold a trailing string into an identifier
@@ -151,6 +154,8 @@ func MySQL() *Dialect {
 		"SCHEMA":           exp.FromArgListFunc(exp.KindCurrentSchema),
 		"INSTR":            exp.FromArgListFunc(exp.KindStrPosition),
 		"TIME_STR_TO_UNIX": exp.FromArgListFunc(exp.KindTimeStrToUnix),
+		// parsers/mysql.py:122 build_formatted_time(exp.UnixToTime); MySQL and Presto share TIME_MAPPING.
+		"FROM_UNIXTIME": prestoBuildFormattedTime(exp.KindUnixToTime, false),
 		// parsers/mysql.py:108-110 (v30.17.0): MySQL DATEDIFF counts date-part boundaries.
 		"DATEDIFF": func(args []exp.Expression) exp.Expression {
 			return exp.New(exp.KindDateDiff, exp.Args{

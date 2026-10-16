@@ -54,6 +54,13 @@ func Postgres() *Dialect {
 	d.NormalizeNotNull = false
 	// generators/postgres.py:245 JSON_TYPE_REQUIRED_FOR_EXTRACTION = True.
 	d.JSONTypeRequiredForExtraction = true
+	// generators/postgres.py:274-280 CAN_IMPLEMENT_ARRAY_ANY, SUPPORTS_MEDIAN, SUPPORTS_BETWEEN_FLAGS.
+	d.CanImplementArrayAny = true
+	d.SupportsMedian = false
+	d.SupportsBetweenFlags = true
+	// dialects/postgres.py:22 TIME_FORMAT.
+	d.TimeFormat = "YYYY-MM-DD HH24:MI:SS"
+	d.FormatTime = PostgresFormatTime
 	// TODO(slice 5b): DEFAULT_FUNCTIONS_COLUMN_NAMES (needs KindExplodingGenerateSeries + FUNCTIONS override).
 	// TODO(slice 5b): typing/{mysql,postgres}.py EXPRESSION_METADATA — feeds annotate_types only, off probe's path (ROADMAP 4c).
 
@@ -80,14 +87,16 @@ func Postgres() *Dialect {
 		},
 		// parsers/postgres.py:120
 		"NOW": exp.FromArgListFunc(exp.KindCurrentTimestamp),
-		// parsers/postgres.py:34-41 _build_to_timestamp; the (text, text) form needs the Postgres
-		// TIME_MAPPING (build_formatted_time), not ported yet, so it stays Anonymous.
+		// parsers/postgres.py:34-41 _build_to_timestamp
 		"TO_TIMESTAMP": func(args []exp.Expression) exp.Expression {
 			if len(args) == 1 {
 				return exp.FromArgList(exp.KindUnixToTime, args)
 			}
-			return exp.Anonymous(exp.Args{"this": "TO_TIMESTAMP", "expressions": args})
+			return postgresBuildFormattedTime(exp.KindStrToTime)(args)
 		},
+		// parsers/postgres.py:122-123
+		"TO_CHAR": postgresBuildFormattedTime(exp.KindTimeToStr),
+		"TO_DATE": postgresBuildFormattedTime(exp.KindStrToDate),
 	}
 
 	cfg := tokens.BaseConfig()
@@ -197,4 +206,77 @@ func Postgres() *Dialect {
 	delete(cfg.Commands, tokens.SHOW)
 	d.TokenizerConfig = tokens.CompileConfig(cfg)
 	return d
+}
+
+// postgresTimeMapping ports dialects/postgres.py:30-69 TIME_MAPPING in declaration order: the
+// inverse mapping is built last-wins, exactly like upstream's dict comprehension.
+var postgresTimeMapping = [][2]string{
+	{"d", "%u"}, {"D", "%u"}, {"dd", "%d"}, {"DD", "%d"}, {"ddd", "%j"}, {"DDD", "%j"},
+	{"FMDD", "%-d"}, {"FMDDD", "%-j"}, {"FMHH12", "%-I"}, {"FMHH24", "%-H"}, {"FMMI", "%-M"},
+	{"FMMM", "%-m"}, {"FMSS", "%-S"}, {"HH12", "%I"}, {"HH24", "%H"}, {"mi", "%M"}, {"MI", "%M"},
+	{"mm", "%m"}, {"MM", "%m"}, {"OF", "%z"}, {"ss", "%S"}, {"SS", "%S"}, {"TMDay", "%A"},
+	{"TMDy", "%a"}, {"TMMon", "%b"}, {"TMMonth", "%B"}, {"day", "%Aenlower"}, {"dy", "%aenlower"},
+	{"TZ", "%Z"}, {"US", "%f"}, {"ww", "%U"}, {"WW", "%U"}, {"yy", "%y"}, {"YY", "%y"},
+	{"yyy", "%Ythree"}, {"YYY", "%Ythree"}, {"yyyy", "%Y"}, {"YYYY", "%Y"},
+}
+
+// strictTimeFormats ports STRICT_TIME_FORMATS (dialect.py:142-149).
+var strictTimeFormats = [][2]string{
+	{"%mstrict", "%m"}, {"%dstrict", "%d"}, {"%Hstrict", "%H"}, {"%Istrict", "%I"}, {"%Mstrict", "%M"}, {"%Sstrict", "%S"},
+}
+
+var postgresForwardTimeMapping = func() map[string]string {
+	m := map[string]string{}
+	for _, kv := range postgresTimeMapping {
+		m[kv[0]] = kv[1]
+	}
+	return m
+}()
+
+// postgresInverseTimeMapping is _with_strict_time_inverse over the inverted TIME_MAPPING
+// (dialect.py:152-161, 265-271).
+var postgresInverseTimeMapping = func() map[string]string {
+	m := map[string]string{}
+	for _, kv := range postgresTimeMapping {
+		m[kv[1]] = kv[0]
+	}
+	for _, kv := range strictTimeFormats {
+		strict, lax := kv[0], kv[1]
+		if v, ok := m[strict]; ok {
+			if _, has := m[lax]; !has {
+				m[lax] = v
+			}
+		} else if _, has := m[strict]; !has {
+			if v, ok := m[lax]; ok {
+				m[strict] = v
+			} else {
+				m[strict] = lax
+			}
+		}
+	}
+	return m
+}()
+
+var postgresForwardTimeTrie = prestoTimeTrie(postgresForwardTimeMapping)
+var postgresInverseTimeTrie = prestoTimeTrie(postgresInverseTimeMapping)
+
+// PostgresFormatTime ports Generator.format_time under Postgres's INVERSE_TIME_MAPPING.
+func PostgresFormatTime(format string) string {
+	converted, _ := prestoConvertTimeFormatWith(format, postgresInverseTimeMapping, postgresInverseTimeTrie)
+	return converted
+}
+
+// postgresBuildFormattedTime ports build_formatted_time (dialect.py:1592-1630) for Postgres.
+func postgresBuildFormattedTime(kind exp.Kind) func([]exp.Expression) exp.Expression {
+	return func(args []exp.Expression) exp.Expression {
+		format := prestoSeqGet(args, 1)
+		if format != nil && format.IsString() {
+			converted, ok := prestoConvertTimeFormatWith(format.Name(), postgresForwardTimeMapping, postgresForwardTimeTrie)
+			if !ok {
+				converted = "None"
+			}
+			format = exp.LiteralString(converted)
+		}
+		return exp.New(kind, exp.Args{"this": prestoSeqGet(args, 0), "format": format})
+	}
 }

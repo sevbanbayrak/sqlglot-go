@@ -210,21 +210,26 @@ func (g *Generator) strPositionSQLWith(e exp.Expression, funcName string, suppor
 	if transpilePosition {
 		str = exp.New(exp.KindSubstring, exp.Args{"this": str, "start": position})
 	}
-	args := []exp.Expression{str, substr}
-	if funcName == "LOCATE" || funcName == "CHARINDEX" {
-		args = []exp.Expression{substr, str}
-	}
-	if supportsPosition && position != nil {
-		args = append(args, position)
-	}
-	if occurrence != nil {
-		if supportsOccurrence {
-			args = append(args, occurrence)
-		} else {
-			g.unsupported(funcName + " does not support the occurrence parameter.")
+	var fn exp.Expression
+	if funcName == "POSITION" {
+		fn = exp.Anonymous(exp.Args{"this": funcName, "expressions": []exp.Expression{exp.New(exp.KindIn, exp.Args{"this": substr, "field": str})}})
+	} else {
+		args := []exp.Expression{str, substr}
+		if funcName == "LOCATE" || funcName == "CHARINDEX" {
+			args = []exp.Expression{substr, str}
 		}
+		if supportsPosition && position != nil {
+			args = append(args, position)
+		}
+		if occurrence != nil {
+			if supportsOccurrence {
+				args = append(args, occurrence)
+			} else {
+				g.unsupported(funcName + " does not support the occurrence parameter.")
+			}
+		}
+		fn = exp.Anonymous(exp.Args{"this": funcName, "expressions": args})
 	}
-	fn := exp.Anonymous(exp.Args{"this": funcName, "expressions": args})
 	if transpilePosition {
 		withOffset := exp.Sub(exp.Args{"this": exp.Add(exp.Args{"this": fn.Copy(), "expression": position.Copy()}), "expression": exp.LiteralNumber(1)})
 		wrapped := exp.If(exp.Args{"this": exp.EQ(exp.Args{"this": fn, "expression": exp.LiteralNumber(0)}), "true": exp.LiteralNumber(0), "false": withOffset})

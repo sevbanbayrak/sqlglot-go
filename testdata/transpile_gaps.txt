@@ -1,34 +1,11 @@
 {"read":"","write":"mysql","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$[\"a b\"]')"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1"}
-{"read":"","write":"mysql","category":"generate: mismatch","sql":"SELECT * FROM t QUALIFY COUNT(*) OVER () > 1"}
 {"read":"","write":"postgres","category":"generate: expected unsupported","sql":"JSON_EXTRACT(x, '$.y.*')"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"ARRAY_ANY(arr, x -> pred)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"ARRAY_PREPEND(arr, x)"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$.y')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$.y[*]')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$.y[0].z')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT(x, '$[\"a b\"]')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT_SCALAR(x, '$.y')"}
 {"read":"","write":"postgres","category":"generate: mismatch","sql":"JSON_EXTRACT_SCALAR(x, '$.y[0].z')"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"LEVENSHTEIN(col1, col2, 1, 2, 3, 4)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"MEDIAN(x)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"MEDIAN(x) OVER ()"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"RAND()"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT * FROM t QUALIFY COUNT(*) OVER () > 1"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT COUNT_IF(col % 2 = 0) FROM foo"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT IS_ASCII(x)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT TIME_TO_UNIX(TIMESTAMP '2023-01-04 04:05:06.789')"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT x BETWEEN ASYMMETRIC 10 AND 2"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"SELECT x BETWEEN SYMMETRIC 10 AND 2"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_POSITION(haystack, needle, position)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_TO_TIME('2020-01-01', '%Y-%m-%d')"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"STR_TO_TIME(x, '%y')"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"TIME_TO_STR(x, '%Y-%m-%d')"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"TS_OR_DS_TO_DATE(x)"}
-{"read":"","write":"postgres","category":"generate: mismatch","sql":"UUID()"}
 {"read":"","write":"presto","category":"generate: mismatch","sql":"CREATE TABLE a LIKE b"}
 {"read":"","write":"presto","category":"generate: mismatch","sql":"DATE_FROM_UNIX_DATE(1)"}
 {"read":"","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
@@ -40,8 +17,6 @@
 {"read":"","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')"}
-{"read":"hive","write":"","category":"generate: mismatch","sql":"DATEDIFF(TO_DATE(y), x)"}
-{"read":"hive","write":"","category":"generate: mismatch","sql":"DATEDIFF(a, b)"}
 {"read":"hive","write":"","category":"generate: mismatch","sql":"INSTR(haystack, needle)"}
 {"read":"hive","write":"postgres","category":"generate: mismatch","sql":"ROUND(x::DOUBLE, 4)"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"COLLECT_LIST(x)"}
@@ -64,12 +39,6 @@
 {"read":"mysql","write":"","category":"generate: mismatch","sql":"YEAR(x)"}
 {"read":"mysql","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS NOT UNKNOWN"}
 {"read":"mysql","write":"","category":"parse: Invalid expression / Unexpected token","sql":"x IS UNKNOWN"}
-{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT DATEDIFF(x, y)"}
-{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT DATE_ADD(CURRENT_TIMESTAMP, INTERVAL -1 QUARTER)"}
-{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2) FROM table1"}
-{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"SELECT FROM_UNIXTIME(col)"}
-{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT DATE_ADD(col, INTERVAL num_days DAY) FROM t"}
-{"read":"mysql","write":"postgres","category":"generate: mismatch","sql":"a XOR b"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT DATEDIFF(x, y)"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT TO_DAYS(x)"}
@@ -77,9 +46,6 @@
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"TIMESTAMP(x)"}
 {"read":"mysql","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"ARRAY_PREPEND(x, arr)"}
-{"read":"postgres","write":"","category":"generate: mismatch","sql":"DATE_TRUNC('day', x)"}
-{"read":"postgres","write":"","category":"generate: mismatch","sql":"DATE_TRUNC('day', x::DATE)"}
-{"read":"postgres","write":"","category":"generate: mismatch","sql":"DATE_TRUNC(year, x)"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"JSON_EXTRACT_PATH('{\"f2\":{\"f3\":1},\"f4\":{\"f5\":99,\"f6\":\"foo\"}}','f4')"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
@@ -118,8 +84,6 @@
 {"read":"presto","write":"","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
 {"read":"presto","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
 {"read":"presto","write":"hive","category":"generate: mismatch","sql":"CREATE TABLE x (w VARCHAR, y INTEGER, z INTEGER) WITH (PARTITIONED_BY=ARRAY['y', 'z'])"}
-{"read":"presto","write":"postgres","category":"generate: expected unsupported","sql":"SELECT COALESCE(ELEMENT_AT(MAP_FROM_ENTRIES(ARRAY[(51, '1')]), id), quantity) FROM my_table"}
-{"read":"presto","write":"postgres","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
 {"read":"trino","write":"","category":"generate: mismatch","sql":"LOG10(a)"}
 {"read":"trino","write":"","category":"generate: mismatch","sql":"LOG2(a)"}
 {"read":"trino","write":"postgres","category":"generate: mismatch","sql":"\n            WITH t(boxcrate) AS (\n              SELECT JSON '[{\"boxes\": [{\"name\": \"f1\", \"type\": \"plant\", \"color\": \"red\"}]}]'\n            )\n            SELECT\n              JSON_EXTRACT_SCALAR(boxes,'$.name')  AS name,\n              JSON_EXTRACT_SCALAR(boxes,'$.type')  AS type,\n              JSON_EXTRACT_SCALAR(boxes,'$.color') AS color\n            FROM t\n            CROSS JOIN UNNEST(CAST(boxcrate AS array(json))) AS x(tbox)\n            CROSS JOIN UNNEST(CAST(json_extract(tbox, '$.boxes') AS array(json))) AS y(boxes)\n        "}

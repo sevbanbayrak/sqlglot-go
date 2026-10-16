@@ -1185,10 +1185,18 @@ func (g *Generator) betweenSQL(e expressions.Expression) string {
 	this := g.sqlKey(e, "this")
 	low := g.sqlKey(e, "low")
 	high := g.sqlKey(e, "high")
-	if boolValue(e.Arg("symmetric")) {
+	// generator.py:3565-3581 between_sql
+	symmetric, set := e.Arg("symmetric").(bool)
+	if set && symmetric && !g.dialect.SupportsBetweenFlags {
 		return "(" + this + " BETWEEN " + low + " AND " + high + " OR " + this + " BETWEEN " + high + " AND " + low + ")"
 	}
-	return this + " BETWEEN " + low + " AND " + high
+	flag := ""
+	if set && symmetric {
+		flag = " SYMMETRIC"
+	} else if set && !symmetric && g.dialect.SupportsBetweenFlags {
+		flag = " ASYMMETRIC"
+	}
+	return this + " BETWEEN" + flag + " " + low + " AND " + high
 }
 
 func (g *Generator) inSQL(e expressions.Expression) string {
@@ -2353,20 +2361,56 @@ func (g *Generator) mysqlDateAddSQL(kind string, e expressions.Expression) strin
 	return g.funcCall("DATE_"+kind, []any{e.Arg("this"), interval}, "(", ")", true)
 }
 
-// postgresDateAddSQL ports _date_add_sql (generators/postgres.py:55-77), restricted to the
-// isinstance(e, exp.Interval) branch: the other branches simplify a non-Interval second
-// argument (a bare numeric day offset) via the optimizer's simplify() pass, which is out
-// of scope for the gap this part targets (no round-trip corpus case exercises it for
-// base/mysql/postgres). If the second argument isn't already an Interval, fall back to the
-// generic `DATE_ADD(...)` rendering rather than guessing at upstream's simplify output.
+// postgresDateAddSQL ports _date_add_sql (generators/postgres.py:55-77). The
+// _simplify_unless_literal step is not applied: simplify is not ported yet, so a foldable
+// non-literal offset renders through the INTERVAL '1 <unit>' * <expr> branch.
 func (g *Generator) postgresDateAddSQL(kind string, e expressions.Expression) string {
+	if e.Kind() == expressions.KindTsOrDsAdd {
+		tsOrDsAddCast(e)
+	}
 	this := g.sqlKey(e, "this")
+	// Upstream's MySQL parser flattens DATE_ADD(x, INTERVAL v UNIT) at parse time; this port
+	// keeps the Interval, so a literal interval renders as is and anything else takes the
+	// flattened branches below (dateIntervalArg unwraps it).
+	if iv := asExpression(e.Arg("expression")); iv != nil && iv.Kind() == expressions.KindInterval {
+		if ivThis := iv.This(); ivThis == nil || ivThis.Kind() == expressions.KindLiteral || ivThis.IsNumber() {
+			return this + " " + kind + " " + g.gen(iv)
+		}
+	}
 	value, unit := dateIntervalArg(e)
 	if value == nil {
-		return g.funcCall("DATE_ADD", []any{e.Arg("this"), e.Arg("expression"), unitToStr(e)}, "(", ")", true)
+		value = e.Arg("expression")
 	}
-	interval := expressions.Interval(expressions.Args{"this": value, "unit": unit})
-	return this + " " + kind + " " + g.gen(interval)
+	var unitVar expressions.Expression
+	if unit != nil {
+		unitVar = unitToVarValue(unit)
+	}
+	ev := asExpression(value)
+	switch {
+	case ev == nil:
+		return g.funcCall("DATE_ADD", []any{e.Arg("this"), e.Arg("expression"), unitToStr(e)}, "(", ")", true)
+	case ev.Kind() == expressions.KindLiteral:
+		ev = expressions.LiteralString(ev.Name())
+	case ev.IsNumber():
+		ev = expressions.LiteralString(strings.TrimSpace(g.gen(ev)))
+	default:
+		one := expressions.Interval(expressions.Args{"this": expressions.LiteralNumber(1), "unit": unitVar})
+		return this + " " + kind + " " + g.gen(expressions.Mul(expressions.Args{"this": one, "expression": ev}))
+	}
+	return this + " " + kind + " " + g.gen(expressions.Interval(expressions.Args{"this": ev, "unit": unitVar}))
+}
+
+// tsOrDsAddCast ports ts_or_ds_add_cast (dialect.py:1984-1994) in place.
+func tsOrDsAddCast(e expressions.Expression) {
+	returnType := asExpression(e.Arg("return_type"))
+	if returnType == nil {
+		returnType = expressions.DTypeDate.IntoExpr(nil)
+	}
+	this := e.This().Copy()
+	if expressions.IsType(returnType, expressions.DTypeDate) {
+		this = expressions.New(expressions.KindCast, expressions.Args{"this": this, "to": expressions.DTypeTimestamp.IntoExpr(nil)})
+	}
+	e.This().Replace(expressions.New(expressions.KindCast, expressions.Args{"this": this, "to": returnType}))
 }
 
 // dateIntervalArg recovers the (value, unit) pair a DateAdd's "expression"/"unit" args

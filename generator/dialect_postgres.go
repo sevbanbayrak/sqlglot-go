@@ -1,27 +1,238 @@
 package generator
 
 import (
-	"github.com/sevbanbayrak/sqlglot-go/expressions"
+	"strconv"
+	"strings"
+
+	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/transforms"
 )
 
-// Postgres overrides follow generators/postgres.py TRANSFORMS; the shared tables already carry
-// the postgres branches written before per-dialect dispatch existed.
+// postgresDateDiffFactor ports DATE_DIFF_FACTOR (generators/postgres.py:45-52).
+var postgresDateDiffFactor = map[string]string{
+	"MICROSECOND": " * 1000000", "MILLISECOND": " * 1000", "SECOND": "", "MINUTE": " / 60", "HOUR": " / 3600", "DAY": " / 86400",
+}
+
+// Postgres overrides follow generators/postgres.py TRANSFORMS and *_sql methods; the shared
+// tables already carry the postgres branches written before per-dialect dispatch existed.
 func init() {
-	registerDialectDispatch("postgres", map[expressions.Kind]func(*Generator, expressions.Expression) string{
+	castTo := func(e exp.Expression, t exp.DType) exp.Expression {
+		return exp.New(exp.KindCast, exp.Args{"this": e, "to": t.IntoExpr(nil)})
+	}
+	rename := func(name string) func(*Generator, exp.Expression) string {
+		return func(g *Generator, e exp.Expression) string {
+			return g.funcCall(name, g.fallbackArgs(e), "(", ")", true)
+		}
+	}
+	noNulls := func(message string) func(*Generator, exp.Expression) string {
+		return func(g *Generator, e exp.Expression) string {
+			g.unsupported(message)
+			return g.sqlKey(e, "this")
+		}
+	}
+	withinGroup := func(g *Generator, e exp.Expression) string {
+		if out := transforms.AddWithinGroupForPercentiles(e); out.Kind() == exp.KindWithinGroup {
+			return g.gen(out)
+		}
+		return g.functionFallbackSQL(e)
+	}
+	table := map[exp.Kind]func(*Generator, exp.Expression) string{
 		// generators/postgres.py:408
-		expressions.KindUuid: func(*Generator, expressions.Expression) string { return "GEN_RANDOM_UUID()" },
+		exp.KindUuid: func(*Generator, exp.Expression) string { return "GEN_RANDOM_UUID()" },
 		// dialect.py:2626-2644 getbit_sql; the integer-typed branch needs annotate_types, which
 		// never runs here, so only the GET_BIT spelling is reached.
-		expressions.KindGetbit: func(g *Generator, e expressions.Expression) string {
+		exp.KindGetbit: func(g *Generator, e exp.Expression) string {
 			return g.funcCall("GET_BIT", []any{e.This(), e.Expr()}, "(", ")", true)
 		},
-		// generators/postgres.py: exp.UnixToTime -> TO_TIMESTAMP(this, format_time)
-		expressions.KindUnixToTime: func(g *Generator, e expressions.Expression) string {
-			return g.funcCall("TO_TIMESTAMP", []any{e.This(), e.Arg("format")}, "(", ")", true)
+		// generators/postgres.py:168-180 _unix_to_time_sql
+		exp.KindUnixToTime: func(g *Generator, e exp.Expression) string {
+			scale := asExpression(e.Arg("scale"))
+			var timestamp exp.Expression = e.This()
+			if scale != nil && !(scale.IsNumber() && scale.Name() == "0") {
+				pow := exp.FunctionByName["POW"]([]exp.Expression{exp.LiteralNumber(10), scale})
+				timestamp = exp.New(exp.KindDiv, exp.Args{"this": timestamp, "expression": pow})
+			}
+			return g.funcCall("TO_TIMESTAMP", []any{timestamp, g.formatTime(e)}, "(", ")", true)
 		},
-		// generators/postgres.py: timestamptrunc_sql(zone=True) (dialect.py:1700-1709)
-		expressions.KindTimestampTrunc: func(g *Generator, e expressions.Expression) string {
+		// generators/postgres.py:397 timestamptrunc_sql(zone=True) (dialect.py:1700-1709)
+		exp.KindTimestampTrunc: func(g *Generator, e exp.Expression) string {
 			return g.funcCall("DATE_TRUNC", []any{unitToStr(e), e.This(), e.Arg("zone")}, "(", ")", true)
 		},
+		exp.KindArrayFilter: (*Generator).filterArrayUsingUnnest,
+		// dialect.py:1370-1415 array_append_sql; ARRAY_FUNCS_PROPAGATES_NULLS is False for Postgres
+		// and null_propagation is never set by the ported parsers, so only the plain call is reached.
+		exp.KindArrayAppend: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("ARRAY_APPEND", []any{e.This(), e.Expr()}, "(", ")", true)
+		},
+		exp.KindArrayPrepend: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("ARRAY_PREPEND", []any{e.Expr(), e.This()}, "(", ")", true)
+		},
+		exp.KindBracket: func(g *Generator, e exp.Expression) string {
+			// generators/postgres.py:480-485: ARRAY[1, 2, 3][3] is not allowed; wrap the array.
+			if this := e.This(); this != nil && this.Kind() == exp.KindArray {
+				e.Set("this", exp.Paren(exp.Args{"this": this}))
+			}
+			return g.bracketSQL(e)
+		},
+		exp.KindCountIf: func(g *Generator, e exp.Expression) string {
+			// dialect.py:1812-1819 count_if_to_sum
+			cond := e.This()
+			if cond != nil && cond.Kind() == exp.KindDistinct {
+				cond = cond.Expressions()[0]
+				g.unsupported("DISTINCT is not supported when converting COUNT_IF to SUM")
+			}
+			return g.funcCall("SUM", []any{exp.If(exp.Args{"this": cond, "true": exp.LiteralNumber(1), "false": exp.LiteralNumber(0)})}, "(", ")", true)
+		},
+		exp.KindDateDiff:   (*Generator).postgresDateDiffSQL,
+		exp.KindTsOrDsDiff: (*Generator).postgresDateDiffSQL,
+		exp.KindDateSub:    func(g *Generator, e exp.Expression) string { return g.postgresDateAddSQL("-", e) },
+		exp.KindTsOrDsAdd:  func(g *Generator, e exp.Expression) string { return g.postgresDateAddSQL("+", e) },
+		exp.KindGenerateSeries: func(g *Generator, e exp.Expression) string {
+			// dialect.py:1420-1436 generate_series_sql("GENERATE_SERIES")
+			end := asExpression(e.Arg("end"))
+			if boolValue(e.Arg("is_end_exclusive")) && end != nil {
+				end = exp.Sub(exp.Args{"this": end, "expression": exp.LiteralNumber(1)})
+			}
+			return g.funcCall("GENERATE_SERIES", []any{e.Arg("start"), end, e.Arg("step")}, "(", ")", true)
+		},
+		exp.KindIgnoreNulls:  noNulls("PostgreSQL does not support IGNORE NULLS."),
+		exp.KindRespectNulls: noNulls("PostgreSQL does not support RESPECT NULLS."),
+		exp.KindInterval: func(g *Generator, e exp.Expression) string {
+			// generators/postgres.py:559-567: quarters become months.
+			if this := e.This(); this != nil && this.Kind() == exp.KindLiteral && strings.HasPrefix(strings.ToLower(e.Text("unit")), "quarter") {
+				if n, err := strconv.Atoi(this.Name()); err == nil {
+					this.Replace(exp.LiteralString(strconv.Itoa(n * 3)))
+					asExpression(e.Arg("unit")).Replace(exp.Var(exp.Args{"this": "MONTH"}))
+				}
+			}
+			return g.intervalSQL(e)
+		},
+		exp.KindIsAscii: func(g *Generator, e exp.Expression) string {
+			return "(" + g.sqlKey(e, "this") + " ~ '^[[:ascii:]]*$')"
+		},
+		exp.KindLevenshtein: func(g *Generator, e exp.Expression) string {
+			name := "LEVENSHTEIN"
+			if e.Arg("max_dist") != nil {
+				name = "LEVENSHTEIN_LESS_EQUAL"
+			}
+			return g.funcCall(name, g.fallbackArgs(e), "(", ")", true)
+		},
+		exp.KindMapFromEntries: func(g *Generator, e exp.Expression) string {
+			g.unsupported("MAP_FROM_ENTRIES unsupported")
+			return ""
+		},
+		exp.KindPercentileCont: withinGroup,
+		exp.KindPercentileDisc: withinGroup,
+		exp.KindRand:           rename("RANDOM"),
+		exp.KindSelect: func(g *Generator, e exp.Expression) string {
+			// generators/postgres.py:382-387 Select preprocess chain.
+			out := transforms.EliminateSemiAndAntiJoins(e)
+			out = transforms.EliminateQualify(out)
+			if out.Kind() != exp.KindSelect {
+				return g.gen(out)
+			}
+			return g.selectSQL(out)
+		},
+		exp.KindStrPosition: func(g *Generator, e exp.Expression) string {
+			return g.strPositionSQLWith(e, "POSITION", false, false)
+		},
+		exp.KindStrToDate: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("TO_DATE", []any{e.This(), g.formatTime(e)}, "(", ")", true)
+		},
+		exp.KindStrToTime: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("TO_TIMESTAMP", []any{e.This(), g.formatTime(e)}, "(", ")", true)
+		},
+		exp.KindTimeToStr: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("TO_CHAR", []any{e.This(), g.formatTime(e)}, "(", ")", true)
+		},
+		exp.KindTimeToUnix: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("DATE_PART", []any{exp.LiteralString("epoch"), e.This()}, "(", ")", true)
+		},
+		exp.KindXor: func(g *Generator, e exp.Expression) string {
+			// dialect.py:1952-1955 bool_xor_sql
+			a, b := g.sqlKey(e, "this"), g.sqlKey(e, "expression")
+			return "(" + a + " AND (NOT " + b + ")) OR ((NOT " + a + ") AND " + b + ")"
+		},
+		exp.KindUnnest: func(g *Generator, e exp.Expression) string {
+			// generators/postgres.py:449-461; the array<json> branch needs annotate_types.
+			exprs := e.Expressions()
+			if len(exprs) != 1 || exprs[0].Kind() != exp.KindGenerateDateArray {
+				return g.unnestSQL(e)
+			}
+			arg := exprs[0]
+			series := exp.New(exp.KindGenerateSeries, exp.Args{"start": arg.Arg("start"), "end": arg.Arg("end"), "step": arg.Arg("step")})
+			if p := e.Parent(); p != nil && (p.Kind() == exp.KindFrom || p.Kind() == exp.KindJoin) {
+				alias := asExpression(e.Arg("alias"))
+				if alias == nil {
+					alias = exp.TableAlias(exp.Args{"this": exp.ToIdentifier("_unnested_generate_series")})
+				}
+				tableAlias := exp.TableAlias(exp.Args{"this": exp.ToIdentifier("_t"), "columns": []exp.Expression{exp.ToIdentifier("value")}})
+				sel := exp.Select(exp.Args{
+					"expressions": []exp.Expression{castTo(exp.Column(exp.Args{"this": exp.ToIdentifier("value")}), exp.DTypeDate)},
+					"from_":       exp.From(exp.Args{"this": exp.Table(exp.Args{"this": series, "alias": tableAlias})}),
+				})
+				return g.gen(exp.Subquery(exp.Args{"this": sel, "alias": alias}))
+			}
+			return g.gen(series)
+		},
+	}
+	registerDialectDispatch("postgres", table)
+}
+
+// postgresDateDiffSQL ports _date_diff_sql (generators/postgres.py:94-125).
+func (g *Generator) postgresDateDiffSQL(e exp.Expression) string {
+	unit := strings.ToUpper(e.Text("unit"))
+	if unit == "" {
+		unit = "DAY"
+	}
+	if unit == "DAY" && boolValue(e.Arg("date_part_boundary")) {
+		this := exp.New(exp.KindCast, exp.Args{"this": e.This(), "to": exp.DTypeDate.IntoExpr(nil)})
+		expr := exp.New(exp.KindCast, exp.Args{"this": e.Expr(), "to": exp.DTypeDate.IntoExpr(nil)})
+		return g.gen(exp.Paren(exp.Args{"this": exp.Sub(exp.Args{"this": this, "expression": expr})}))
+	}
+	end := "CAST(" + g.sqlKey(e, "this") + " AS TIMESTAMP)"
+	start := "CAST(" + g.sqlKey(e, "expression") + " AS TIMESTAMP)"
+	if factor, ok := postgresDateDiffFactor[unit]; ok {
+		return "CAST(EXTRACT(epoch FROM " + end + " - " + start + ")" + factor + " AS BIGINT)"
+	}
+	age := "AGE(" + end + ", " + start + ")"
+	switch unit {
+	case "WEEK":
+		unit = "EXTRACT(days FROM (" + end + " - " + start + ")) / 7"
+	case "MONTH":
+		unit = "EXTRACT(year FROM " + age + ") * 12 + EXTRACT(month FROM " + age + ")"
+	case "QUARTER":
+		unit = "EXTRACT(year FROM " + age + ") * 4 + EXTRACT(month FROM " + age + ") / 3"
+	case "YEAR":
+		unit = "EXTRACT(year FROM " + age + ")"
+	default:
+		unit = age
+	}
+	return "CAST(" + unit + " AS BIGINT)"
+}
+
+// filterArrayUsingUnnest ports filter_array_using_unnest (dialect.py:2287-2305) for ArrayFilter.
+func (g *Generator) filterArrayUsingUnnest(e exp.Expression) string {
+	cond := e.Expr()
+	var alias exp.Expression
+	switch {
+	case cond != nil && cond.Kind() == exp.KindLambda && len(cond.Expressions()) == 1:
+		alias = cond.Expressions()[0]
+		cond = cond.This()
+	case cond != nil && cond.Is(exp.TraitPredicate):
+		alias = exp.ToIdentifier("_u")
+	default:
+		g.unsupported("Unsupported filter condition")
+		return ""
+	}
+	unnest := exp.Unnest(exp.Args{
+		"expressions": []exp.Expression{e.This()},
+		"alias":       exp.TableAlias(exp.Args{"columns": []exp.Expression{alias.Copy()}}),
 	})
+	filtered := exp.Select(exp.Args{
+		"expressions": []exp.Expression{alias.Copy()},
+		"from_":       exp.From(exp.Args{"this": unnest}),
+		"where":       exp.Where(exp.Args{"this": cond}),
+	})
+	return g.gen(exp.New(exp.KindArray, exp.Args{"expressions": []exp.Expression{filtered}}))
 }

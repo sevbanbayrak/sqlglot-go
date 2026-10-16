@@ -49,7 +49,8 @@ func AliasExpr(expression any, alias any, table bool, quoted ...bool) Expression
 		expr.Set("alias", TableAlias(Args{"this": aliasExpr}))
 		return expr
 	}
-	if supportsArg(expr.Kind(), "alias") && expr.Kind() != KindExpression {
+	// builders.py alias_: a Window's "alias" arg is its named-window reference, never an AS alias.
+	if supportsArg(expr.Kind(), "alias") && expr.Kind() != KindExpression && expr.Kind() != KindWindow {
 		expr.Set("alias", aliasExpr)
 		return expr
 	}
