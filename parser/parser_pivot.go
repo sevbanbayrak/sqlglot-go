@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"strings"
+
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
@@ -61,13 +63,15 @@ func (p *Parser) parseLateral() exp.Expression {
 		tableAlias = asExpr(this.Arg("alias"))
 		this.Set("alias", nil)
 	} else {
-		if p.matchPair(tokens.WITH, tokens.ORDINALITY, true) {
-			ordinality = true
-		}
+		ordinality = p.matchPair(tokens.WITH, tokens.ORDINALITY, true)
 		tableAlias = p.parseTableAlias(nil)
 	}
 
-	return p.expression(exp.Lateral(exp.Args{"this": this, "view": view, "outer": outer, "alias": tableAlias, "cross_apply": crossApply, "ordinality": ordinality}), nil, nil)
+	lateral := p.expression(exp.Lateral(exp.Args{"this": this, "view": view, "outer": outer, "alias": tableAlias, "cross_apply": crossApply, "ordinality": ordinality}), nil, nil)
+	if p.dialect.Is("snowflake") {
+		return snowflakeFixLateral(lateral)
+	}
+	return lateral
 }
 
 func (p *Parser) parseUnnest(withAlias bool) exp.Expression {
@@ -174,7 +178,7 @@ func (p *Parser) parsePivot() exp.Expression {
 		}
 		fields = append(fields, field)
 	}
-	var defaultOnNull exp.Expression
+	var defaultOnNull any = false
 	if p.matchTextSeq("DEFAULT", "ON", "NULL") {
 		defaultOnNull = p.parseWrapped(p.parseBitwise, false)
 	}
@@ -191,12 +195,98 @@ func (p *Parser) parsePivot() exp.Expression {
 				field.Set("this", unpivotTarget(asExpr(field.Arg("this"))))
 			}
 		}
+		// UNPIVOT_VALUE_COLUMNS_FIRST (parser.py:1841) is False for every ported dialect.
+		pivot.Set("value_columns_first", false)
 	}
-	// TODO(slice 2): PIVOT column-name inference needs generator SQL output.
 	if !p.matchSet(map[tokens.TokenType]bool{tokens.PIVOT: true, tokens.UNPIVOT: true}, false) {
 		pivot.Set("alias", p.parseTableAlias(nil))
 	}
+	if !unpivot {
+		p.inferPivotColumns(pivot, expressions)
+	}
 	return pivot
+}
+
+// inferPivotColumns ports the column-name inference of _parse_pivot (parser.py:5462-5505).
+func (p *Parser) inferPivotColumns(pivot exp.Expression, aggregations []exp.Expression) {
+	names := p.pivotColumnNames(aggregations)
+	var columns []exp.Expression
+	var allFields [][]string
+	for _, pivotField := range exp.ExpressionsOf(pivot, "fields") {
+		fieldExpressions := pivotField.Expressions()
+		// The `PivotAny` expression corresponds to `ANY ORDER BY <column>`; we can't infer in this case.
+		if len(fieldExpressions) > 0 && fieldExpressions[0].Kind() == exp.KindPivotAny {
+			continue
+		}
+		parts := make([]string, 0, len(fieldExpressions))
+		for _, fld := range fieldExpressions {
+			// An explicit `<field> AS <alias>` names the output column directly,
+			// so it wins over the dialect's string-identifying convention
+			if p.dialect.IdentifyPivotStrings && fld.Kind() != exp.KindPivotAlias {
+				sql, _ := fld.SQL(exp.GenerateOptions{})
+				parts = append(parts, sql)
+			} else {
+				parts = append(parts, fld.AliasOrName())
+			}
+		}
+		allFields = append(allFields, parts)
+	}
+	if len(allFields) > 0 {
+		if len(names) > 0 {
+			allFields = append(allFields, names)
+		}
+		// Generate all possible combinations of the pivot columns
+		// e.g PIVOT(sum(...) as total FOR year IN (2000, 2010) FOR country IN ('NL', 'US'))
+		// generates the product between [[2000, 2010], ['NL', 'US'], ['total']]
+		combos := [][]string{{}}
+		for _, field := range allFields {
+			next := make([][]string, 0, len(combos)*len(field))
+			for _, combo := range combos {
+				for _, part := range field {
+					next = append(next, append(append([]string{}, combo...), part))
+				}
+			}
+			combos = next
+		}
+		for _, combo := range combos {
+			columns = append(columns, exp.ToIdentifier(strings.Join(combo, "_")))
+		}
+	}
+	pivot.Set("columns", columns)
+	pivot.Set("identify_pivot_strings", p.dialect.IdentifyPivotStrings)
+	pivot.Set("prefixed_pivot_columns", false)
+	pivot.Set("pivot_column_naming", p.dialect.PivotColumnNaming)
+}
+
+// pivotColumnNames ports _pivot_column_names (parser.py:5509-5510) and the Spark2 override
+// (parsers/spark2.py:106-109).
+func (p *Parser) pivotColumnNames(aggregations []exp.Expression) []string {
+	var names []string
+	if p.dialect.Is("spark2") {
+		if len(aggregations) == 1 {
+			return nil
+		}
+		// pivot_column_names (dialects/dialect.py:1874-1895)
+		for _, agg := range aggregations {
+			if agg.Kind() == exp.KindAlias {
+				names = append(names, agg.Alias())
+				continue
+			}
+			unquoted := agg.Copy()
+			for _, node := range unquoted.FindAll(exp.KindIdentifier) {
+				node.Set("quoted", false)
+			}
+			sql, _ := unquoted.SQL(exp.GenerateOptions{Dialect: "spark", NormalizeFunctions: "lower"})
+			names = append(names, sql)
+		}
+		return names
+	}
+	for _, agg := range aggregations {
+		if alias := agg.Alias(); alias != "" {
+			names = append(names, alias)
+		}
+	}
+	return names
 }
 
 func (p *Parser) parsePivotAggregation() exp.Expression {

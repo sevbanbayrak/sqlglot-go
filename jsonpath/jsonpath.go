@@ -21,10 +21,21 @@ type Options struct {
 	IdentifiersCanStartWithDigit    bool
 	// Identifiers ports the dialect's JSONPathTokenizer.IDENTIFIERS; nil keeps the base `"`.
 	Identifiers map[rune]string
+	// NoDollarToken drops `$` from the JSONPathTokenizer's SINGLE_TOKENS
+	// (dialects/snowflake.py:149-151).
+	NoDollarToken bool
 }
 
 // tokenizerConfig ports JSONPathTokenizer (jsonpath.py:14-42) on top of the base Tokenizer.
-var tokenizerConfig = func() tokens.TokenizerConfig {
+var tokenizerConfig = tokens.CompileConfig(rawTokenizerConfig())
+
+var noDollarTokenizerConfig = func() tokens.TokenizerConfig {
+	cfg := rawTokenizerConfig()
+	delete(cfg.SingleTokens, '$')
+	return tokens.CompileConfig(cfg)
+}()
+
+func rawTokenizerConfig() tokens.TokenizerConfig {
 	cfg := tokens.BaseConfig()
 	cfg.SingleTokens = map[rune]tokens.TokenType{
 		'(':  tokens.L_PAREN,
@@ -46,8 +57,8 @@ var tokenizerConfig = func() tokens.TokenizerConfig {
 	cfg.IdentifierEscapes = map[rune]bool{'\\': true}
 	cfg.StringEscapes = map[rune]bool{'\\': true}
 	cfg.NumbersCanHaveDecimals = false
-	return tokens.CompileConfig(cfg)
-}()
+	return cfg
+}
 
 var defaultVarTokens = map[tokens.TokenType]bool{tokens.VAR: true}
 
@@ -65,6 +76,9 @@ func Parse(path string, opts Options) (result exp.Expression, err error) {
 		opts.VarTokens = defaultVarTokens
 	}
 	cfg := tokenizerConfig
+	if opts.NoDollarToken {
+		cfg = noDollarTokenizerConfig
+	}
 	cfg.UnescapedSequences = opts.UnescapedSequences
 	cfg.NumbersCanBeUnderscoreSeparated = opts.NumbersCanBeUnderscoreSeparated
 	cfg.IdentifiersCanStartWithDigit = opts.IdentifiersCanStartWithDigit

@@ -140,6 +140,9 @@ func newNode(k Kind, args Args) *Node {
 		n.args[key] = args[key]
 		n.argOrder = append(n.argOrder, key)
 	}
+	if timeUnitKinds[k] {
+		normalizeTimeUnit(n)
+	}
 	if !primitive[k] {
 		for _, key := range n.argOrder {
 			n.setParent(key, n.args[key], -1)
@@ -1500,4 +1503,38 @@ func DotBuild(expressions []Expression) Expression {
 		current = Dot(Args{"this": current, "expression": expression})
 	}
 	return current
+}
+
+// HasArg reports whether key is present in e's args (Python's `key in expression.args`).
+func HasArg(e Expression, key string) bool {
+	n, ok := e.(*Node)
+	return ok && n.hasArgKey(key)
+}
+
+// ExpressionsOf is e.ExpressionsFor(key) through the Expression interface.
+func ExpressionsOf(e Expression, key string) []Expression {
+	if n, ok := e.(*Node); ok {
+		return n.ExpressionsFor(key)
+	}
+	return nil
+}
+
+// AnyKind matches a node of any of the given kinds (Python's find(*types)).
+type AnyKind []Kind
+
+func (ks AnyKind) matches(e Expression) bool {
+	for _, k := range ks {
+		if k.matches(e) {
+			return true
+		}
+	}
+	return false
+}
+
+// Children returns e's direct child expressions in arg order (Expr.iter_expressions).
+func Children(e Expression) []Expression {
+	if n, ok := e.(*Node); ok {
+		return n.iterExpressions(false)
+	}
+	return nil
 }

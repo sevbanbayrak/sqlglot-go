@@ -604,3 +604,16 @@ func hiveIsCastTimeFormat(e expressions.Expression, format string) bool {
 	}
 	return false
 }
+
+// generators/hive.py:326 RegexpReplace: regexp_replace_sql (dialect.py:1868-1871).
+func init() {
+	registerDialectDispatch("hive", map[expressions.Kind]func(*Generator, expressions.Expression) string{
+		expressions.KindRegexpReplace: func(g *Generator, e expressions.Expression) string {
+			return g.funcCall("REGEXP_REPLACE", []any{e.This(), e.Expr(), e.Arg("replacement")}, "(", ")", true)
+		},
+		expressions.KindTrunc: func(g *Generator, e expressions.Expression) string {
+			// trunc_sql (generators/hive.py:492-493).
+			return g.gen(expressions.CastTo(e.This(), expressions.DTypeBigInt))
+		},
+	})
+}

@@ -178,6 +178,14 @@ AST cannot tell a parsed `WITH OFFSET` from `WITH ORDINALITY AS u(v, n)`, whose 
 upstream pops into the same `Identifier` offset, so the check is parser-only. Test
 `parser/postgres_unnest_test.go`.
 
+### 1.22 MySQL `DESCRIBE t <sequence option>` → `Command`
+
+The sequence-property parser that Snowflake needed (`_parse_sequence_properties`, parser.py) also
+runs after a MySQL `DESCRIBE` target, so upstream turns `DESCRIBE users order` into a `Describe`
+holding an empty-valued `SequenceProperties` and writes `DESCRIBE users`, silently dropping the word.
+Under mysql the port fails the structured parse closed instead and keeps the statement as a verbatim
+`Command`. Test `mysql_describe_column_test.go` (`TestMySQLDescribeColumnBoundaries`).
+
 ## Opt-in behavioral extensions beyond upstream
 
 Additive analysis features; default behavior and fixture output unchanged.
@@ -282,6 +290,16 @@ source nodes only other dialects build are not. Several Presto functions still p
   `PROPERTIES_LOCATION` table that has no `OnCluster` entry and raises `KeyError`; the port reports
   it as an unsupported property and drops it (`CREATE TABLE t ON CLUSTER c (a Int32) ...` written to
   postgres yields `CREATE TABLE t (a INT) ...` plus an unsupported warning).
+- No annotate_types: where upstream calls `annotate_types` to read an argument's type, the port asks
+  `exp.StaticType`, which knows casts, literals, booleans, NULL, parentheses, arrays and the
+  date/time-returning functions, but not schema-typed columns. Affected: Snowflake `build_trunc`,
+  `_build_timetostr_or_tochar`, `_date_trunc_to_time`, `trycast_sql`, `dot_sql`, and the base
+  `toarray_sql`, `getextract_sql` and `tsordstotime_sql`. A column whose type only a schema would
+  give takes the untyped branch (for example `TRUNC(col, 'MONTH')` stays `Anonymous`, as upstream
+  does without a schema). Tests `snowflake_test.go`, the Snowflake corpora.
+- `SHOW` written to a dialect without a `SHOW` grammar: upstream's base `show_sql` reports it as
+  unsupported and emits nothing; the port's base renderer is MySQL's `show_sql`, so a Snowflake
+  `SHOW COLUMNS` written to postgres or spark comes out as `SHOW COLUMNS`.
 
 ---
 
@@ -294,6 +312,13 @@ None change `.sql()`:
 - `matchTextSeq` retreat has no debug logger.
 - Databricks `create_sql`/`columndef_sql` (RETURN wrapping, identity column BIGINT) rewrite a copy
   instead of mutating the input tree, so `Generate` stays side-effect free.
+- `exp.cast(x, "TYPE", dialect=...)` parses the type string in the dialect; `exp.CastTo` builds the
+  `DataType` from the `DType` directly, which is the same node for every type the Snowflake and base
+  renderers pass.
+- The optimizer package's internal scope tests reach `sqlglot.ParseOne`/`Generate` through
+  `optimizer/export_test.go` hooks set from the external test package: the generator now imports
+  the optimizer (Snowflake transforms use `build_scope`/`find_all_in_scope`, as upstream does), so an
+  internal test may no longer import the root or generator packages directly.
 
 ---
 
@@ -302,10 +327,11 @@ None change `.sql()`:
 - Comment bubbling: a trailing comment can attach to a slightly different node.
 - MySQL `PARTITION BY RANGE (YEAR(col))`: upstream wraps/unwraps `TsOrDsToDate`; the port elides
   both (capped in `fidelity_test.go` `maxASTDivergences`).
-- `_parse_wrapped_options` (Databricks `FORMAT_OPTIONS ('a'='1', 'b'='2')`): upstream's separating
-  comma is consumed by `_parse_sequence_properties`, which leaves an empty `SequenceProperties` in
-  the option list; sequence properties are not ported, so the port skips the comma and the list
-  holds only the `Property` nodes.
+- Falsy defaults some parsers record and the port leaves unset: `Insert` `stored`/`partition`/
+  `settings`/`source`, `Merge` `using_cond`, `Chr` `charset` (the last is asserted by
+  `parser/parser_char_test.go`).
+- `TRIM(...)` builds `exp.Trim` through the FUNCTIONS table only under Snowflake; Presto keeps its
+  `Anonymous` TRIM (upstream builds `Trim` there too); both write `TRIM(x)`.
 
 ---
 
@@ -319,6 +345,9 @@ None change `.sql()`:
   Hive family (Hive/Spark2/Spark/Databricks) gets the `$`-token branch (`parseDollarHeredoc`), so
   Databricks `AS $$…$$` / `AS $TAG$…$TAG$` Python UDF bodies parse to `exp.Heredoc`. An unclosed
   body (`$foo$…$$`) raises a ParseError upstream; here the CREATE degrades to `Command`.
+- Snowflake `CREATE STAGE s FILE_FORMAT=123` and `CREATE VIEW v WITH ROW ACCESS POLICY p AS SELECT
+  1` (no `ON`): upstream's `raise_error` escapes `_parse_create` as a ParseError; the port's CREATE
+  degrade path catches it and returns a verbatim `Command`. Test `snowflake_test.go`.
 
 ---
 

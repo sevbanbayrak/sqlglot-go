@@ -37,8 +37,9 @@ from tests.dialects.test_trino import TestTrino  # noqa: E402
 from tests.dialects.test_spark import TestSpark  # noqa: E402
 from tests.dialects.test_databricks import TestDatabricks  # noqa: E402
 from tests.dialects.test_clickhouse import TestClickhouse  # noqa: E402
+from tests.dialects.test_snowflake import TestSnowflake  # noqa: E402
 
-SUPPORTED = {"", "mysql", "postgres", "presto", "trino", "hive", "athena", "spark2", "spark", "databricks", "clickhouse"}
+SUPPORTED = {"", "mysql", "postgres", "presto", "trino", "hive", "athena", "spark2", "spark", "databricks", "clickhouse", "snowflake"}
 OUT_PATH = "testdata/transpile_cases.jsonl"
 
 captured = []
@@ -76,7 +77,7 @@ def patched_validate_all(self, sql, read=None, write=None, pretty=False, identif
 def main():
     Validator.validate_all = patched_validate_all
     runner = unittest.TextTestRunner(verbosity=0, stream=open("/dev/null", "w"))
-    for cls in (TestDialect, TestMySQL, TestPostgres, TestAthena, TestTrino, TestPresto, TestHive, TestSpark, TestDatabricks, TestClickhouse):
+    for cls in (TestDialect, TestMySQL, TestPostgres, TestAthena, TestTrino, TestPresto, TestHive, TestSpark, TestDatabricks, TestClickhouse, TestSnowflake):
         runner.run(unittest.defaultTestLoader.loadTestsFromTestCase(cls))
 
     records = {}

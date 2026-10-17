@@ -82,14 +82,23 @@ func init() {
 		exp.KindTimestampTrunc: func(g *Generator, e exp.Expression) string {
 			return g.funcCall("DATE_TRUNC", []any{unitToStr(e), e.This(), e.Arg("zone")}, "(", ")", true)
 		},
-		exp.KindArrayFilter: (*Generator).filterArrayUsingUnnest,
-		// dialect.py:1370-1415 array_append_sql; ARRAY_FUNCS_PROPAGATES_NULLS is False for Postgres
-		// and null_propagation is never set by the ported parsers, so only the plain call is reached.
-		exp.KindArrayAppend: func(g *Generator, e exp.Expression) string {
-			return g.funcCall("ARRAY_APPEND", []any{e.This(), e.Expr()}, "(", ")", true)
-		},
-		exp.KindArrayPrepend: func(g *Generator, e exp.Expression) string {
-			return g.funcCall("ARRAY_PREPEND", []any{e.Expr(), e.This()}, "(", ")", true)
+		exp.KindArrayFilter:        (*Generator).filterArrayUsingUnnest,
+		exp.KindArrayAppend:        arrayAppendSQLFunc("ARRAY_APPEND", false),
+		exp.KindArrayPrepend:       arrayAppendSQLFunc("ARRAY_PREPEND", true),
+		exp.KindArrayConcat:        arrayConcatSQL("ARRAY_CAT", false),
+		exp.KindTimestampFromParts: prestoRename("MAKE_TIMESTAMP"),
+		exp.KindTimeFromParts:      prestoRename("MAKE_TIME"),
+		exp.KindBitwiseAndAgg:      prestoRename("BIT_AND"),
+		exp.KindBitwiseOrAgg:       prestoRename("BIT_OR"),
+		exp.KindBitwiseXorAgg:      prestoRename("BIT_XOR"),
+		exp.KindBitwiseXor:         func(g *Generator, e exp.Expression) string { return g.binary(e, "#") },
+		exp.KindPivot:              noPivotSQL,
+		exp.KindLastDay: func(g *Generator, e exp.Expression) string {
+			// no_last_day_sql (dialects/dialect.py:2161-2166)
+			truncCurrDate := exp.FunctionByName["DATE_TRUNC"]([]exp.Expression{exp.LiteralString("month"), e.This()})
+			plusOneMonth := exp.FunctionByName["DATE_ADD"]([]exp.Expression{truncCurrDate, exp.LiteralNumber(1), exp.LiteralString("month")})
+			minusOneDay := exp.FunctionByName["DATE_SUB"]([]exp.Expression{plusOneMonth, exp.LiteralNumber(1), exp.LiteralString("day")})
+			return g.gen(exp.CastTo(minusOneDay, exp.DTypeDate))
 		},
 		exp.KindBracket: func(g *Generator, e exp.Expression) string {
 			// generators/postgres.py:480-485: ARRAY[1, 2, 3][3] is not allowed; wrap the array.
@@ -262,4 +271,49 @@ func (g *Generator) filterArrayUsingUnnest(e exp.Expression) string {
 		"where":       exp.Where(exp.Args{"this": cond}),
 	})
 	return g.gen(exp.New(exp.KindArray, exp.Args{"expressions": []exp.Expression{filtered}}))
+}
+
+// generators/postgres.py TRANSFORMS reached from Snowflake sources.
+func init() {
+	registerDialectDispatch("postgres", map[exp.Kind]func(*Generator, exp.Expression) string{
+		exp.KindCurrentVersion: prestoRename("VERSION"),
+		exp.KindLogicalAnd:     prestoRename("BOOL_AND"),
+		exp.KindRegexpReplace: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("REGEXP_REPLACE", []any{e.This(), e.Expr(), e.Arg("replacement"), e.Arg("position"), e.Arg("occurrence"), regexpReplaceGlobalModifier(e)}, "(", ")", true)
+		},
+		exp.KindToChar: func(g *Generator, e exp.Expression) string {
+			if e.Arg("format") != nil {
+				return g.functionFallbackSQL(e)
+			}
+			return g.gen(exp.CastTo(e.This(), exp.DTypeText))
+		},
+	})
+	registerDialectPropertyLocations("postgres", map[exp.Kind]propertyLocation{
+		exp.KindTransientProperty: propertyLocationUnsupported,
+	})
+}
+
+// regexpReplaceGlobalModifier ports regexp_replace_global_modifier (dialect.py:2610-2623).
+func regexpReplaceGlobalModifier(e exp.Expression) exp.Expression {
+	modifiers := asExpression(e.Arg("modifiers"))
+	occurrence := asExpression(e.Arg("occurrence"))
+	if !truthy(e.Arg("single_replace")) && (occurrence == nil || (occurrence.IsInt() && occurrence.Name() == "0")) {
+		if modifiers == nil || modifiers.IsString() {
+			// Append 'g' to the modifiers if they are not provided since
+			// the semantics of REGEXP_REPLACE from the input dialect
+			// is to replace all occurrences of the pattern.
+			value := ""
+			if modifiers != nil {
+				value = modifiers.Name()
+			}
+			modifiers = exp.LiteralString(value + "g")
+		}
+	}
+	return modifiers
+}
+
+// noPivotSQL ports no_pivot_sql (dialects/dialect.py:1296-1298).
+func noPivotSQL(g *Generator, e exp.Expression) string {
+	g.unsupported("PIVOT unsupported")
+	return ""
 }

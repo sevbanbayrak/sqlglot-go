@@ -21,7 +21,7 @@ func (p *Parser) parseDrop() exp.Expression {
 	iceberg := p.matchTextSeq("ICEBERG")
 
 	var kind string
-	if p.matchSet(creatables) {
+	if p.matchSet(p.creatablesFor()) {
 		kind = stringsUpper(p.prev.Text)
 	}
 	if kind == "" || (iceberg && kind != "TABLE") {

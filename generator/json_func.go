@@ -55,11 +55,7 @@ func (g *Generator) jsonObjectSQL(e expressions.Expression) string {
 // is ":" by upstream base default (generator.py:460); MySQL overrides it to "," (generators/
 // mysql.py:144) - Postgres has no override, so it keeps the base colon.
 func (g *Generator) jsonKeyValueSQL(e expressions.Expression) string {
-	sep := ":"
-	if g.dialect.Name == "mysql" {
-		sep = ","
-	}
-	return g.sqlKey(e, "this") + sep + " " + g.sqlKey(e, "expression")
+	return g.sqlKey(e, "this") + g.dialect.JSONKeyValuePairSep + " " + g.sqlKey(e, "expression")
 }
 
 // onConditionSQL ports oncondition_sql (generator.py:5577-5603): renders the trailing

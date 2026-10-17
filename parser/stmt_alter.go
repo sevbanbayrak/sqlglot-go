@@ -44,6 +44,13 @@ func init() {
 		"DROP":   (*Parser).parseAlterTableDrop,
 		"RENAME": func(p *Parser) []exp.Expression { return ensureListExpr(p.parseAlterTableRename()) },
 		"SET":    func(p *Parser) []exp.Expression { return ensureListExpr(p.parseAlterTableSet()) },
+		"SWAP": func(p *Parser) []exp.Expression {
+			var this exp.Expression
+			if p.match(tokens.WITH) {
+				this = p.parseTable(true, false, nil, false, false, false, false)
+			}
+			return ensureListExpr(p.expression(exp.New(exp.KindSwapTable, exp.Args{"this": this}), nil, nil))
+		},
 	}
 
 	// mysqlAlterParsers ports parsers/mysql.py:253-258 MySQLParser.ALTER_PARSERS:
@@ -76,11 +83,50 @@ func (p *Parser) alterParsers() map[string]func(*Parser) []exp.Expression {
 		return mysqlAlterParsers
 	case "clickhouse":
 		return clickHouseAlterParsers
+	case "snowflake":
+		return snowflakeAlterParsers
 	}
 	if p.dialect.Is("hive") {
 		return hiveAlterParsers
 	}
 	return alterParsers
+}
+
+// snowflakeAlterParsers ports parsers/snowflake.py:753-765 (ALTER_PARSERS + MODIFY/SESSION/UNSET).
+var snowflakeAlterParsers map[string]func(*Parser) []exp.Expression
+
+func init() {
+	snowflakeAlterParsers = make(map[string]func(*Parser) []exp.Expression, len(alterParsers)+3)
+	for k, v := range alterParsers {
+		snowflakeAlterParsers[k] = v
+	}
+	snowflakeAlterParsers["MODIFY"] = func(p *Parser) []exp.Expression {
+		return ensureListExpr(p.parseAlterTableAlter())
+	}
+	snowflakeAlterParsers["SESSION"] = func(p *Parser) []exp.Expression {
+		return ensureListExpr(p.parseAlterSession())
+	}
+	snowflakeAlterParsers["UNSET"] = func(p *Parser) []exp.Expression {
+		tag := p.matchTextSeq("TAG")
+		return ensureListExpr(p.expression(exp.Set(exp.Args{
+			"tag":         tag,
+			"expressions": p.parseCsv(func() exp.Expression { return p.parseIdVar(true, nil) }),
+			"unset":       true,
+		}), nil, nil))
+	}
+}
+
+// parseAlterSession ports _parse_alter_session (parser.py:9202-9212).
+func (p *Parser) parseAlterSession() exp.Expression {
+	if p.match(tokens.SET) {
+		expressions := p.parseCsv(func() exp.Expression { return p.parseSetItemAssignment(nil) })
+		return p.expression(exp.New(exp.KindAlterSession, exp.Args{"expressions": expressions, "unset": false}), nil, nil)
+	}
+	p.matchTextSeq("UNSET")
+	expressions := p.parseCsv(func() exp.Expression {
+		return p.expression(exp.SetItem(exp.Args{"this": p.parseIdVar(true, nil)}), nil, nil)
+	})
+	return p.expression(exp.New(exp.KindAlterSession, exp.Args{"expressions": expressions, "unset": true}), nil, nil)
 }
 
 // clickHouseAlterParsers ports parsers/clickhouse.py:366-370 (ALTER_PARSERS + MODIFY/REPLACE).
@@ -507,10 +553,7 @@ func (p *Parser) parseAlterTableRename() exp.Expression {
 	return p.parseAlterTableRenameBase()
 }
 
-// parseAlterTableSet ports _parse_alter_table_set (parser.py:8875-8909). The
-// STAGE_FILE_FORMAT/STAGE_COPY_OPTIONS branches (Snowflake-only, needing
-// _parse_wrapped_options - not ported anywhere in this codebase) are omitted; unsupported
-// occurrences fall through to the shared property parser and ultimately fail closed.
+// parseAlterTableSet ports _parse_alter_table_set (parser.py:9166-9200).
 func (p *Parser) parseAlterTableSet() exp.Expression {
 	alterSet := p.expression(exp.AlterSet(nil), nil, nil)
 
@@ -531,6 +574,10 @@ func (p *Parser) parseAlterTableSet() exp.Expression {
 		alterSet.Set("tablespace", p.parseField(false, nil, false))
 	case p.matchTextSeq("FILE", "FORMAT") || p.matchTextSeq("FILEFORMAT"):
 		alterSet.Set("file_format", []exp.Expression{p.parseField(false, nil, false)})
+	case p.matchTextSeq("STAGE_FILE_FORMAT"):
+		alterSet.Set("file_format", p.parseWrappedOptions())
+	case p.matchTextSeq("STAGE_COPY_OPTIONS"):
+		alterSet.Set("copy_options", p.parseWrappedOptions())
 	case p.matchTextSeq("TAG") || p.matchTextSeq("TAGS"):
 		alterSet.Set("tag", p.parseCsv(p.parseAssignment))
 	default:

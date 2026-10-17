@@ -66,7 +66,7 @@ func (p *Parser) parseGrantRevokeCommon() ([]exp.Expression, string, exp.Express
 
 	p.match(tokens.ON)
 	var kind string
-	if p.matchSet(creatables) {
+	if p.matchSet(p.creatablesFor()) {
 		kind = stringsUpper(p.prev.Text)
 	}
 
@@ -120,7 +120,7 @@ func (p *Parser) parseRevoke() exp.Expression {
 
 	principals := p.parseCsv(p.parseGrantPrincipal)
 
-	var cascade string
+	var cascade any
 	if p.matchTexts(revokeCascadeKinds) {
 		cascade = stringsUpper(p.prev.Text)
 	}

@@ -345,6 +345,10 @@ func (g *Generator) renderProperties(properties expressions.Expression, prefix, 
 // withPropertiesSQL ports with_properties (generator.py:2064-2065). Base, MySQL, and
 // Postgres all use the base WITH_PROPERTIES_PREFIX of "WITH".
 func (g *Generator) withPropertiesSQL(properties expressions.Expression) string {
+	if g.isDialect("snowflake") {
+		// generators/snowflake.py:661-662.
+		return g.renderProperties(properties, g.sep(""), " ", "", false)
+	}
 	return g.renderProperties(properties, g.seg("WITH", ""), ", ", "", true)
 }
 
@@ -598,6 +602,18 @@ func init() {
 }
 
 func init() {
+	// converttimezone_sql (generator.py:5600-5615).
+	dispatch[expressions.KindConvertTimezone] = func(g *Generator, e expressions.Expression) string {
+		if g.dialect.SupportsConvertTimezone {
+			return g.functionFallbackSQL(e)
+		}
+		sourceTZ, targetTZ := asExpression(e.Arg("source_tz")), asExpression(e.Arg("target_tz"))
+		timestamp := asExpression(e.Arg("timestamp"))
+		if sourceTZ != nil && timestamp != nil {
+			timestamp = expressions.New(expressions.KindAtTimeZone, expressions.Args{"this": expressions.CastTo(timestamp, expressions.DTypeTimestampNtz), "zone": sourceTZ})
+		}
+		return g.gen(expressions.New(expressions.KindAtTimeZone, expressions.Args{"this": timestamp, "zone": targetTZ}))
+	}
 	// lastday_sql (generator.py:5232-5240).
 	dispatch[expressions.KindLastDay] = func(g *Generator, e expressions.Expression) string {
 		if g.dialect.LastDaySupportsDatePart {

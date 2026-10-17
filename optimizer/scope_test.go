@@ -6,14 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	sqlglot "github.com/sevbanbayrak/sqlglot-go"
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
-	"github.com/sevbanbayrak/sqlglot-go/generator"
 )
 
 func parseOne(t *testing.T, sql string) exp.Expression {
 	t.Helper()
-	expression, err := sqlglot.ParseOne(sql, "")
+	expression, err := TestParseOne(sql, "")
 	if err != nil {
 		t.Fatalf("ParseOne(%q): %v", sql, err)
 	}
@@ -22,7 +20,7 @@ func parseOne(t *testing.T, sql string) exp.Expression {
 
 func sqlOf(t *testing.T, expression exp.Expression) string {
 	t.Helper()
-	sql, err := sqlglot.Generate(expression, "", generator.Options{})
+	sql, err := TestGenerate(expression, "")
 	if err != nil {
 		t.Fatalf("Generate(%s): %v", expression.ToS(), err)
 	}
@@ -345,7 +343,7 @@ func TestScopeLateralUnnest(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		expression, err := sqlglot.ParseOne(tc.sql, "postgres")
+		expression, err := TestParseOne(tc.sql, "postgres")
 		if err != nil {
 			t.Fatalf("ParseOne(%q): %v", tc.sql, err)
 		}

@@ -124,11 +124,15 @@ func (p *Parser) parseSet() exp.Expression {
 		p.retreat(index)
 		return p.parseAsCommand(start)
 	}
-	return p.expression(exp.Set(exp.Args{
+	set := p.expression(exp.Set(exp.Args{
 		"expressions": items,
 		"unset":       false,
 		"tag":         false,
 	}), nil, nil)
+	if p.dialect.Is("snowflake") {
+		return snowflakeSetVariableKind(set)
+	}
+	return set
 }
 
 // parseSetItem ports _parse_set_item (parser.py:9261-9263): dispatch through SET_PARSERS/

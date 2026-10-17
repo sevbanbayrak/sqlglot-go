@@ -177,11 +177,10 @@ func (g *Generator) computedColumnConstraintSQL(e expressions.Expression) string
 }
 
 // autoIncrementColumnConstraintSQL ports autoincrementcolumnconstraint_sql
-// (generator.py:1200-1201): `self.token_sql(TokenType.AUTO_INCREMENT)`. The base
-// TOKEN_MAPPING is empty and neither MySQL nor Postgres override it, so token_sql just
-// falls back to the token's name, "AUTO_INCREMENT" (generator.py:4712-4713).
+// (generator.py:1200-1201): `self.token_sql(TokenType.AUTO_INCREMENT)`, which is the
+// TOKEN_MAPPING entry (Snowflake: AUTOINCREMENT) or the token's name, "AUTO_INCREMENT".
 func (g *Generator) autoIncrementColumnConstraintSQL(e expressions.Expression) string {
-	return "AUTO_INCREMENT"
+	return g.dialect.AutoIncrementTokenName
 }
 
 // generatedAsIdentityColumnConstraintSQL ports generatedasidentitycolumnconstraint_sql

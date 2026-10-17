@@ -16,6 +16,9 @@ func (p *Parser) parseCreate() exp.Expression {
 	// the body at IMMEDIATE error level so a partial parse retreats without leaving stale
 	// errors that would later poison checkErrors.
 	if structured := p.tryParse(func() exp.Expression { return p.parseCreateStructured(start) }, false); structured != nil {
+		if p.dialect.Is("snowflake") {
+			return snowflakeFixCreate(structured)
+		}
 		return structured
 	}
 	// Grammar extension: MySQL CREATE {USER|ROLE} — structure as a Create root carrying the object
@@ -80,11 +83,11 @@ func (p *Parser) parseCreateStructured(start tokens.Token) exp.Expression {
 		}
 	}
 
-	if !p.matchSet(creatables) {
+	if !p.matchSet(p.creatablesFor()) {
 		// exp.Properties.Location.POST_CREATE
 		parsed := p.parseProperties()
 		extendProperties(parsed)
-		if parsed == nil || !p.matchSet(creatables) {
+		if parsed == nil || !p.matchSet(p.creatablesFor()) {
 			return nil
 		}
 	}
@@ -946,6 +949,14 @@ var propertyParsers map[string]propertyParserFunc
 func init() {
 	defer addDictAndMergeTreePropertyParsers()
 	propertyParsers = map[string]propertyParserFunc{
+		"ALLOWED_VALUES": func(p *Parser, _ bool) exp.Expression {
+			return p.expression(exp.New(exp.KindAllowedValuesProperty, exp.Args{"expressions": p.parseCsv(p.parsePrimary)}), nil, nil)
+		},
+		"EXECUTE": func(p *Parser, _ bool) exp.Expression {
+			return p.parsePropertyAssignment(func(this exp.Expression) exp.Expression {
+				return p.expression(exp.New(exp.KindExecuteAsProperty, exp.Args{"this": this}), nil, nil)
+			})
+		},
 		"ALGORITHM": func(p *Parser, _ bool) exp.Expression {
 			return p.parsePropertyAssignment(func(this exp.Expression) exp.Expression {
 				return p.expression(exp.AlgorithmProperty(exp.Args{"this": this}), nil, nil)

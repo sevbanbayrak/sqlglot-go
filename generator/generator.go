@@ -115,7 +115,9 @@ func New(d *dialects.Dialect, o Options) *Generator {
 	identifierStart, identifierEnd := identifierDelimiters(d)
 	quoteStart, quoteEnd := quoteDelimiters(d)
 	stringEscape := "'"
-	if !d.TokenizerConfig.StringEscapes['\''] {
+	if d.StringEscape != "" {
+		stringEscape = d.StringEscape
+	} else if !d.TokenizerConfig.StringEscapes['\''] {
 		for r := range d.TokenizerConfig.StringEscapes {
 			stringEscape = string(r)
 			break
@@ -421,7 +423,7 @@ func withSeparatedComments(k expressions.Kind) bool {
 		expressions.KindDrop, expressions.KindFrom, expressions.KindJoin, expressions.KindOrder, expressions.KindGroup,
 		expressions.KindHaving, expressions.KindSelect, expressions.KindUnion, expressions.KindExcept,
 		expressions.KindIntersect, expressions.KindUpdate, expressions.KindWhere, expressions.KindWith,
-		expressions.KindInsert:
+		expressions.KindInsert, expressions.KindMultitableInserts:
 		return true
 	}
 	return false
@@ -532,6 +534,12 @@ func listFromValue(value any) []any {
 	switch v := value.(type) {
 	case nil:
 		return nil
+	case bool:
+		// expressions() (generator.py) returns "" for any falsy arg value.
+		if !v {
+			return nil
+		}
+		return []any{v}
 	case []any:
 		return v
 	case []string:

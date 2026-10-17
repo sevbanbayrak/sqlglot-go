@@ -1,5 +1,7 @@
 package expressions
 
+import "strings"
+
 // timeUnitKinds is filled from kinds_funcs_gen.go: Kinds whose upstream class subclasses
 // TimeUnit, so a positional unit arg is normalized like the TimeUnit constructor does.
 var timeUnitKinds = map[Kind]bool{}
@@ -10,12 +12,24 @@ func FromArgList(kind Kind, args []Expression) Expression {
 		// DateTrunc.__init__ (temporal.py:168-183) normalizes the unit, see DateTrunc.
 		return DateTrunc(node.(*Node).args)
 	}
-	if timeUnitKinds[kind] {
-		if unit, ok := node.Arg("unit").(Expression); ok && unit != nil {
-			node.Set("unit", TimeUnitVar(unit))
-		}
-	}
 	return node
+}
+
+// normalizeTimeUnit ports the TimeUnit constructor (expressions/core.py:2055-2068), which runs on
+// every construction of a TimeUnit subclass, not only on from_arg_list.
+func normalizeTimeUnit(n *Node) {
+	unit, ok := n.args["unit"].(Expression)
+	if !ok || unit == nil {
+		return
+	}
+	if unit.Kind() == KindWeek {
+		if unit.This() == nil {
+			return
+		}
+		unit.Set("this", Var(Args{"this": strings.ToUpper(unit.This().Name())}))
+		return
+	}
+	n.args["unit"] = TimeUnitVar(unit)
 }
 
 func fromArgList(kind Kind, args []Expression) Expression {

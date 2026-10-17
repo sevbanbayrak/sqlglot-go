@@ -49,12 +49,17 @@ func SHA2Digest(args Args) Expression { return newNode(KindSHA2Digest, args) }
 // DateTrunc ports exp.DateTrunc (expressions/temporal.py:165-186), including the constructor's
 // unit unabbreviation to an uppercase string literal.
 func DateTrunc(args Args) Expression {
+	unabbreviate := true
+	if v, ok := args["unabbreviate"].(bool); ok {
+		unabbreviate = v
+		delete(args, "unabbreviate")
+	}
 	if unit, ok := args["unit"].(Expression); ok && unit != nil {
 		switch unit.Kind() {
 		case KindColumn, KindLiteral, KindVar:
 			if unit.Kind() != KindColumn || len(unit.Parts()) == 1 {
 				name := strings.ToUpper(unit.Name())
-				if expanded := UnabbreviatedUnitName[name]; expanded != "" {
+				if expanded := UnabbreviatedUnitName[name]; unabbreviate && expanded != "" {
 					name = expanded
 				}
 				args["unit"] = LiteralString(name)

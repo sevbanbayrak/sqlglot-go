@@ -5,9 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	sqlglot "github.com/sevbanbayrak/sqlglot-go"
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
-	"github.com/sevbanbayrak/sqlglot-go/generator"
 	"github.com/sevbanbayrak/sqlglot-go/schema"
 )
 
@@ -86,7 +84,7 @@ func dmlSubquery(alias, table string) exp.Expression {
 
 func parseDMLDialect(t *testing.T, sql, dialect string) exp.Expression {
 	t.Helper()
-	expression, err := sqlglot.ParseOne(sql, dialect)
+	expression, err := TestParseOne(sql, dialect)
 	if err != nil {
 		t.Fatalf("ParseOne(%q, %q): %v", sql, dialect, err)
 	}
@@ -125,7 +123,7 @@ func qualifyDMLSQL(t *testing.T, sql, dialect string, mapping *schema.Mapping, i
 		result = Qualify(expression, opts)
 	}()
 
-	got, err := sqlglot.Generate(result, dialect, generator.Options{})
+	got, err := TestGenerate(result, dialect)
 	if err != nil {
 		t.Fatalf("Generate(Qualify(%q), %q): %v", sql, dialect, err)
 	}
@@ -276,7 +274,7 @@ func TestDMLScopeParserNestedJoinSources(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			expression, err := sqlglot.ParseOne(tc.sql, tc.dialect)
+			expression, err := TestParseOne(tc.sql, tc.dialect)
 			if err != nil {
 				t.Fatalf("ParseOne: %v", err)
 			}

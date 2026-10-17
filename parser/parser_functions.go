@@ -162,6 +162,15 @@ func (p *Parser) parseDatePart() exp.Expression {
 }
 
 func (p *Parser) parsePosition() exp.Expression {
+	result := p.parsePositionBase()
+	if p.dialect.Is("snowflake") && result != nil && result.Kind() == exp.KindStrPosition {
+		// parsers/snowflake.py:1380-1383.
+		result.Set("clamp_position", true)
+	}
+	return result
+}
+
+func (p *Parser) parsePositionBase() exp.Expression {
 	opaqueName := p.captureOpaqueName()
 	args := p.parseCsv(p.parseBitwise)
 	if p.match(tokens.IN) {
@@ -197,6 +206,15 @@ func (p *Parser) parseOverlay() exp.Expression {
 }
 
 func (p *Parser) parseSubstring() exp.Expression {
+	result := p.parseSubstringBase()
+	if p.dialect.Is("snowflake") && result != nil && result.Kind() == exp.KindSubstring {
+		// parsers/snowflake.py:1385-1388.
+		result.Set("zero_start", true)
+	}
+	return result
+}
+
+func (p *Parser) parseSubstringBase() exp.Expression {
 	opaqueName := p.captureOpaqueName()
 	args := p.parseCsv(p.parseBitwise)
 	if p.dialect.OpaqueFunctions && p.curr.TokenType != tokens.FROM && p.curr.TokenType != tokens.FOR {

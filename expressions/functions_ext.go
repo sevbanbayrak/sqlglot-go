@@ -9,6 +9,13 @@ func init() {
 		}
 		return nil
 	}
+	arrayConcat := func(args []Expression) Expression {
+		rest := []Expression{}
+		if len(args) > 1 {
+			rest = args[1:]
+		}
+		return New(KindArrayConcat, Args{"this": seq(args, 0), "expressions": rest})
+	}
 	textCast := func(args []Expression) Expression {
 		return New(KindCast, Args{"this": seq(args, 0), "to": DTypeText.IntoExpr(nil)})
 	}
@@ -81,13 +88,22 @@ func init() {
 		"GEN_RANDOM_UUID": func([]Expression) Expression { return New(KindUuid, nil) },
 		"GENERATE_UUID":   func([]Expression) Expression { return New(KindUuid, nil) },
 		"UUID_STRING":     func([]Expression) Expression { return New(KindUuid, nil) },
-		// parser.py:193-232 build_array_append/build_array_prepend; ARRAY_FUNCS_PROPAGATES_NULLS is
-		// False for every ported dialect, so null_propagation stays unset.
+		// parser.py:193-253 build_array_append/build_array_prepend/build_array_concat; dialects with
+		// ARRAY_FUNCS_PROPAGATES_NULLS set null_propagation in their own overlay.
 		"ARRAY_APPEND": func(args []Expression) Expression {
 			return New(KindArrayAppend, Args{"this": seq(args, 0), "expression": seq(args, 1)})
 		},
 		"ARRAY_PREPEND": func(args []Expression) Expression {
 			return New(KindArrayPrepend, Args{"this": seq(args, 0), "expression": seq(args, 1)})
+		},
+		"ARRAY_CAT":    arrayConcat,
+		"ARRAY_CONCAT": arrayConcat,
+		// parser.py:401 build_convert_timezone (parser.py:154-165).
+		"CONVERT_TIMEZONE": func(args []Expression) Expression {
+			if len(args) == 2 {
+				return New(KindConvertTimezone, Args{"target_tz": seq(args, 0), "timestamp": seq(args, 1)})
+			}
+			return FromArgList(KindConvertTimezone, args)
 		},
 		"LPAD":     pad(true),
 		"LEFTPAD":  pad(true),

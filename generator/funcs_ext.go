@@ -74,10 +74,11 @@ func init() {
 				}
 				cond = expressions.Or(expressions.Args{
 					"this": expressions.EQ(expressions.Args{"this": decodeExpr.Copy(), "expression": search}),
-					"expression": expressions.And(expressions.Args{
+					// exp.or_ wraps a Connector operand in parentheses (_combine, core.py).
+					"expression": expressions.Paren(expressions.Args{"this": expressions.And(expressions.Args{
 						"this":       expressions.Is(expressions.Args{"this": decodeExpr.Copy(), "expression": expressions.Null()}),
 						"expression": expressions.Is(expressions.Args{"this": search.Copy(), "expression": expressions.Null()}),
-					}),
+					})}),
 				})
 			}
 			ifs = append(ifs, expressions.If(expressions.Args{"this": cond, "true": result}))

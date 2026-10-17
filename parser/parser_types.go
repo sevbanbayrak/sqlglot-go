@@ -213,7 +213,7 @@ func (p *Parser) parseTypesBase(checkFunc, schema, allowIdentifiers, withCollati
 	// mysql adds TokenType.SET to TYPE_TOKENS/ENUM_TYPE_TOKENS (mysql.py:280-287); rather
 	// than mutating the global typeTokens (which would leak SET-as-type into base/postgres),
 	// match it inline for the mysql dialect only, then treat it as an enum below.
-	if p.matchSet(typeTokens) || (p.dialect.Name == "mysql" && p.match(tokens.SET)) {
+	if p.matchSet(p.typeTokensFor()) || (p.dialect.Name == "mysql" && p.match(tokens.SET)) {
 		typeToken = p.prev.TokenType
 	} else {
 		var identifier exp.Expression
@@ -284,8 +284,8 @@ func (p *Parser) parseTypesBase(checkFunc, schema, allowIdentifiers, withCollati
 		return p.expression(exp.DataType(exp.Args{"this": exp.DTypeMap, "expressions": []exp.Expression{keyType, valueType}, "nested": true}), nil, nil)
 	}
 
-	nested := nestedTypeTokens[typeToken]
-	isStruct := structTypeTokens[typeToken]
+	nested := nestedTypeTokens[typeToken] || dialectParserOverrides[p.parserOverrideKey()].TypeTokensAdded[typeToken]
+	isStruct := structTypeTokens[typeToken] || dialectParserOverrides[p.parserOverrideKey()].TypeTokensAdded[typeToken]
 	isAggregate := aggregateTypeTokens[typeToken]
 	expressions := []exp.Expression(nil)
 	maybeFunc := false
@@ -328,8 +328,11 @@ func (p *Parser) parseTypesBase(checkFunc, schema, allowIdentifiers, withCollati
 				})...)
 			}
 		} else {
-			// TODO(1d): VECTOR expression normalization.
 			expressions = p.parseCsv(p.parseTypeSize)
+			// https://docs.snowflake.com/en/sql-reference/data-types-vector
+			if typeToken == tokens.VECTOR && len(expressions) == 2 {
+				expressions = p.parseVectorExpressions(expressions)
+			}
 		}
 
 		if !p.match(tokens.R_PAREN) {
@@ -366,7 +369,8 @@ func (p *Parser) parseTypesBase(checkFunc, schema, allowIdentifiers, withCollati
 		}
 	}
 
-	if timestampsTokens[typeToken] {
+	// parsers/snowflake.py:751: TIME is not a TIMESTAMPS token there.
+	if timestampsTokens[typeToken] && !(typeToken == tokens.TIME && p.dialect.Is("snowflake")) {
 		if p.matchTextSeq("WITH", "TIME", "ZONE") {
 			maybeFunc = false
 			tzType := exp.DTypeTimestampTz
@@ -476,6 +480,14 @@ func (p *Parser) parseTypesBase(checkFunc, schema, allowIdentifiers, withCollati
 		p.match(tokens.R_BRACKET)
 	}
 
+	// TYPE_CONVERTERS (parser.py:6712-6715; parsers/snowflake.py:790-793): a bare Snowflake
+	// DECIMAL becomes DECIMAL(38, 0).
+	if p.dialect.Is("snowflake") && exp.IsType(this, exp.DTypeDecimal) && len(this.Expressions()) == 0 {
+		if converted, err := exp.DataTypeFromStr("DECIMAL(38, 0)", nil, false, nil); err == nil {
+			this = converted
+		}
+	}
+
 	if withCollation && this.Kind() == exp.KindDataType && p.match(tokens.COLLATE) {
 		collate := p.parseIdentifier()
 		if collate == nil {
@@ -494,7 +506,7 @@ func (p *Parser) parseStructTypes() exp.Expression {
 	index := p.index
 
 	var this exp.Expression
-	if p.curr.IsValid() && p.next.IsValid() && typeTokens[p.curr.TokenType] && typeTokens[p.next.TokenType] {
+	if p.curr.IsValid() && p.next.IsValid() && p.isTypeToken(p.curr.TokenType) && p.isTypeToken(p.next.TokenType) {
 		// Handles cases like `STRUCT<list ARRAY<...>>` where the field name is itself a type
 		// token: without this, "list" would be parsed as a (positional) type and crash.
 		this = p.parseIdVar(true, nil)
@@ -507,7 +519,7 @@ func (p *Parser) parseStructTypes() exp.Expression {
 
 	p.match(tokens.COLON)
 
-	if (this == nil || this.Kind() != exp.KindDataType) && !p.matchSet(typeTokens, false) {
+	if (this == nil || this.Kind() != exp.KindDataType) && !p.matchSet(p.typeTokensFor(), false) {
 		p.retreat(index)
 		return p.parseTypes(false, false, true, false)
 	}
@@ -560,6 +572,17 @@ func (p *Parser) parseCast(strict bool, safe any) exp.Expression {
 }
 
 func (p *Parser) buildCast(strict bool, args exp.Args) exp.Expression {
+	if p.dialect.Is("snowflake") {
+		if built := p.snowflakeBuildCast(strict, args); built != nil {
+			return built
+		}
+		to, _ := args["to"].(exp.Expression)
+		return snowflakeFixTryCast(p.buildCastBase(strict, args), to)
+	}
+	return p.buildCastBase(strict, args)
+}
+
+func (p *Parser) buildCastBase(strict bool, args exp.Args) exp.Expression {
 	kind := exp.KindCast
 	if !strict {
 		kind = exp.KindTryCast
@@ -632,7 +655,7 @@ func (p *Parser) parseBracketBase(this exp.Expression) exp.Expression {
 		return this
 	}
 	bracketKind := p.prev.TokenType
-	expressions := p.parseCsv(p.parseBracketKeyValue)
+	expressions := p.parseCsv(func() exp.Expression { return p.parseBracketKeyValue(bracketKind == tokens.L_BRACE) })
 	if bracketKind == tokens.L_BRACKET && !p.match(tokens.R_BRACKET) {
 		p.raiseError("Expected ]")
 	} else if bracketKind == tokens.L_BRACE && !p.match(tokens.R_BRACE) {
@@ -698,10 +721,11 @@ func (p *Parser) toPropEQ(e exp.Expression, index int) exp.Expression {
 	return p.expression(exp.PropertyEQ(exp.Args{"this": key, "expression": e}), nil, nil)
 }
 
-// parseBracketKeyValue ports _parse_bracket_key_value (parser.py:7655-7657). The is_map
-// parameter (used for MAP_KEYS_ARE_ARBITRARY_EXPRESSIONS dialects building key:value
-// props) is not modeled - no dialect in this port sets that flag, so it's inlined away.
-func (p *Parser) parseBracketKeyValue() exp.Expression {
+// parseBracketKeyValue ports _parse_bracket_key_value (parser.py:7926-7927).
+func (p *Parser) parseBracketKeyValue(isMap bool) exp.Expression {
+	if p.dialect.Is("snowflake") {
+		return p.parseSnowflakeBracketKeyValue(isMap)
+	}
 	return p.parseSlice(p.parseAlias(p.parseDisjunction(), true))
 }
 
@@ -752,4 +776,14 @@ func (p *Parser) parseJSONTypeArg() exp.Expression {
 	col := exp.ColumnsToDot(paramOrCol)
 	kind := p.parseTypes(false, false, false, false)
 	return p.expression(exp.ColumnDef(exp.Args{"this": col, "kind": kind}), nil, nil)
+}
+
+// parseVectorExpressions ports _parse_vector_expressions (parser.py:6748-6749).
+func (p *Parser) parseVectorExpressions(expressions []exp.Expression) []exp.Expression {
+	dtype, err := exp.DataTypeBuild(expressions[0].Name(), p.dialect, false, false, nil)
+	if err != nil {
+		p.raiseError(err.Error())
+		return expressions
+	}
+	return append([]exp.Expression{dtype}, expressions[1:]...)
 }

@@ -34,7 +34,7 @@ func (p *Parser) parseComment() exp.Expression {
 	p.match(tokens.ON)
 
 	materialized := p.matchTextSeq("MATERIALIZED")
-	if !p.matchSet(creatables) {
+	if !p.matchSet(p.creatablesFor()) {
 		return p.parseAsCommand(start)
 	}
 	kind := p.prev

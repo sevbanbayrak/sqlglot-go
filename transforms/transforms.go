@@ -605,7 +605,7 @@ func AddWithinGroupForPercentiles(e exp.Expression) exp.Expression {
 // UnqualifyColumns ports unqualify_columns (transforms.py:732-738).
 func UnqualifyColumns(e exp.Expression) exp.Expression {
 	for _, col := range e.FindAll(exp.KindColumn) {
-		for _, key := range []string{"table", "db", "catalog"} {
+		for _, key := range []string{"table", "schema", "catalog"} {
 			if part := asExpression(col.Arg(key)); part != nil {
 				part.Pop()
 			}

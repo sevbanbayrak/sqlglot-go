@@ -253,3 +253,34 @@ func (g *Generator) mysqlMakeIntervalSQL(e exp.Expression) string {
 	}
 	return strings.Join(intervals, sep)
 }
+
+// generators/mysql.py TRANSFORMS and methods reached from Snowflake sources.
+func init() {
+	registerDialectDispatch("mysql", map[exp.Kind]func(*Generator, exp.Expression) string{
+		exp.KindCurrentVersion: prestoRename("VERSION"),
+		exp.KindPivot:          noPivotSQL,
+		exp.KindTableSample: func(g *Generator, e exp.Expression) string {
+			// no_tablesample_sql (dialects/dialect.py:1291-1293)
+			g.unsupported("TABLESAMPLE unsupported")
+			return g.sqlKey(e, "this")
+		},
+		exp.KindTimeFromParts: prestoRename("MAKETIME"),
+		exp.KindBitwiseAndAgg: prestoRename("BIT_AND"),
+		exp.KindBitwiseOrAgg:  prestoRename("BIT_OR"),
+		exp.KindBitwiseXorAgg: prestoRename("BIT_XOR"),
+		exp.KindLogicalAnd:    prestoRename("MIN"),
+		exp.KindStuff:         prestoRename("INSERT"),
+		exp.KindConvertTimezone: func(g *Generator, e exp.Expression) string {
+			// converttimezone_sql (generators/mysql.py:785-790).
+			return g.funcCall("CONVERT_TZ", []any{e.Arg("timestamp"), e.Arg("source_tz"), e.Arg("target_tz")}, "(", ")", true)
+		},
+		exp.KindIgnoreNulls: func(g *Generator, e exp.Expression) string {
+			// ignorenulls_sql (generators/mysql.py:799-802).
+			g.unsupported("MySQL does not support IGNORE NULLS.")
+			return g.gen(e.This())
+		},
+	})
+	registerDialectPropertyLocations("mysql", map[exp.Kind]propertyLocation{
+		exp.KindTransientProperty: propertyLocationUnsupported,
+	})
+}
