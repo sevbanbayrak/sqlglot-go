@@ -178,6 +178,18 @@ func MySQL() *Dialect {
 	// kept mysql-local for now (not needed to close any base/postgres parity gap; deferred to
 	// avoid changing base STR_POSITION/TIME_STR_TO_UNIX rendering that no fixture exercises).
 	for name, builder := range map[string]func([]exp.Expression) exp.Expression{
+		// parsers/mysql.py:98-104.
+		"BIT_AND":   exp.FromArgListFunc(exp.KindBitwiseAndAgg),
+		"BIT_OR":    exp.FromArgListFunc(exp.KindBitwiseOrAgg),
+		"BIT_XOR":   exp.FromArgListFunc(exp.KindBitwiseXorAgg),
+		"BIT_COUNT": exp.FromArgListFunc(exp.KindBitwiseCount),
+		"CONVERT_TZ": func(args []exp.Expression) exp.Expression {
+			return exp.New(exp.KindConvertTimezone, exp.Args{"source_tz": hiveSeqGet(args, 1), "target_tz": hiveSeqGet(args, 2), "timestamp": hiveSeqGet(args, 0)})
+		},
+		// parsers/mysql.py:121,125,143.
+		"FORMAT":           exp.FromArgListFunc(exp.KindNumberToStr),
+		"MAKETIME":         exp.FromArgListFunc(exp.KindTimeFromParts),
+		"VERSION":          exp.FromArgListFunc(exp.KindCurrentVersion),
 		"CURDATE":          exp.FromArgListFunc(exp.KindCurrentDate),
 		"CURTIME":          exp.FromArgListFunc(exp.KindCurrentTime),
 		"DATABASE":         exp.FromArgListFunc(exp.KindCurrentSchema),

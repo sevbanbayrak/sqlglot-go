@@ -10,7 +10,7 @@ import (
 // Databricks ports dialects/databricks.py and the parsers/databricks.py flags and FUNCTIONS
 // overlay on top of Spark. Generator deltas live in generator/dialect_databricks.go, parser
 // callbacks in parser/dialect_databricks_overrides.go. EXPRESSION_METADATA and COERCES_TO
-// (typing) are out of scope until annotate_types.
+// (typing) live in optimizer/typing_databricks.go.
 func Databricks() *Dialect {
 	d := Spark()
 	d.Name = "databricks"

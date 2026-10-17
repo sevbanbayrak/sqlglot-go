@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -399,4 +400,145 @@ func BinOp(kind Kind, this Expression, other any) Expression {
 		right = wrap(right, TraitBinary)
 	}
 	return New(kind, Args{"this": left, "expression": right})
+}
+
+// ApplyIndexOffset ports apply_index_offset (builders.py:1100-1131): an integer-typed index into
+// an array (or an untyped expression) is shifted by offset.
+func ApplyIndexOffset(this Expression, expressions []Expression, offset int, dialect DialectType) []Expression {
+	if offset == 0 || len(expressions) != 1 || this == nil || AnnotateTypesFunc == nil {
+		return expressions
+	}
+
+	expression := expressions[0]
+
+	if this.Type() == nil {
+		AnnotateTypesFunc(this, dialect)
+	}
+
+	if t := this.Type(); t == nil || (t.Arg("this") != DTypeUnknown && t.Arg("this") != DTypeArray) {
+		return expressions
+	}
+
+	if expression.Type() == nil {
+		AnnotateTypesFunc(expression, dialect)
+	}
+
+	if t := expression.Type(); t != nil {
+		if d, _ := t.Arg("this").(DType); IntegerTypes[d] {
+			return []Expression{simplifyIndexAdd(expression.Copy(), offset)}
+		}
+	}
+
+	return expressions
+}
+
+// simplifyIndexAdd stands in for simplify(expression + offset), which is not ported: the parts
+// of simplify_parens and simplify_literals' _flat_simplify (simplify.py:1191,1552) that an
+// index shift reaches. Constant integer arithmetic folds to a literal; otherwise the Add chain's
+// numeric operands are combined pairwise, as _flat_simplify does.
+func simplifyIndexAdd(expression Expression, offset int) Expression {
+	if n, ok := constantInt(expression); ok {
+		return LiteralNumber(n + offset)
+	}
+
+	// `expression + offset` wraps a binary operand in parentheses (Expr._binop); simplify_parens
+	// drops them again when the operand is itself an Add or a Mul.
+	left := expression
+	if left.Is(TraitBinary) && left.Kind() != KindAdd && left.Kind() != KindMul {
+		left = Paren(Args{"this": left})
+	}
+
+	var operands []Expression
+	var flatten func(e Expression)
+	flatten = func(e Expression) {
+		if e.Kind() == KindAdd {
+			flatten(e.This())
+			flatten(e.Expr())
+			return
+		}
+		if n, ok := constantInt(e); ok && e.Kind() != KindLiteral && e.Kind() != KindNeg {
+			e = LiteralNumber(n)
+		}
+		operands = append(operands, e)
+	}
+	flatten(left)
+	operands = append(operands, LiteralNumber(offset))
+	size := len(operands)
+
+	var out []Expression
+	queue := operands
+	for len(queue) > 0 {
+		a := queue[0]
+		queue = queue[1:]
+		combined := false
+		for i, b := range queue {
+			na, aok := numberValue(a)
+			nb, bok := numberValue(b)
+			if aok && bok {
+				queue = append([]Expression{LiteralNumber(na + nb)}, append(append([]Expression{}, queue[:i]...), queue[i+1:]...)...)
+				combined = true
+				break
+			}
+		}
+		if !combined {
+			out = append(out, a)
+		}
+	}
+
+	if len(out) == size {
+		return Add(Args{"this": left, "expression": LiteralNumber(offset)})
+	}
+	result := out[0]
+	for _, operand := range out[1:] {
+		result = Add(Args{"this": result, "expression": operand})
+	}
+	return result
+}
+
+// numberValue is `e.is_number and e.to_py()` for an integer literal or a negated one.
+func numberValue(e Expression) (int, bool) {
+	switch e.Kind() {
+	case KindLiteral:
+		return constantInt(e)
+	case KindNeg:
+		if this := e.This(); this != nil && this.Kind() == KindLiteral {
+			n, ok := constantInt(this)
+			return -n, ok
+		}
+	}
+	return 0, false
+}
+
+// constantInt evaluates integer literal arithmetic.
+func constantInt(e Expression) (int, bool) {
+	if e == nil {
+		return 0, false
+	}
+	switch e.Kind() {
+	case KindLiteral:
+		if e.IsString() {
+			return 0, false
+		}
+		n, err := strconv.Atoi(e.Name())
+		return n, err == nil
+	case KindParen:
+		return constantInt(e.This())
+	case KindNeg:
+		n, ok := constantInt(e.This())
+		return -n, ok
+	case KindAdd, KindSub, KindMul:
+		l, lok := constantInt(e.This())
+		r, rok := constantInt(e.Expr())
+		if !lok || !rok {
+			return 0, false
+		}
+		switch e.Kind() {
+		case KindAdd:
+			return l + r, true
+		case KindSub:
+			return l - r, true
+		}
+		return l * r, true
+	}
+	return 0, false
 }

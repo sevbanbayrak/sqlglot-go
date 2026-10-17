@@ -589,12 +589,10 @@ func init() {
 }
 
 func init() {
-	// tsordstotimestamp_sql (generator.py:5188-5193); the is_type(TIMESTAMP) test is reduced
-	// to an explicit TIMESTAMP cast, since annotate_types never runs here.
+	// tsordstotimestamp_sql (generator.py:5188-5193)
 	dispatch[expressions.KindTsOrDsToTimestamp] = func(g *Generator, e expressions.Expression) string {
 		this := e.This()
-		if this != nil && (this.Kind() == expressions.KindTsOrDsToTimestamp ||
-			(this.Kind() == expressions.KindCast && expressions.IsType(asExpression(this.Arg("to")), expressions.DTypeTimestamp))) {
+		if this != nil && (this.Kind() == expressions.KindTsOrDsToTimestamp || this.IsType(expressions.DTypeTimestamp)) {
 			return g.gen(this)
 		}
 		return g.gen(expressions.Cast(expressions.Args{"this": this, "to": expressions.DTypeTimestamp.IntoExpr(nil)}))

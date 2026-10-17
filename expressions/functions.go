@@ -194,6 +194,9 @@ var FunctionByName = map[string]func([]Expression) Expression{
 	// unlike DATABASE()/SCHEMA() below which parsers/mysql.py:134-135 register mysql-only
 	// (see dialects/mysql.go's d.Functions map)).
 	"MOD": buildMod,
+	// parser.py:436,467 build_lower/build_upper.
+	"LOWER": buildLower,
+	"UPPER": buildUpper,
 	// Trunc._sql_names = ["TRUNC", "TRUNCATE"] (math.py:188-190); TRUNCATE(n, d) is
 	// disambiguated from the TRUNCATE TABLE statement in parser/stmt_comment_truncate.go's
 	// parseTruncateTable (ports _parse_truncate_table's "not to be confused with
@@ -248,6 +251,32 @@ func parenWrapBinary(e Expression) Expression {
 		return Paren(Args{"this": e})
 	}
 	return e
+}
+
+// buildLower ports build_lower (parser.py:98-101): LOWER(HEX(..)) is simplified to LowerHex to
+// simplify its transpilation.
+func buildLower(args []Expression) Expression {
+	arg := firstArg(args)
+	if arg != nil && arg.Kind() == KindHex {
+		return newNode(KindLowerHex, Args{"this": arg.This()})
+	}
+	return newNode(KindLower, Args{"this": arg})
+}
+
+// buildUpper ports build_upper (parser.py:104-107): UPPER(HEX(..)) is simplified to Hex.
+func buildUpper(args []Expression) Expression {
+	arg := firstArg(args)
+	if arg != nil && arg.Kind() == KindHex {
+		return newNode(KindHex, Args{"this": arg.This()})
+	}
+	return newNode(KindUpper, Args{"this": arg})
+}
+
+func firstArg(args []Expression) Expression {
+	if len(args) == 0 {
+		return nil
+	}
+	return args[0]
 }
 
 func genericFunction(kind Kind) func([]Expression) Expression {

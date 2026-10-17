@@ -677,6 +677,7 @@ func (p *Parser) parseBracketBase(this exp.Expression) exp.Expression {
 		// mysql/postgres scope).
 		this = exp.Array(exp.Args{"expressions": expressions})
 	} else {
+		expressions = exp.ApplyIndexOffset(this, expressions, -p.dialect.IndexOffset, p.dialect)
 		this = p.expression(exp.Bracket(exp.Args{"this": this, "expressions": expressions}), nil, this.PopComments())
 	}
 	p.addComments(this)

@@ -1,7 +1,6 @@
 package generator
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/sevbanbayrak/sqlglot-go/dialects"
@@ -246,21 +245,12 @@ func (g *Generator) spark2AlterColumnSQL(e exp.Expression) string {
 	return "RENAME COLUMN " + this + " TO " + newName
 }
 
-// bracketToElementAtSQL ports bracket_to_element_at_sql (dialect.py:1218-1228); only a literal
-// index is shifted by apply_index_offset, non-literal indexes pass through unchanged.
+// bracketToElementAtSQL ports bracket_to_element_at_sql (dialect.py:1218-1228).
 func (g *Generator) bracketToElementAtSQL(e exp.Expression) string {
-	offset := 1
-	if v, ok := e.Arg("offset").(int); ok {
-		offset = 1 - v
-	}
+	offset, _ := e.Arg("offset").(int)
 	var index any
-	if xs := e.Expressions(); len(xs) > 0 {
+	if xs := exp.ApplyIndexOffset(e.This(), e.Expressions(), 1-offset, g.dialect); len(xs) > 0 {
 		index = xs[0]
-		if offset != 0 && xs[0].IsNumber() {
-			if n, err := strconv.Atoi(xs[0].Name()); err == nil {
-				index = exp.LiteralNumber(n + offset)
-			}
-		}
 	}
 	return g.funcCall("ELEMENT_AT", []any{e.This(), index}, "(", ")", true)
 }

@@ -63,3 +63,91 @@ func PivotAlias(args Args) Expression          { return newNode(KindPivotAlias, 
 func JoinHint(args Args) Expression            { return newNode(KindJoinHint, args) }
 func TableColumn(args Args) Expression         { return newNode(KindTableColumn, args) }
 func Final(args Args) Expression               { return newNode(KindFinal, args) }
+
+// PivotOutputColumns ports Pivot.output_columns (query.py:1780-1848). Go has no ordered dict,
+// so it returns the post-rename output names in order plus each one's pre-rename source name.
+func PivotOutputColumns(pivot Expression, prePivotColumns []string) ([]string, map[string]string) {
+	excluded := map[string]bool{}
+	var outputs []string
+	if truthy(pivot.Arg("unpivot")) {
+		var nameColumns, valueColumns []Expression
+		for _, field := range ExpressionsOf(pivot, "fields") {
+			if field.Kind() != KindIn {
+				continue
+			}
+			if this := field.This(); this != nil && this.Kind() == KindIdentifier {
+				nameColumns = append(nameColumns, this)
+			}
+			for _, e := range field.Expressions() {
+				for _, c := range e.FindAll(KindColumn) {
+					excluded[c.OutputName()] = true
+				}
+			}
+		}
+		for _, e := range pivot.Expressions() {
+			idents := []Expression{e}
+			if e.Kind() == KindTuple {
+				idents = e.Expressions()
+			}
+			for _, ident := range idents {
+				if ident.Kind() == KindIdentifier {
+					valueColumns = append(valueColumns, ident)
+				}
+			}
+		}
+		ordered := append(append([]Expression{}, nameColumns...), valueColumns...)
+		if truthy(pivot.Arg("value_columns_first")) {
+			ordered = append(append([]Expression{}, valueColumns...), nameColumns...)
+		}
+		for _, i := range ordered {
+			outputs = append(outputs, i.Name())
+		}
+	} else {
+		for _, c := range pivot.FindAll(KindColumn) {
+			excluded[c.OutputName()] = true
+		}
+		for _, c := range ExpressionsOf(pivot, "columns") {
+			outputs = append(outputs, c.OutputName())
+		}
+		if len(outputs) == 0 {
+			for _, c := range pivot.Expressions() {
+				outputs = append(outputs, c.AliasOrName())
+			}
+		}
+	}
+
+	if len(excluded) == 0 || len(outputs) == 0 {
+		return nil, map[string]string{}
+	}
+
+	preRename := []string{}
+	for _, c := range prePivotColumns {
+		if !excluded[c] {
+			preRename = append(preRename, c)
+		}
+	}
+	preRename = append(preRename, outputs...)
+
+	postRename := preRename
+	if alias := asExpression(pivot.Arg("alias")); alias != nil {
+		if renames := ExpressionsOf(alias, "columns"); len(renames) > 0 {
+			postRename = []string{}
+			for _, r := range renames {
+				postRename = append(postRename, r.Name())
+			}
+			if len(postRename) < len(preRename) {
+				postRename = append(postRename, preRename[len(postRename):]...)
+			}
+		}
+	}
+
+	names := []string{}
+	sources := map[string]string{}
+	for i := 0; i < len(postRename) && i < len(preRename); i++ {
+		if _, seen := sources[postRename[i]]; !seen {
+			names = append(names, postRename[i])
+		}
+		sources[postRename[i]] = preRename[i]
+	}
+	return names, sources
+}

@@ -56,7 +56,9 @@ func init() {
 		exp.KindFirst:              (*Generator).prestoFirstLastSQL,
 		exp.KindLast:               (*Generator).prestoFirstLastSQL,
 		exp.KindCreate:             (*Generator).prestoCreateSQL,
-		exp.KindJSONFormat:         prestoCall("JSON_FORMAT", "this", "options"),
+		exp.KindJSONFormat:         (*Generator).prestoJSONFormatSQL,
+		exp.KindMD5:                (*Generator).prestoMD5SQL,
+		exp.KindTimestamp:          (*Generator).noTimestampSQL,
 		exp.KindJSONExtract: func(g *Generator, e exp.Expression) string {
 			args := []any{e.Arg("this"), e.Arg("expression")}
 			for _, x := range e.Expressions() {
@@ -137,53 +139,46 @@ func (g *Generator) prestoDataTypeSQL(e exp.Expression) string {
 	return g.dataTypeSQL(e)
 }
 
-// generators/presto.py:588-620. Named fields need their types (upstream annotate_types); the
-// port infers them for literal values and reports anything else unsupported.
+// prestoStructSQL ports struct_sql (generators/presto.py:591-618).
 func (g *Generator) prestoStructSQL(e exp.Expression) string {
+	if e.Type() == nil {
+		g.annotateTypes(e)
+	}
+
 	values := []string{}
 	schema := []string{}
-	unknown := false
+	unknownType := false
+
 	for _, x := range e.Expressions() {
 		if x.Kind() == exp.KindPropertyEQ {
-			value := asExpression(x.Arg("expression"))
-			if dtype := prestoLiteralType(value); dtype != "" {
-				schema = append(schema, g.sqlKey(x, "this")+" "+dtype)
+			if t := x.Type(); t != nil && t.IsType(exp.DTypeUnknown) {
+				unknownType = true
 			} else {
-				unknown = true
+				schema = append(schema, g.sqlKey(x, "this")+" "+g.gen(x.Type()))
 			}
-			values = append(values, g.gen(value))
+			values = append(values, g.sqlKey(x, "expression"))
 		} else {
 			values = append(values, g.gen(x))
 		}
 	}
-	if len(values) == 0 || len(schema) != len(values) {
-		if unknown {
+
+	size := len(e.Expressions())
+
+	if size == 0 || len(schema) != size {
+		if unknownType {
 			g.unsupported("Cannot convert untyped key-value definitions (try annotate_types).")
 		}
-		return "ROW(" + strings.Join(values, ", ") + ")"
+		return g.funcCall("ROW", stringArgs(values), "(", ")", true)
 	}
 	return "CAST(ROW(" + strings.Join(values, ", ") + ") AS ROW(" + strings.Join(schema, ", ") + "))"
 }
 
-func prestoLiteralType(e exp.Expression) string {
-	if e == nil {
-		return ""
+func stringArgs(values []string) []any {
+	out := make([]any, len(values))
+	for i, v := range values {
+		out[i] = v
 	}
-	switch e.Kind() {
-	case exp.KindLiteral:
-		if e.IsString() {
-			return "VARCHAR"
-		}
-		if strings.ContainsAny(e.Name(), ".eE") {
-			return "DOUBLE"
-		}
-		return "INTEGER"
-	case exp.KindBoolean:
-		return "BOOLEAN"
-	case exp.KindNeg:
-		return prestoLiteralType(e.This())
-	}
-	return ""
+	return out
 }
 
 // generator.py:3678-3680 with SUPPORTS_SINGLE_ARG_CONCAT = False (presto.py:271).
@@ -198,14 +193,10 @@ func (g *Generator) prestoCreateSQL(e exp.Expression) string {
 	return g.createSQL(e)
 }
 
-// generators/presto.py:583-586; parser Bracket offsets already match Presto's one-based indexing.
+// generators/presto.py:586-589.
 func (g *Generator) prestoBracketSQL(e exp.Expression) string {
 	if boolValue(e.Arg("safe")) {
-		args := []any{e.Arg("this")}
-		if xs := e.Expressions(); len(xs) > 0 {
-			args = append(args, xs[0])
-		}
-		return g.funcCall("ELEMENT_AT", args, "(", ")", true)
+		return g.bracketToElementAtSQL(e)
 	}
 	return g.bracketSQL(e)
 }
@@ -280,47 +271,57 @@ func (g *Generator) prestoSchemaSQL(e exp.Expression) string {
 	return g.schemaSQL(e)
 }
 
-// generators/presto.py:147-169 _to_int: the interval is cast to BIGINT unless annotate_types
-// proves it integer. Without the full annotator this mirrors its literal/arithmetic/known-
-// function rules and casts everything else (columns, unknown calls), like upstream.
+// prestoDateAddSQL ports _date_delta_sql("DATE_ADD") (generators/presto.py:157-168).
 func (g *Generator) prestoDateAddSQL(e exp.Expression) string {
 	interval := e.Arg("expression")
-	if iv := asExpression(interval); iv != nil && !prestoIntegerTyped(iv) {
-		interval = "CAST(" + g.gen(interval) + " AS BIGINT)"
+	if iv := asExpression(interval); iv != nil {
+		interval = g.prestoToInt(iv)
 	}
 	return g.funcCall("DATE_ADD", []any{prestoUnit(e), interval, e.Arg("this")}, "(", ")", true)
 }
 
-func prestoIntegerTyped(e exp.Expression) bool {
-	switch e.Kind() {
-	case exp.KindLiteral:
-		return !e.IsString() && !strings.ContainsAny(e.Name(), ".eE")
-	case exp.KindNeg, exp.KindParen, exp.KindFloor:
-		// FLOOR(x) types as BIGINT for any numeric x (annotate_types FLOOR rule).
-		return e.Kind() == exp.KindFloor || prestoIntegerTyped(e.This())
-	case exp.KindAdd, exp.KindSub, exp.KindMul, exp.KindMod:
-		return prestoIntegerTyped(e.This()) && prestoIntegerTyped(asExpression(e.Arg("expression")))
-	case exp.KindCoalesce:
-		if !prestoIntegerTyped(e.This()) {
-			return false
-		}
-		for _, x := range e.Expressions() {
-			if !prestoIntegerTyped(x) {
-				return false
-			}
-		}
-		return true
-	case exp.KindCast, exp.KindTryCast:
-		to := asExpression(e.Arg("to"))
-		if to == nil {
-			return false
-		}
-		dt, ok := to.Arg("this").(exp.DType)
-		return ok && exp.IntegerTypes[dt]
-	case exp.KindLength, exp.KindCount, exp.KindDayOfWeekIso, exp.KindDayOfYear, exp.KindWeekOfYear, exp.KindDayOfMonth, exp.KindDayOfWeek, exp.KindTimeToUnix:
-		return true
+// prestoToInt ports _to_int (generators/presto.py:147-154).
+func (g *Generator) prestoToInt(expression exp.Expression) exp.Expression {
+	if expression.Type() == nil {
+		g.annotateTypes(expression)
 	}
-	return false
+	if t := expression.Type(); t != nil {
+		if d, _ := t.Arg("this").(exp.DType); !exp.IntegerTypes[d] {
+			return exp.CastTo(expression, exp.DTypeBigInt)
+		}
+	}
+	return expression
+}
+
+// prestoJSONFormatSQL ports jsonformat_sql (generators/presto.py:525-536).
+func (g *Generator) prestoJSONFormatSQL(e exp.Expression) string {
+	this := e.This()
+	isJSON := truthy(e.Arg("is_json"))
+
+	if this != nil && !(isJSON || this.Type() != nil) {
+		this = g.annotateTypes(this)
+	}
+
+	if this != nil && !(isJSON || this.IsType(exp.DTypeJSON)) {
+		this.Replace(exp.CastTo(this.Copy(), exp.DTypeJSON))
+	}
+
+	return g.functionFallbackSQL(e)
+}
+
+// prestoMD5SQL ports md5_sql (generators/presto.py:538-548).
+func (g *Generator) prestoMD5SQL(e exp.Expression) string {
+	this := e.This()
+
+	if this.Type() == nil {
+		this = g.annotateTypes(this)
+	}
+
+	if this.IsType(typeArgs(exp.TextTypes)...) {
+		this = exp.New(exp.KindEncode, exp.Args{"this": this, "charset": exp.LiteralString("utf-8")})
+	}
+
+	return g.funcCall("LOWER", []any{g.funcCall("TO_HEX", []any{g.funcCall("MD5", []any{g.gen(this)}, "(", ")", true)}, "(", ")", true)}, "(", ")", true)
 }
 
 // prestoSHA2DigestSQL ports _sha2_digest_sql (generators/presto.py:37-46).
@@ -343,15 +344,10 @@ func (g *Generator) prestoSHA2Args(e exp.Expression) (string, any) {
 	if length != "256" && length != "512" {
 		g.unsupported("SHA" + length + " is not supported in Presto")
 	}
-	this := e.Arg("this")
-	// The digest takes VARBINARY: a text-typed argument (a CAST to a text type, the only case
-	// where upstream sees a type without annotate_types) is encoded first.
-	if cast := asExpression(this); cast != nil && (cast.Kind() == exp.KindCast || cast.Kind() == exp.KindTryCast) {
-		if to := asExpression(cast.Arg("to")); to != nil {
-			if dt, ok := to.Arg("this").(exp.DType); ok && exp.TextTypes[dt] {
-				this = g.funcCall("TO_UTF8", []any{cast}, "(", ")", true)
-			}
-		}
+	this := e.This()
+	// the native digest takes VARBINARY, so a text-typed argument needs encoding
+	if this != nil && this.IsType(typeArgs(exp.TextTypes)...) {
+		this = exp.New(exp.KindEncode, exp.Args{"this": this, "charset": exp.LiteralString("utf-8")})
 	}
 	return length, this
 }

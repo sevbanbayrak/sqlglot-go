@@ -8,6 +8,13 @@ import (
 // NormalizeIdentifiers folds unquoted identifiers per the dialect's normalization strategy,
 // mirroring upstream sqlglot's normalize_identifiers(expression, dialect: DialectType).
 func NormalizeIdentifiers(expression exp.Expression, dialect dialects.DialectType) exp.Expression {
+	return normalizeIdentifiers(expression, dialect, false)
+}
+
+// normalizeIdentifiers is normalize_identifiers with its store_original_column_identifiers flag,
+// which keeps each column's original dot path in its "dot_parts" meta so annotate_types can undo
+// the normalization of a JSON dot access.
+func normalizeIdentifiers(expression exp.Expression, dialect dialects.DialectType, storeOriginalColumnIdentifiers bool) exp.Expression {
 	d, err := dialects.GetOrRaise(dialect)
 	if err != nil {
 		panic(err)
@@ -16,8 +23,7 @@ func NormalizeIdentifiers(expression exp.Expression, dialect dialects.DialectTyp
 		return nil
 	}
 	// Ports normalize_identifiers.py:66-78: prune subtrees under a case_sensitive-marked node
-	// and skip such nodes, normalizing only the rest. (store_original_column_identifiers is off
-	// by default, so its dot_parts branch is not ported here.) NB: the only upstream producer of
+	// and skip such nodes, normalizing only the rest. NB: the only upstream producer of
 	// the case_sensitive meta is add_comments parsing a `/* sqlglot.meta case_sensitive */`
 	// annotation (core.py:1044), which this port does not yet parse — so this guard is currently
 	// inert (nothing sets the flag) but kept structurally faithful for when that lands.
@@ -28,6 +34,18 @@ func NormalizeIdentifiers(expression exp.Expression, dialect dialects.DialectTyp
 	for _, node := range expression.WalkWithPrune(true, caseSensitive) {
 		if caseSensitive(node) {
 			continue
+		}
+		if storeOriginalColumnIdentifiers && node.Kind() == exp.KindColumn {
+			// TODO: This does not handle non-column cases, e.g PARSE_JSON(...).key
+			parent := node
+			for parent != nil && parent.Parent() != nil && parent.Parent().Kind() == exp.KindDot {
+				parent = parent.Parent()
+			}
+			var dotParts []string
+			for _, p := range parent.Parts() {
+				dotParts = append(dotParts, p.Name())
+			}
+			node.Meta()["dot_parts"] = dotParts
 		}
 		if node.Kind() == exp.KindIdentifier {
 			if d.OpaqueFunctions && isOpaqueCallIdentifier(node) {

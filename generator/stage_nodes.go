@@ -123,9 +123,12 @@ func init() {
 		}
 	}
 	dispatch[expressions.KindToArray] = func(g *Generator, e expressions.Expression) string {
-		// toarray_sql (generator.py:5158-5169); the argument type comes from StaticType.
+		// toarray_sql (generator.py:5158-5169)
 		arg := e.This()
-		if expressions.StaticTypeIs(arg, expressions.DTypeArray) {
+		if arg.Type() == nil {
+			arg = g.annotateTypes(arg)
+		}
+		if arg.IsType(expressions.DTypeArray) {
 			return g.gen(arg)
 		}
 		return g.gen(expressions.If(expressions.Args{
@@ -135,9 +138,12 @@ func init() {
 		}))
 	}
 	dispatch[expressions.KindGetExtract] = func(g *Generator, e expressions.Expression) string {
-		// getextract_sql (generator.py:6187-6198); the argument type comes from StaticType.
+		// getextract_sql (generator.py:6187-6198)
 		this, expr := e.This(), asExpression(e.Arg("expression"))
-		if t := expressions.StaticType(this); t == expressions.DTypeArray || t == expressions.DTypeMap {
+		if this.Type() == nil || e.Type() == nil {
+			this = g.annotateTypes(this)
+		}
+		if this.IsType(expressions.DTypeArray, expressions.DTypeMap) {
 			return g.gen(expressions.Bracket(expressions.Args{"this": this, "expressions": []expressions.Expression{expr}}))
 		}
 		return g.gen(expressions.New(expressions.KindJSONExtract, expressions.Args{"this": this, "expression": g.dialect.ToJSONPath(expr)}))
@@ -184,13 +190,13 @@ func init() {
 		return g.funcCall("RAND", []any{e.This()}, "(", ")", true)
 	}
 	dispatch[expressions.KindTsOrDsToTime] = func(g *Generator, e expressions.Expression) string {
-		// tsordstotime_sql (generator.py:5171-5186); the argument type comes from StaticType.
+		// tsordstotime_sql (generator.py:5171-5186)
 		this := e.This()
 		if g.formatTime(e) != nil {
 			strToTime := expressions.New(expressions.KindStrToTime, expressions.Args{"this": this, "format": e.Arg("format")})
 			return g.gen(expressions.CastTo(strToTime, expressions.DTypeTime))
 		}
-		if this.Kind() == expressions.KindTsOrDsToTime || expressions.StaticTypeIs(this, expressions.DTypeTime) {
+		if this.Kind() == expressions.KindTsOrDsToTime || this.IsType(expressions.DTypeTime) {
 			return g.gen(this)
 		}
 		return g.gen(expressions.CastTo(this, expressions.DTypeTime))

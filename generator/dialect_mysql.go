@@ -268,6 +268,8 @@ func init() {
 		exp.KindBitwiseAndAgg: prestoRename("BIT_AND"),
 		exp.KindBitwiseOrAgg:  prestoRename("BIT_OR"),
 		exp.KindBitwiseXorAgg: prestoRename("BIT_XOR"),
+		exp.KindBitwiseCount:  prestoRename("BIT_COUNT"),
+		exp.KindNumberToStr:   prestoRename("FORMAT"),
 		exp.KindLogicalAnd:    prestoRename("MIN"),
 		exp.KindStuff:         prestoRename("INSERT"),
 		exp.KindConvertTimezone: func(g *Generator, e exp.Expression) string {

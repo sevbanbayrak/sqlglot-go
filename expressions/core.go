@@ -48,6 +48,9 @@ type Expression interface {
 	PopComments() []string
 	Meta() map[string]any
 	MetaGet(key string) any
+	Type() Expression
+	SetType(dtype any)
+	IsType(dtypes ...any) bool
 	SetSpan(start, end int)
 	Span() (start, end int, ok bool)
 	SetSpanText(text string)
@@ -110,6 +113,7 @@ type Node struct {
 	comments []string
 	meta     map[string]any
 	hash     *uint64
+	typ      Expression
 }
 
 func New(k Kind, args Args) Expression {
@@ -498,6 +502,14 @@ func (n *Node) iterExpressions(reverse bool) []Expression {
 	return out
 }
 
+// IterExpressions ports Expr.iter_expressions: the child expressions in arg order.
+func IterExpressions(e Expression) []Expression {
+	if n, ok := e.(*Node); ok && n != nil {
+		return n.iterExpressions(false)
+	}
+	return nil
+}
+
 func expressionsFromValue(value any, reverse bool) []Expression {
 	switch v := value.(type) {
 	case []Expression:
@@ -679,6 +691,9 @@ func (n *Node) Copy() Expression {
 			for k, v := range node.meta {
 				copyNode.meta[k] = deepCopyMetaValue(v)
 			}
+		}
+		if node.typ != nil {
+			copyNode.typ = node.typ.Copy()
 		}
 		if node.hash != nil {
 			h := *node.hash
@@ -1253,6 +1268,9 @@ func toS(node any, verbose bool, level int, reprStr bool) string {
 				keys = append(keys, key)
 			}
 		}
+		if (verbose || expr.Type() != nil) && !dataTypeKinds[expr.kind] {
+			keys = append(keys, "_type")
+		}
 		if verbose || len(expr.comments) > 0 {
 			keys = append(keys, "_comments")
 		}
@@ -1266,6 +1284,8 @@ func toS(node any, verbose bool, level int, reprStr bool) string {
 			value := any(nil)
 			if key == "_comments" {
 				value = expr.comments
+			} else if key == "_type" {
+				value = expr.Type()
 			} else {
 				value = expr.args[key]
 			}

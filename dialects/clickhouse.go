@@ -11,8 +11,8 @@ import (
 // ClickHouse ports dialects/clickhouse.py (a direct Dialect subclass) plus the flags and the
 // FUNCTIONS overlay of parsers/clickhouse.py and the flags of generators/clickhouse.py.
 // Generator deltas live in generator/dialect_clickhouse.go, parser callbacks in
-// parser/dialect_clickhouse_overrides.go. typing/clickhouse.py (EXPRESSION_METADATA) is out of
-// scope until annotate_types.
+// parser/dialect_clickhouse_overrides.go, typing/clickhouse.py (EXPRESSION_METADATA) in
+// optimizer/typing_clickhouse.go.
 func ClickHouse() *Dialect {
 	d := Base()
 	d.Name = "clickhouse"

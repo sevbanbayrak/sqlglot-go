@@ -128,8 +128,8 @@ func sparkCreatePreprocess(e exp.Expression) exp.Expression {
 	return transforms.MovePartitionedByToSchemaColumns(out)
 }
 
-// sparkDateAddSQL ports _dateadd_sql (generators/spark.py:31-55); the TsOrDsAdd return type
-// comes from the return_type arg, DATE by default.
+// sparkDateAddSQL ports _dateadd_sql (generators/spark.py:31-55); TsOrDsAdd.return_type is the
+// return_type arg, DATE by default.
 func (g *Generator) sparkDateAddSQL(e exp.Expression) string {
 	unit := asExpression(e.Arg("unit"))
 	if unit == nil || (e.Kind() == exp.KindTsOrDsAdd && strings.ToUpper(e.Text("unit")) == "DAY") {

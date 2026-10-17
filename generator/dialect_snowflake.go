@@ -495,12 +495,17 @@ func (g *Generator) noMakeIntervalSQL(e exp.Expression) string {
 	return "INTERVAL '" + g.formatArgs(args, ", ") + "'"
 }
 
-// noTimestampSQL ports no_timestamp_sql (dialect.py:1712-1726); the zone-less target type is
-// TIMESTAMP since annotate_types never runs here.
+// noTimestampSQL ports no_timestamp_sql (dialect.py:1712-1726).
 func (g *Generator) noTimestampSQL(e exp.Expression) string {
 	zone := asExpression(e.Arg("zone"))
 	if zone == nil {
-		return g.gen(exp.CastTo(e.This(), exp.DTypeTimestamp))
+		targetType := exp.DTypeTimestamp
+		if t := g.annotateTypes(e).Type(); t != nil {
+			if d, ok := t.Arg("this").(exp.DType); ok {
+				targetType = d
+			}
+		}
+		return g.gen(exp.CastTo(e.This(), targetType))
 	}
 	if dialects.IsTimezone(zone.Name()) {
 		return g.gen(exp.AtTimeZone(exp.Args{"this": exp.CastTo(e.This(), exp.DTypeTimestamp), "zone": zone}))
@@ -748,11 +753,17 @@ func (g *Generator) snowflakeCastSQL(e exp.Expression) string {
 	return g.castSQL(e)
 }
 
-// snowflakeTryCastSQL ports trycast_sql (generators/snowflake.py:729-743); the value type comes
-// from exp.StaticType instead of annotate_types.
+// snowflakeTryCastSQL ports trycast_sql (generators/snowflake.py:729-743).
 func (g *Generator) snowflakeTryCastSQL(e exp.Expression) string {
+	value := e.This()
+	if value != nil && value.Type() == nil {
+		value = g.annotateTypes(value)
+	}
+
 	// Snowflake requires that TRY_CAST's value be a string
-	if truthy(e.Arg("requires_string")) || exp.TextTypes[exp.StaticType(e.This())] {
+	// If TRY_CAST is being roundtripped (since Snowflake is the only dialect that sets "requires_string") or
+	// if we can deduce that the value is a string, then we can generate TRY_CAST
+	if truthy(e.Arg("requires_string")) || (value != nil && value.IsType(typeArgs(exp.TextTypes)...)) {
 		return g.castSQLWithPrefix(e, "TRY_")
 	}
 	return g.snowflakeCastSQL(e)
@@ -983,11 +994,12 @@ func (g *Generator) snowflakeAlterSetSQL(e exp.Expression) string {
 
 func (g *Generator) snowflakeStrToTimeSQL(e exp.Expression) string {
 	// target_type is stored as a DataType instance
+	// Get the type enum from DataType instance or from type annotation
 	typeEnum := exp.DTypeTimestamp
 	if targetType := asExpression(e.Arg("target_type")); targetType != nil && targetType.Kind() == exp.KindDataType {
-		if dtype, ok := targetType.Arg("this").(exp.DType); ok {
-			typeEnum = dtype
-		}
+		typeEnum, _ = targetType.Arg("this").(exp.DType)
+	} else if t := e.Type(); t != nil {
+		typeEnum, _ = t.Arg("this").(exp.DType)
 	}
 	funcName, ok := dialects.SnowflakeTimestampFunc(typeEnum)
 	if !ok {
@@ -1114,11 +1126,14 @@ func (g *Generator) snowflakeCurrentDateSQL(e exp.Expression) string {
 	}))
 }
 
-// snowflakeDotSQL ports dot_sql (generators/snowflake.py:996-1009); the type of `this` comes
-// from exp.StaticType instead of annotate_types.
+// snowflakeDotSQL ports dot_sql (generators/snowflake.py:996-1009).
 func (g *Generator) snowflakeDotSQL(e exp.Expression) string {
 	this := e.This()
-	if this != nil && this.Kind() != exp.KindDot && exp.StaticTypeIs(this, exp.DTypeStruct) {
+	if this != nil && this.Type() == nil {
+		this = g.annotateTypes(this)
+	}
+
+	if this != nil && this.Kind() != exp.KindDot && this.IsType(exp.DTypeStruct) {
 		// Generate colon notation for the top level STRUCT
 		return g.gen(this) + ":" + g.sqlKey(e, "expression")
 	}

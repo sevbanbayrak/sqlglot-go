@@ -453,6 +453,9 @@ func findInTrie(parts []string, trie *trieNode, raiseOnMissing bool) ([]string, 
 	return resolved, nil
 }
 
+// FindCacheLen is the number of cached Find results (upstream's len(schema._find_cache)).
+func (m *MappingSchema) FindCacheLen() int { return len(m.findCache) }
+
 func (m *MappingSchema) Find(table exp.Expression, raiseOnMissing bool, ensureDataTypes bool) (*Mapping, error) {
 	if table == nil {
 		return nil, nil

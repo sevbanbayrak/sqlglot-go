@@ -290,13 +290,16 @@ source nodes only other dialects build are not. Several Presto functions still p
   `PROPERTIES_LOCATION` table that has no `OnCluster` entry and raises `KeyError`; the port reports
   it as an unsupported property and drops it (`CREATE TABLE t ON CLUSTER c (a Int32) ...` written to
   postgres yields `CREATE TABLE t (a INT) ...` plus an unsupported warning).
-- No annotate_types: where upstream calls `annotate_types` to read an argument's type, the port asks
-  `exp.StaticType`, which knows casts, literals, booleans, NULL, parentheses, arrays and the
-  date/time-returning functions, but not schema-typed columns. Affected: Snowflake `build_trunc`,
-  `_build_timetostr_or_tochar`, `_date_trunc_to_time`, `trycast_sql`, `dot_sql`, and the base
-  `toarray_sql`, `getextract_sql` and `tsordstotime_sql`. A column whose type only a schema would
-  give takes the untyped branch (for example `TRUNC(col, 'MONTH')` stays `Anonymous`, as upstream
-  does without a schema). Tests `snowflake_test.go`, the Snowflake corpora.
+- `simplify` is not ported, so `apply_index_offset` (builders.py:1100-1131) approximates its
+  `simplify(index + offset)`: constant integer arithmetic folds to a literal, an Add chain's numeric
+  operands combine pairwise (the `_flat_simplify` part of `simplify_literals`, simplify.py:1552) and
+  an Add/Mul operand loses the parentheses `_binop` gave it (`simplify_parens`). That reproduces
+  upstream for literal, column-free and `LENGTH(s) ± n`-style indexes (`x[LENGTH(s)]` round-trips
+  through Postgres as `x[LENGTH(s) + 0]`, as upstream). An integer-typed index that full simplify
+  would rewrite further (for example a constant nested inside a non-constant operand,
+  `x[LENGTH(s) + (1 + 1)]`) can render differently; this is the one entry here that can reach a
+  same-dialect round-trip, in the INDEX_OFFSET=1 dialects (Postgres, Presto, Trino, Athena,
+  ClickHouse). `expressions/builders.go`; tests: the transpile corpus, `optimizer/annotate_types_test.go`.
 - `SHOW` written to a dialect without a `SHOW` grammar: upstream's base `show_sql` reports it as
   unsupported and emits nothing; the port's base renderer is MySQL's `show_sql`, so a Snowflake
   `SHOW COLUMNS` written to postgres or spark comes out as `SHOW COLUMNS`.
@@ -315,6 +318,15 @@ None change `.sql()`:
 - `exp.cast(x, "TYPE", dialect=...)` parses the type string in the dialect; `exp.CastTo` builds the
   `DataType` from the `DType` directly, which is the same node for every type the Snowflake and base
   renderers pass.
+- Upstream keeps EXPRESSION_METADATA and COERCES_TO on the Dialect class; the port keeps them in
+  `optimizer/typing*.go`, looked up by dialect name (the tables reference `TypeAnnotator`, which the
+  dialects package cannot import). The scalar typing flags (SUPPORTS_NULL_TYPE, DEFAULT_NULL_TYPE,
+  PRIORITIZE_NON_LITERAL_TYPES, QUERY_RESULTS_ARE_STRUCTS) stay on `dialects.Dialect`.
+- Upstream's builders import annotate_types lazily; the port's dialect builders and
+  `exp.ApplyIndexOffset` call `exp.AnnotateTypesFunc`, which the optimizer installs at init (the
+  parser imports the optimizer so the hook is always set when parsing).
+- `Pivot.output_columns` returns an ordered dict; `exp.PivotOutputColumns` returns the ordered names
+  plus a name map.
 - The optimizer package's internal scope tests reach `sqlglot.ParseOne`/`Generate` through
   `optimizer/export_test.go` hooks set from the external test package: the generator now imports
   the optimizer (Snowflake transforms use `build_scope`/`find_all_in_scope`, as upstream does), so an

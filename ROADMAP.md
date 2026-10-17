@@ -72,13 +72,9 @@ Slices (historical ledger; each landed `go test ./...` green before the next):
      invariant), 18 invalid cases raise. qualify() runs end-to-end (JOIN with unqualified cols
      → qualified + stars expanded + validated). Carried 4a items done: NamedSelects KindSubquery
      (+ Selects()); AST-invariant assertion added to the optimizer harness (assertASTInvariants).
-   - 4c (DEFERRED, OFF probe's critical path): full TypeAnnotator/annotate_types (coercion
-     tables, per-node type rules). KEY FINDING: annotate_scope is NEVER called for base/mysql/
-     postgres — both call sites are gated by ANNOTATE_ALL_SCOPES / SUPPORTS_STRUCT_STAR_EXPANSION,
-     both false in base (qualify_columns.py:112,788). A minimal constructible TypeAnnotator +
-     no-op AnnotateScope suffices for qualify(); probe never triggers annotation. Port the full
-     machinery only for annotate_types.sql test fidelity, after probe e2e. Also deferred:
-     canonicalize/normalize (not on qualify's path).
+   - 4c: DONE (branch feat/annotate-types): full annotate_types + the typing tables of every
+     ported dialect; see "annotate_types — DONE" below. Still deferred: canonicalize/normalize
+     (not on qualify's path).
 
 5. MYSQL + POSTGRES WIRING — DONE (branch sjcho/sqlglot-go/dialects; 114 tests green).
    GetOrRaise("mysql"/"postgres") return real *Dialect values: per-dialect TokenizerConfig
@@ -113,8 +109,6 @@ differential-check against the pinned Python):
   `optimize_joins`, `canonicalize` / `canonicalize_internal_names`, and the top-level `optimize()`
   rule orchestrator that chains them. Only `qualify` + `scope`/`traverse_scope` (+ `isolate_table_
   selects`) are ported today.
-- FULL annotate_types (coercion tables + per-node type rules) — currently a minimal constructible
-  stub; not yet a faithful port.
 - CROSS-DIALECT transpilation: same-dialect round-trip is verified; reading one dialect and writing
   another is not. The per-dialect override tables that make it correct are partial — per-dialect
   parser `FUNCTIONS` ↔ generator `TRANSFORMS`/`TYPE_MAPPING` remaps (must land paired to avoid
@@ -122,17 +116,15 @@ differential-check against the pinned Python):
 - DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena, Spark2, Spark, Databricks,
   ClickHouse and Snowflake (upstream ships 30+; ClickHouse and Snowflake are described in their own
   sections below). Spark2 (dialects/spark2.go, generator/dialect_spark2.go,
-  parser/dialect_spark2_overrides.go) is a 1:1 port except: `EXPRESSION_METADATA` (typing, waits for
-  annotate_types) and `bracket_to_element_at_sql`, which shifts only a literal index by `apply_index_offset`. Spark
-  (dialects/spark.go, generator/dialect_spark.go, parser/dialect_spark_overrides.go) additionally
-  defers `TYPE_PARAM_SETTINGS` (MONEY precision bounds), the `ifblock_sql` DROP IF EXISTS rewrite,
-  and the `_dateadd_sql` return type, which reads the `return_type` arg instead of annotate_types.
+  parser/dialect_spark2_overrides.go) is a 1:1 port (its typing table is optimizer/typing_spark2.go).
+  Spark (dialects/spark.go, generator/dialect_spark.go, parser/dialect_spark_overrides.go) defers
+  `TYPE_PARAM_SETTINGS` (MONEY precision bounds) and the `ifblock_sql` DROP IF EXISTS rewrite.
   Databricks (dialects/databricks.go, generator/dialect_databricks.go,
   parser/dialect_databricks_overrides.go) ports the flags, the FUNCTIONS/FUNCTION_PARSERS/
   NO_PAREN_FUNCTION_PARSERS overlays, the `:` variant extract (`_parse_colon_as_variant_extract`),
   `?::` safe casts, `PRIMARY KEY (... TIMESERIES)`, `CLUSTER BY AUTO|NONE|(...)`, the backtick
-  JSONPath identifiers and every generator TRANSFORM/method. Deferred: `EXPRESSION_METADATA` and
-  `COERCES_TO` (typing, wait for annotate_types). Inherited gaps it shares with Hive/Spark: the
+  JSONPath identifiers and every generator TRANSFORM/method (typing: optimizer/typing_databricks.go).
+  Inherited gaps it shares with Hive/Spark: the
   Command fallback of `ANALYZE TABLE[S] ... COMPUTE [DELTA] STATISTICS`, the strict time-format
   inverse (`STRICT_TIME_FORMATS`, so `TO_DATE(x, 'yyyy-MM-dd')` keeps `%mstrict` when written to
   base/presto), and the base `ToChar`/`SafeDivide`/presto `JSONFormat` renderings.
@@ -548,9 +540,8 @@ TestReviewFindingsFixes):
   transpiles a coalesce=false Concat to a `||` DPipe chain (concat_to_dpipe_sql, dialect.py:1804)
   so e.g. `'a' 'b'` base->postgres becomes `'a' || 'b'` (NULL-propagating) instead of CONCAT(...),
   and convert_concat_args (generator.py:3636-3665) wraps each non-string arg in COALESCE(e, '')
-  when the write dialect's CONCAT doesn't coalesce but the node asks it to. The per-arg
-  string/ARRAY-type skip still defers full annotate_types (ROADMAP 4c): a statically-known string
-  literal is left unwrapped (matching upstream), any other arg is wrapped.
+  when the write dialect's CONCAT doesn't coalesce but the node asks it to; a string literal or an
+  ARRAY-typed arg (annotate_types) is left unwrapped.
 - hexstringSQL ports the full is_integer_type condition (generator.py:1578-1586): a
   HexString{is_integer:true} renders as its integer value even where the write dialect has a
   HEX_START (HEX_STRING_IS_INTEGER_TYPE is false for base/mysql/postgres). bytestringSQL's
@@ -655,10 +646,9 @@ generators/clickhouse.py (a direct `Dialect` subclass, so no parent chain). The 
   ARRAY_AGG's NULL filter (ARRAY_AGG_INCLUDES_NULLS), UtcTimestamp, TsOrDsToTimestamp, the dialect
   `version` setting, MySQL `DATE_FORMAT`, Postgres `UNNEST`/`ArrayContains` and the MySQL
   `UTC_TIMESTAMP` rename.
-- Deferred: `typing/clickhouse.py` (EXPRESSION_METADATA, waits for annotate_types);
-  `apply_index_offset` (INDEX_OFFSET=1 shifts literal bracket indexes only after annotate_types, so
-  `col[1]` is written unchanged to Hive — the same gap Postgres has). `ALTER ... MODIFY COLUMN c REMOVE DEFAULT`, `ATTACH`, `EXCHANGE`, `SYSTEM` and a
-  bare `REFRESH` stay `Command`, as upstream.
+- Deferred: `ALTER ... MODIFY COLUMN c REMOVE DEFAULT`, `ATTACH`, `EXCHANGE`, `SYSTEM` and a
+  bare `REFRESH` stay `Command`, as upstream. (`typing/clickhouse.py` and `apply_index_offset` landed
+  with annotate_types.)
 
 ## Snowflake dialect — DONE (branch feat/snowflake-dialect)
 
@@ -692,10 +682,9 @@ oracle rows.
   `LAST_DAY_SUPPORTS_DATE_PART`, Postgres `no_last_day_sql`/`no_pivot_sql`/array null propagation/
   `MAKE_TIMESTAMP`/`MAKE_TIME`/`BIT_*`/`#`, MySQL and Presto `no_pivot_sql`, MySQL
   `no_tablesample_sql`, Presto bitwise arity, and the parenthesized DECODE null branch.
-- Deferred: `typing/snowflake.py` (EXPRESSION_METADATA, waits for annotate_types); where upstream
-  calls annotate_types the port asks `exp.StaticType` (see DEVIATIONS §2). The two remaining
-  transpile gaps need `simplify` (`LIMIT 0 + 1, 0 + 1` from mysql; `ARRAY_GENERATE_RANGE(0, 3)` to
-  presto folds `3 - 1`).
+- `typing/snowflake.py` and the annotate_types call sites landed with annotate_types (the
+  `exp.StaticType` stand-in is gone). The two remaining transpile gaps need `simplify` (`LIMIT 0 + 1,
+  0 + 1` from mysql; `ARRAY_GENERATE_RANGE(0, 3)` to presto folds `3 - 1`).
 - Python differential (`sqlglot.transpile` vs `sqlglot.Transpile`): over the 1543 identity statements
   written to base, postgres, spark, mysql and presto, 7472 of 7715 outputs are byte-identical. The
   rest is the MySQL-style base `SHOW` renderer (144), `simplify` folding (10), the DEVIATIONS
@@ -703,3 +692,68 @@ oracle rows.
   annotate_types-dependent casts (about 15), five statements where Python itself raises, and a long
   tail of single target-dialect renderers.
 
+## annotate_types — DONE (branch feat/annotate-types)
+
+`optimizer/annotate_types.go` ports optimizer/annotate_types.py whole: `AnnotateTypes` (the
+`annotate_types(expression, schema, expression_metadata, coerces_to, dialect, overwrite_types)`
+keyword arguments as `AnnotateTypesOpts`), `TypeAnnotator` with COERCES_TO/BINARY_COERCIONS,
+`_maybe_coerce`, the `_annotate_*` methods, set-operation column types (BY NAME included), PIVOT/
+UNPIVOT chain inference, table-as-struct columns, QUERY_RESULTS_ARE_STRUCTS, ORDER BY alias fixup,
+the JSON dot-part case restoration and the caches. `optimizer/typing*.go` port typing/__init__.py and
+typing/{mysql,postgres,presto,hive,spark2,spark,databricks,clickhouse,snowflake}.py plus the Hive
+and Databricks COERCES_TO; Trino reuses Presto's table and Athena the base one, as their upstream
+classes do. `Expression.Type()/SetType()/IsType()` port `Expr.type`/`is_type` (with the Cast and
+DataType overrides) and `_type` appears in `ToS()` as in upstream's repr.
+
+- Fixtures (`optimizer/annotate_types_test.go`): annotate_types.sql 44/44 in-scope cases pass;
+  annotate_functions.sql 1883/1883 in-scope cases pass. Skipped (dialect not ported): 27
+  annotate_types.sql cases (bigquery 26, duckdb 1) and 502 annotate_functions.sql cases (bigquery 390,
+  duckdb 79, tsql 27, redshift 6). typing/{bigquery,duckdb,redshift,tsql}.py are out of scope with
+  their dialects.
+- Ported test_optimizer.py tests: test_annotate_untyped_binary_operands,
+  test_annotate_json_dot_parts_preserve_meta (base-dialect parse; meta checked with a marker since the
+  parser records no identifier token positions), test_annotate_types_caches_schema_lookups,
+  test_cast/cache/binary/typeddiv/bracket/interval_math/lateral/derived_tables_column/
+  cte_column/function/unknown/predicate/aggfunc/concat/root_subquery/nested_type/
+  type_annotation_cache/user_defined_type/unnest/map/union/udtf annotation tests,
+  test_manually_annotate_snowflake, test_struct_field_case_sensitivity_annotation (clickhouse part),
+  test_annotate_object_construct, test_nonnull_annotation, test_deep_ast_type_annotation,
+  test_correlated_subqueries_annotation (base part), test_order_by_alias_annotation and
+  test_multiple_pivots_annotate_types. `optimize()` is not ported, so the lateral and chained-union
+  cases run qualify + annotate_types. Parts skipped: everything reading bigquery or duckdb
+  (test_unpivot_cte_annotate_types, test_unnest_type_trace_is_memoized,
+  test_qualify_columns_struct_star_expansion_types, test_annotate_table_as_struct_bigquery,
+  test_struct_annotation_bigquery, test_bigquery_unnest_alias_shadowing,
+  test_case_sensitive_json_dot_access, test_null_coerce_annotation and the bigquery/duckdb halves of
+  the tests above) and the udf_mapping half of test_udf_annotation (MappingSchema has no udf_mapping
+  yet, so a UDF types as UNKNOWN).
+- Landed with it: qualify's `store_original_column_identifiers` (normalize_identifiers dot_parts and
+  their hand-off in convert_columns_to_dots), qualify_columns' PIVOT/UNPIVOT validation, chained
+  IN-list attribution and star expansion, `Pivot.output_columns` (`exp.PivotOutputColumns`), base
+  LOWER/UPPER builders (`LowerHex`/`Hex` simplification, `lowerhex_sql`), the MySQL BIT_AND/OR/XOR/
+  BIT_COUNT, CONVERT_TZ, FORMAT, MAKETIME and VERSION builders, the Postgres REGEXP_REPLACE builder.
+- Consumers now typed as upstream: `apply_index_offset` (parser `_parse_bracket`, generator
+  `bracket_offset_expressions`, `bracket_to_element_at_sql`, Presto/Spark safe brackets), build_trunc,
+  build_timetostr_or_tochar, Snowflake `_date_trunc_to_time`/`trycast_sql`/`dot_sql`/
+  `strtotime_sql`, no_timestamp_sql (Snowflake and now Presto), base `convert_concat_args`,
+  `div_sql`, `toarray_sql`, `getextract_sql`, `tsordsto{time,timestamp,date}_sql`, Postgres
+  `getbit_sql`, `_round_sql`, `_day_month_year_sql`, the `array<json>` UNNEST, Presto `_to_int`,
+  `struct_sql`, `md5_sql`, `jsonformat_sql`, the SHA2 digests, the struct-array EXPLODE alias and
+  `amend_exploded_column_table`, and transforms' inherit_struct_field_names type. Parse-time
+  builders reach annotate_types through `exp.AnnotateTypesFunc` (dialects cannot import the
+  optimizer); the parser imports the optimizer so the hook is always installed.
+- Corpora: identity unchanged (every bucket at its floor); transpile 2611 → 2621 of 2693 (closed:
+  clickhouse/postgres→hive `col[1]`, hive→postgres ROUND, mysql→presto TIMESTAMP, presto→base
+  ELEMENT_AT, presto→spark JSON/FILTER index, spark→presto/trino TO_JSON(STRUCT), spark→presto
+  TIMESTAMPADD with FLOOR, trino→postgres JSON UNNEST).
+- Remaining typing deferrals: `simplify` (apply_index_offset folds only the index arithmetic it
+  needs, DEVIATIONS §2); MappingSchema udf_mapping; the resolver's type-aware UNNEST/struct
+  resolution and BigQuery struct-star expansion (`TODO(qualify)` in optimizer/resolver.go and
+  qualify_columns.go, all BigQuery/RisingWave paths); Postgres GENERATE_SERIES still builds
+  `GenerateSeries` instead of `ExplodingGenerateSeries`, so it types as ARRAY where upstream says
+  UNKNOWN; Presto's eliminate_window_clause and explode_projection_to_unnest are not wired into
+  its Select preprocess.
+- Python differential: the 44 annotate_types.sql statements, 17 typed-projection statements
+  across every ported dialect and 36 typing-dependent transpiles match Python except one (the
+  GENERATE_SERIES parse above). Over all 3683 non-pretty identity statements written to 10 targets
+  (33191 transpiles), byte-identical outputs went from 30885 to 30942: 57 fixed, none regressed.

@@ -204,7 +204,7 @@ func (r *Resolver) GetSourceColumns(name string, onlyVisible ...bool) []string {
 		sourceExpr := source.Expression
 		if sourceExpr != nil && sourceExpr.Is(exp.TraitUDTF) {
 			columns = copyStringSlice(sourceExpr.NamedSelects())
-			// TODO(slice 4c): port UNNEST_COLUMN_ONLY / Explode / Lateral Query type-aware branches.
+			// TODO(qualify): port UNNEST_COLUMN_ONLY / Explode / Lateral Query type-aware branches.
 		} else if sourceExpr != nil && sourceExpr.Is(exp.TraitSetOperation) {
 			columns = r.GetSourceColumnsFromSetOp(sourceExpr)
 		} else if sourceExpr != nil {
@@ -386,7 +386,7 @@ func (r *Resolver) getUnambiguousColumns(sourceColumns map[string][]string, orde
 		return out
 	}
 
-	// TODO(slice 4c): UNNEST_COLUMN_ONLY original-alias shadowing.
+	// TODO(qualify): UNNEST_COLUMN_ONLY original-alias shadowing.
 	unambiguousColumns := map[string]string{}
 	allColumns := map[string]bool{}
 	for _, column := range firstColumns {
@@ -419,16 +419,16 @@ func (r *Resolver) getUnambiguousColumns(sourceColumns map[string][]string, orde
 }
 
 func (r *Resolver) structFieldNames(colType exp.Expression) []string {
-	// TODO(slice 4c): port resolver.py:359-367 once TypeAnnotator/DataType inference is live.
+	// TODO(qualify): port resolver.py:359-367 once TypeAnnotator/DataType inference is live.
 	return nil
 }
 
 func (r *Resolver) getUnnestColumnType(column exp.Expression, scope *Scope) exp.Expression {
-	// TODO(slice 4c): port resolver.py:369-392.
+	// TODO(qualify): port resolver.py:369-392.
 	return nil
 }
 
 func (r *Resolver) getColumnTypeFromScope(source any, column exp.Expression) exp.Expression {
-	// TODO(slice 4c): port resolver.py:394-419.
+	// TODO(qualify): port resolver.py:394-419.
 	return nil
 }

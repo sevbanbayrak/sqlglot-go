@@ -8,7 +8,7 @@ import (
 )
 
 // Spark2 ports dialects/spark2.py and parsers/spark2.py on top of Hive. Generator deltas live in
-// generator/dialect_spark2.go. EXPRESSION_METADATA (typing) is out of scope until annotate_types.
+// generator/dialect_spark2.go, EXPRESSION_METADATA (typing) in optimizer/typing_spark2.go.
 func Spark2() *Dialect {
 	d := Hive()
 	d.Name = "spark2"

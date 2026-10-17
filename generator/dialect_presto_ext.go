@@ -5,6 +5,7 @@ import (
 
 	"github.com/sevbanbayrak/sqlglot-go/dialects"
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
 	"github.com/sevbanbayrak/sqlglot-go/transforms"
 )
 
@@ -110,11 +111,12 @@ func init() {
 			return g.tableSQL(e)
 		},
 		exp.KindSelect: func(g *Generator, e exp.Expression) string {
-			// generators/presto.py:381-392; eliminate_window_clause, explode_projection_to_unnest
-			// and amend_exploded_column_table are not ported yet.
+			// generators/presto.py:381-392; eliminate_window_clause and
+			// explode_projection_to_unnest are not wired yet.
 			out := transforms.EliminateQualify(e)
 			out = transforms.EliminateDistinctOn(out)
 			out = transforms.EliminateSemiAndAntiJoins(out)
+			out = amendExplodedColumnTable(out)
 			if out.Kind() != exp.KindSelect {
 				return g.gen(out)
 			}
@@ -125,16 +127,48 @@ func init() {
 }
 
 // prestoDateDeltaSQL ports _date_delta_sql (presto.py:157-168); the _to_int cast is the
-// prestoIntegerTyped heuristic of prestoDateAddSQL.
+// prestoToInt cast.
 func (g *Generator) prestoDateDeltaSQL(e exp.Expression, negate bool) string {
 	var interval any = e.Expr()
-	if iv := asExpression(interval); iv != nil && !prestoIntegerTyped(iv) {
-		interval = exp.New(exp.KindCast, exp.Args{"this": iv, "to": exp.DTypeBigInt.IntoExpr(nil)})
-	}
-	if negate {
-		interval = exp.Mul(exp.Args{"this": interval, "expression": exp.LiteralNumber(-1)})
+	if iv := asExpression(interval); iv != nil {
+		interval = g.prestoToInt(iv)
+		if negate {
+			interval = exp.BinOp(exp.KindMul, interval.(exp.Expression), -1)
+		}
 	}
 	return g.funcCall("DATE_ADD", []any{prestoUnit(e), interval, e.This()}, "(", ")", true)
+}
+
+// amendExplodedColumnTable ports amend_exploded_column_table (generators/presto.py:228-252): when
+// types were inferred, the exploded fields of a LATERAL VIEW EXPLODE may be qualified with the
+// struct column, resulting in invalid Presto references that need to be amended.
+func amendExplodedColumnTable(expression exp.Expression) exp.Expression {
+	// We check for expression.type because the columns can be amended only if types were inferred
+	if expression.Kind() != exp.KindSelect || expression.Type() == nil {
+		return expression
+	}
+	for _, lateral := range exp.ExpressionsOf(expression, "laterals") {
+		alias := asExpression(lateral.Arg("alias"))
+		if this := lateral.This(); this == nil || this.Kind() != exp.KindExplode || alias == nil ||
+			alias.Kind() != exp.KindTableAlias || len(exp.ExpressionsOf(alias, "columns")) != 1 {
+			continue
+		}
+
+		newTable := alias.This()
+		oldTable := strings.ToLower(exp.ExpressionsOf(alias, "columns")[0].Name())
+
+		for _, column := range optimizer.FindAllInScope(expression, exp.KindColumn) {
+			switch {
+			case strings.ToLower(column.SchemaName()) == oldTable:
+				column.Set("table", asExpression(column.Arg("schema")).Pop())
+			case strings.ToLower(column.TableName()) == oldTable:
+				column.Set("table", newTable.Copy())
+			case strings.ToLower(column.Name()) == oldTable && column.Parent() != nil && column.Parent().Kind() == exp.KindDot:
+				column.Parent().Replace(exp.Column_(asExpression(column.Parent().Arg("expression")), newTable, nil, nil, nil))
+			}
+		}
+	}
+	return expression
 }
 
 // prestoStrToUnixSQL ports strtounix_sql (presto.py:565-584).
@@ -158,11 +192,25 @@ func (g *Generator) prestoStrToUnixSQL(e exp.Expression) string {
 }
 
 // prestoExplodeToUnnestSQL ports _explode_to_unnest_sql (presto.py:171-188) over
-// explode_to_unnest_sql (dialect.py:2481-2512); the typed-struct alias branch needs
-// annotate_types and is skipped.
+// explode_to_unnest_sql (dialect.py:2481-2512).
 func (g *Generator) prestoExplodeToUnnestSQL(e exp.Expression) string {
 	explode := e.This()
-	if explode != nil && explode.Kind() == exp.KindInline {
+	if explode != nil && explode.Kind() == exp.KindExplode {
+		explodedType := explode.This().Type()
+		alias := asExpression(e.Arg("alias"))
+
+		// This attempts a best-effort transpilation of LATERAL VIEW EXPLODE on a struct array
+		if alias != nil && alias.Kind() == exp.KindTableAlias && explodedType != nil &&
+			explodedType.IsType(exp.DTypeArray) && len(explodedType.Expressions()) > 0 &&
+			explodedType.Expressions()[0].IsType(exp.DTypeStruct) {
+			// When unnesting a ROW in Presto, it produces N columns, so we need to fix the alias
+			var columns []exp.Expression
+			for _, c := range explodedType.Expressions()[0].Expressions() {
+				columns = append(columns, c.This().Copy())
+			}
+			alias.Set("columns", columns)
+		}
+	} else if explode != nil && explode.Kind() == exp.KindInline {
 		explode = explode.Replace(exp.New(exp.KindExplode, exp.Args{"this": explode.This().Copy()}))
 	}
 	alias := asExpression(e.Arg("alias"))
