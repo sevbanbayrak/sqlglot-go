@@ -62,12 +62,12 @@ func init() {
 			}))
 		},
 		// generators/postgres.py:408
-		exp.KindUuid: func(*Generator, exp.Expression) string { return "GEN_RANDOM_UUID()" },
-		// dialect.py:2626-2644 getbit_sql; the integer-typed branch needs annotate_types, which
-		// never runs here, so only the GET_BIT spelling is reached.
-		exp.KindGetbit: func(g *Generator, e exp.Expression) string {
-			return g.funcCall("GET_BIT", []any{e.This(), e.Expr()}, "(", ")", true)
-		},
+		exp.KindUuid:   func(*Generator, exp.Expression) string { return "GEN_RANDOM_UUID()" },
+		exp.KindGetbit: (*Generator).getbitSQL,
+		exp.KindRound:  (*Generator).postgresRoundSQL,
+		exp.KindDay:    (*Generator).postgresDayMonthYearSQL,
+		exp.KindMonth:  (*Generator).postgresDayMonthYearSQL,
+		exp.KindYear:   (*Generator).postgresDayMonthYearSQL,
 		// generators/postgres.py:168-180 _unix_to_time_sql
 		exp.KindUnixToTime: func(g *Generator, e exp.Expression) string {
 			scale := asExpression(e.Arg("scale"))
@@ -188,12 +188,33 @@ func init() {
 			return "(" + a + " AND (NOT " + b + ")) OR ((NOT " + a + ") AND " + b + ")"
 		},
 		exp.KindUnnest: func(g *Generator, e exp.Expression) string {
-			// generators/postgres.py:449-461; the array<json> branch needs annotate_types.
+			// generators/postgres.py:448-477
 			exprs := e.Expressions()
-			if len(exprs) != 1 || exprs[0].Kind() != exp.KindGenerateDateArray {
+			if len(exprs) != 1 {
 				return g.unnestSQL(e)
 			}
 			arg := exprs[0]
+			if arg.Kind() != exp.KindGenerateDateArray {
+				this := g.annotateTypes(arg)
+				if this.IsType("array<json>") {
+					for this.Kind() == exp.KindCast {
+						this = this.This()
+					}
+
+					argAsJSON := g.gen(exp.CastTo(this, exp.DTypeJSON))
+					alias := g.sqlKey(e, "alias")
+					if alias != "" {
+						alias = " AS " + alias
+					}
+
+					if truthy(e.Arg("offset")) {
+						g.unsupported("Unsupported JSON_ARRAY_ELEMENTS with offset")
+					}
+
+					return "JSON_ARRAY_ELEMENTS(" + argAsJSON + ")" + alias
+				}
+				return g.unnestSQL(e)
+			}
 			series := exp.New(exp.KindGenerateSeries, exp.Args{"start": arg.Arg("start"), "end": arg.Arg("end"), "step": arg.Arg("step")})
 			if p := e.Parent(); p != nil && (p.Kind() == exp.KindFrom || p.Kind() == exp.KindJoin) {
 				alias := asExpression(e.Arg("alias"))
@@ -213,6 +234,61 @@ func init() {
 	registerDialectDispatch("postgres", table)
 	// generators/postgres.py:283-287.
 	registerJSONPathParts("postgres", exp.KindJSONPathKey, exp.KindJSONPathRoot, exp.KindJSONPathSubscript)
+}
+
+// getbitSQL ports getbit_sql (dialect.py:2626-2644): an integer-typed Getbit whose zero index is
+// the least-significant bit becomes bitwise operations.
+func (g *Generator) getbitSQL(e exp.Expression) string {
+	value, position := e.This(), e.Expr()
+
+	if !truthy(e.Arg("zero_is_msb")) && e.IsType(append(typeArgs(exp.SignedIntegerTypes), typeArgs(exp.UnsignedIntegerTypes)...)...) {
+		// Use bitwise operations: (value >> position) & 1
+		shifted := exp.New(exp.KindBitwiseRightShift, exp.Args{"this": value, "expression": position})
+		return g.gen(exp.New(exp.KindBitwiseAnd, exp.Args{"this": shifted, "expression": exp.LiteralNumber(1)}))
+	}
+
+	return g.funcCall("GET_BIT", []any{value, position}, "(", ")", true)
+}
+
+// postgresRoundSQL ports _round_sql (generators/postgres.py:230-248).
+func (g *Generator) postgresRoundSQL(e exp.Expression) string {
+	this := g.sqlKey(e, "this")
+	decimals := g.sqlKey(e, "decimals")
+
+	if decimals == "" {
+		return g.funcCall("ROUND", []any{this}, "(", ")", true)
+	}
+
+	if e.Type() == nil {
+		e = g.annotateTypes(e)
+	}
+
+	// ROUND(double precision, integer) is not permitted in Postgres
+	// so it's necessary to cast to decimal before rounding.
+	if e.This().IsType(exp.DTypeDouble) {
+		decimalType := exp.DTypeDecimal.IntoExpr(exp.Args{"expressions": e.Expressions()})
+		this = g.gen(exp.Cast(exp.Args{"this": exp.Var(exp.Args{"this": this}), "to": decimalType}))
+	}
+
+	return g.funcCall("ROUND", []any{this, decimals}, "(", ")", true)
+}
+
+// postgresDayMonthYearSQL ports _day_month_year_sql (generators/postgres.py:80-89).
+func (g *Generator) postgresDayMonthYearSQL(e exp.Expression) string {
+	this := e.This()
+	value := this
+	if this != nil && this.Kind() == exp.KindTsOrDsToDate {
+		value = this.This()
+	}
+
+	if value != nil && value.IsType(typeArgs(exp.IntegerTypes)...) {
+		if defaultDate := asExpression(this.Arg("default_date")); defaultDate != nil {
+			this = exp.BinOp(exp.KindAdd, exp.CastTo(defaultDate, exp.DTypeDate), value)
+		}
+	}
+
+	name := map[exp.Kind]string{exp.KindDay: "DAY", exp.KindMonth: "MONTH", exp.KindYear: "YEAR"}[e.Kind()]
+	return g.gen(exp.Extract(exp.Args{"this": exp.Var(exp.Args{"this": name}), "expression": this}))
 }
 
 // postgresDateDiffSQL ports _date_diff_sql (generators/postgres.py:94-125).

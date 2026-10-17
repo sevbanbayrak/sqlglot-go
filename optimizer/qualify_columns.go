@@ -128,7 +128,7 @@ func ValidateQualifyColumns(expression exp.Expression, sql string) exp.Expressio
 				if column.Text("table") != "" {
 					forTable = fmt.Sprintf(" for table: '%s'", column.Text("table"))
 				}
-				// TODO(slice 4c): error-position highlighting once Node has meta.
+				// TODO(qualify): error-position highlighting once Node has meta.
 				panic(&sqlerrors.OptimizeError{Msg: fmt.Sprintf("Column '%s' could not be resolved%s.", column.Name(), forTable)})
 			}
 			allUnqualifiedColumns = append(allUnqualifiedColumns, unqualifiedColumns...)
@@ -137,7 +137,7 @@ func ValidateQualifyColumns(expression exp.Expression, sql string) exp.Expressio
 
 	if len(allUnqualifiedColumns) > 0 {
 		firstColumn := allUnqualifiedColumns[0]
-		// TODO(slice 4c): error-position highlighting once Node has meta.
+		// TODO(qualify): error-position highlighting once Node has meta.
 		panic(&sqlerrors.OptimizeError{Msg: fmt.Sprintf("Ambiguous column '%s'", firstColumn.Name())})
 	}
 	_ = sql
@@ -148,7 +148,7 @@ func separatePseudocolumns(scope *Scope, pseudocolumns map[string]bool) {
 	if len(pseudocolumns) == 0 {
 		return
 	}
-	// TODO(slice 4c): port Pseudocolumn node replacement once pseudocolumn support exists.
+	// TODO(qualify): port Pseudocolumn node replacement once pseudocolumn support exists.
 }
 
 func popTableColumnAliases(derivedTables []exp.Expression) {
@@ -338,7 +338,7 @@ func expandUsing(scope *Scope, resolver *Resolver) map[string][]string {
 					if parent := column.Parent(); parent != nil && parent.Kind() == exp.KindSelect {
 						replacement = exp.AliasExpr(replacement, column.Name(), false)
 					} else {
-						// TODO(slice 4c): STRUCT/PropertyEQ USING replacement.
+						// TODO(qualify): STRUCT/PropertyEQ USING replacement.
 					}
 					scope.Replace(column, replacement)
 				}
@@ -673,6 +673,8 @@ func convertColumnsToDots(scope *Scope, resolver *Resolver) {
 		}
 
 		columnTable := column.Text("table")
+		dotParts, _ := column.MetaGet("dot_parts").([]string)
+		delete(column.Meta(), "dot_parts")
 		if columnTable != "" && !selectedSources[columnTable] && (scope.Parent == nil || scope.Parent.Sources[columnTable] == nil || !scope.IsCorrelatedSubquery()) {
 			parts := column.Parts()
 			if len(parts) == 0 {
@@ -682,13 +684,16 @@ func convertColumnsToDots(scope *Scope, resolver *Resolver) {
 			parts = parts[1:]
 
 			var columnTableExpression any = columnTable
+			wasQualified := false
 			if root.Kind() == exp.KindIdentifier && selectedSources[root.Name()] {
+				// The struct is already qualified, but we still need to change the AST
 				columnTableExpression = root
 				if len(parts) == 0 {
 					continue
 				}
 				root = parts[0]
 				parts = parts[1:]
+				wasQualified = true
 			} else if table := resolver.GetTable(root.Name()); table != nil {
 				columnTableExpression = table
 			} else {
@@ -696,6 +701,17 @@ func convertColumnsToDots(scope *Scope, resolver *Resolver) {
 			}
 
 			newColumn := exp.Column_(root, columnTableExpression, nil, nil, nil)
+			if len(dotParts) > 0 {
+				// Remove the actual column parts from the rest of dot parts
+				skip := 1
+				if wasQualified {
+					skip = 2
+				}
+				if skip > len(dotParts) {
+					skip = len(dotParts)
+				}
+				newColumn.Meta()["dot_parts"] = append([]string{}, dotParts[skip:]...)
+			}
 			if len(parts) == 0 {
 				column.Replace(newColumn)
 			} else {
@@ -715,9 +731,15 @@ func qualifyColumnsInScope(scope *Scope, resolver *Resolver, allowPartialQualifi
 		columnName := column.Name()
 
 		if columnTable != "" {
-			if _, ok := scope.Sources[columnTable]; ok {
+			if columnSource, ok := scope.Sources[columnTable]; ok {
 				sourceColumns := resolver.GetSourceColumns(columnTable)
-				// TODO(slice 4c): pivot output column validation.
+				// For pivoted sources, source_columns are pre-pivot; validate against the post-pivot set.
+				if t, ok := columnSource.(exp.Expression); ok && t != nil && t.Kind() == exp.KindTable {
+					// Each operator's input is the previous one's output
+					for _, pivot := range expressionsFor(t, "pivots") {
+						sourceColumns, _ = exp.PivotOutputColumns(pivot, sourceColumns)
+					}
+				}
 				if !allowPartialQualification && len(sourceColumns) > 0 && !containsString(sourceColumns, columnName) && !containsString(sourceColumns, "*") {
 					panic(&sqlerrors.OptimizeError{Msg: "Unknown column: " + columnName})
 				}
@@ -744,12 +766,40 @@ func qualifyColumnsInScope(scope *Scope, resolver *Resolver, allowPartialQualifi
 		}
 	}
 
-	for _, pivot := range scope.Pivots() {
+	pivots := scope.Pivots()
+
+	// A chained operator's IN-list may name columns produced by earlier operators, which no
+	// source exposes; track the chain's accumulated output to resolve them. Attribution is
+	// only unambiguous when all pivots share one parent, i.e. there's a single pivoted source.
+	singleChain := len(pivots) > 0 && pivots[0].Parent() == pivots[len(pivots)-1].Parent()
+	produced := map[string]bool{}
+	pivotedSource := ""
+	if singleChain {
+		pivotedSource = pivots[len(pivots)-1].Alias()
+	}
+	var available []string
+	if _, ok := scope.Sources[pivotedSource]; ok {
+		available = resolver.GetSourceColumns(pivotedSource)
+	}
+
+	for _, pivot := range pivots {
 		for _, column := range pivot.FindAll(exp.KindColumn) {
-			if column.Text("table") == "" && resolver.AllColumns()[column.Name()] {
+			if column.Text("table") != "" {
+				continue
+			}
+			if resolver.AllColumns()[column.Name()] {
 				if table := resolver.GetTable(column.Name()); table != nil {
 					column.Set("table", table)
 				}
+			} else if singleChain && produced[column.Name()] {
+				column.Set("table", exp.ToIdentifier(pivotedSource))
+			}
+		}
+
+		if singleChain {
+			available, _ = exp.PivotOutputColumns(pivot, available)
+			for _, name := range available {
+				produced[name] = true
 			}
 		}
 	}
@@ -771,13 +821,6 @@ func expandStarsInScope(scope *Scope, resolver *Resolver, usingColumnTables map[
 	var newSelections []exp.Expression
 	coalescedColumns := map[string]bool{}
 	dialect := resolver.dialect
-
-	pivots := scope.Pivots()
-	var pivot exp.Expression
-	if len(pivots) > 0 {
-		pivot = pivots[0]
-	}
-	_ = pivot
 
 	if dialect.SupportsStructStarExpansion {
 		for _, col := range scope.Stars() {
@@ -829,7 +872,7 @@ func expandStarsInScope(scope *Scope, resolver *Resolver, usingColumnTables map[
 					ilikePattern = addILikeColumns(expression.This())
 				}
 			} else if expression.Kind() == exp.KindDot {
-				// TODO(slice 4c): struct star expansion for BigQuery/RisingWave.
+				// TODO(qualify): struct star expansion for BigQuery/RisingWave.
 			}
 		}
 
@@ -839,12 +882,33 @@ func expandStarsInScope(scope *Scope, resolver *Resolver, usingColumnTables map[
 		}
 
 		for i, table := range tables {
-			if _, ok := scope.Sources[table]; !ok {
-				panic(&sqlerrors.OptimizeError{Msg: "Unknown table: " + table})
+			source, ok := scope.Sources[table]
+			var pivots []exp.Expression
+			pivotsResolved := false
+			sourceTable := table
+
+			if !ok {
+				// The chain's final alias names the resulting source, but only the underlying
+				// source is registered in `scope.sources`, so resolve through the chain's parent.
+				// Attribution is only unambiguous for a single chain (all pivots share a parent)
+				chain := scope.Pivots()
+				var parent exp.Expression
+				if len(chain) > 0 && chain[0].Parent() == chain[len(chain)-1].Parent() && chain[len(chain)-1].Alias() == table {
+					parent = chain[len(chain)-1].Parent()
+				}
+				if parent != nil {
+					pivots, pivotsResolved = chain, true
+					sourceTable = parent.AliasOrName()
+					source, ok = scope.Sources[sourceTable]
+				}
+
+				if !ok {
+					panic(&sqlerrors.OptimizeError{Msg: "Unknown table: " + table})
+				}
 			}
 			tableKey := tableKeys[i]
 
-			columns := resolver.GetSourceColumns(table, true)
+			columns := resolver.GetSourceColumns(sourceTable, true)
 			if len(columns) == 0 {
 				columns = scope.OuterColumns
 			}
@@ -870,7 +934,48 @@ func expandStarsInScope(scope *Scope, resolver *Resolver, usingColumnTables map[
 			renamed := renameColumns[tableKey]
 			replaced := replaceColumns[tableKey]
 
-			// TODO(slice 4c): pivot output column expansion.
+			// The operators belong to a specific source, so a star over a source joined
+			// alongside it must expand from that source's own columns
+			if !pivotsResolved {
+				var selectedNode exp.Expression
+				if selected, ok := scope.SelectedSources()[table]; ok {
+					selectedNode = selected.Node
+				}
+				if t, ok := source.(exp.Expression); selectedNode == nil && ok && t != nil && t.Kind() == exp.KindTable {
+					// A pivoted CTE reference is registered under the pivot's alias, a name
+					// `references` doesn't know, so it's absent from `selected_sources`
+					selectedNode = t
+				}
+				if selectedNode != nil {
+					pivots = expressionsFor(selectedNode, "pivots")
+				}
+			}
+
+			if len(pivots) > 0 {
+				// Each operator consumes the previous one's output, so fold them in order
+				pivotColumns := columns
+				for _, pivot := range pivots {
+					names, _ := exp.PivotOutputColumns(pivot, pivotColumns)
+					if len(names) == 0 {
+						names = pivot.AliasColumnNames()
+					}
+					pivotColumns = names
+				}
+
+				if len(pivotColumns) > 0 {
+					var pivotAlias any
+					if a := pivots[len(pivots)-1].Alias(); a != "" {
+						pivotAlias = a
+					}
+					for _, name := range pivotColumns {
+						if !columnsToExclude[name] {
+							newSelections = append(newSelections, exp.AliasExpr(exp.Column_(name, pivotAlias, nil, nil, nil), name, false))
+						}
+					}
+					continue
+				}
+			}
+
 			for _, name := range columns {
 				if columnsToExclude[name] || coalescedColumns[name] {
 					continue

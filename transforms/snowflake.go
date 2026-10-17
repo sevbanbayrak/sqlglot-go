@@ -72,7 +72,10 @@ func InheritStructFieldNames(e exp.Expression) exp.Expression {
 		newExpressions := []exp.Expression{}
 		for i, expr := range structNode.Expressions() {
 			if expr.Kind() != exp.KindPropertyEQ {
-				newExpressions = append(newExpressions, exp.PropertyEQ(exp.Args{"this": fieldNames[i].Copy(), "expression": expr}))
+				// Create PropertyEQ: field_name := value, preserving the type from the inner expression
+				propertyEQ := exp.PropertyEQ(exp.Args{"this": fieldNames[i].Copy(), "expression": expr})
+				propertyEQ.SetType(expr.Type())
+				newExpressions = append(newExpressions, propertyEQ)
 			} else {
 				newExpressions = append(newExpressions, expr)
 			}

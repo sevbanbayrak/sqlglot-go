@@ -200,8 +200,7 @@ func (g *Generator) formatTime(e expressions.Expression) expressions.Expression 
 	return format
 }
 
-// tsOrDsToDateSQL ports tsordstodate_sql (generator.py:5202-5220); the this.is_type(DATE) test
-// is reduced to an explicit DATE cast, since annotate_types never runs here.
+// tsOrDsToDateSQL ports tsordstodate_sql (generator.py:5202-5220).
 func (g *Generator) tsOrDsToDateSQL(e expressions.Expression) string {
 	this := e.This()
 	safe := e.Arg("safe")
@@ -209,7 +208,7 @@ func (g *Generator) tsOrDsToDateSQL(e expressions.Expression) string {
 		strToTime := expressions.New(expressions.KindStrToTime, expressions.Args{"this": this, "format": e.Arg("format"), "safe": safe})
 		return g.gen(expressions.New(expressions.KindCast, expressions.Args{"this": strToTime, "to": expressions.DTypeDate.IntoExpr(nil)}))
 	}
-	if this.Kind() == expressions.KindTsOrDsToDate || (this.Kind() == expressions.KindCast && expressions.IsType(asExpression(this.Arg("to")), expressions.DTypeDate)) {
+	if this.Kind() == expressions.KindTsOrDsToDate || this.IsType(expressions.DTypeDate) {
 		return g.gen(this)
 	}
 	kind := expressions.KindCast

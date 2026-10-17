@@ -1,5 +1,7 @@
 package expressions
 
+import "sort"
+
 type Kind int
 
 const (
@@ -2411,3 +2413,14 @@ func ClassName(k Kind) string { return className[k] }
 var SQLNames = map[Kind]string{}
 
 func SQLName(k Kind) string { return SQLNames[k] }
+
+// AllKinds lists every Kind that has a class name, in ascending order. The Go stand-in for
+// helper.subclasses' scan of the expressions module.
+func AllKinds() []Kind {
+	out := make([]Kind, 0, len(className))
+	for k := range className {
+		out = append(out, k)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}

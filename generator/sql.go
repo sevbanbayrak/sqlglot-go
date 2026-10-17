@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/sevbanbayrak/sqlglot-go/expressions"
+	"github.com/sevbanbayrak/sqlglot-go/optimizer"
 )
 
 var safeIdentifierRE = regexp.MustCompile(`^[_a-zA-Z]\w*$`)
@@ -433,15 +434,20 @@ func (g *Generator) addSQL(e expressions.Expression) string { return g.binary(e,
 func (g *Generator) subSQL(e expressions.Expression) string { return g.binary(e, "-") }
 func (g *Generator) mulSQL(e expressions.Expression) string { return g.binary(e, "*") }
 
-// divSQL ports div_sql (generator.py:4578-4594). Without annotate_types no operand is known to
-// be real- or integer-typed, so only the untyped branches fire.
+// divSQL ports div_sql (generator.py:4578-4594).
 func (g *Generator) divSQL(e expressions.Expression) string {
 	l, r := e.This(), e.Expr()
 	if !g.dialect.SafeDivision && boolValue(e.Arg("safe")) && r != nil {
 		r.Replace(expressions.New(expressions.KindNullif, expressions.Args{"this": r.Copy(), "expression": expressions.LiteralNumber(0)}))
 	}
 	if g.dialect.TypedDivision && !boolValue(e.Arg("typed")) && l != nil {
-		l.Replace(expressions.New(expressions.KindCast, expressions.Args{"this": l.Copy(), "to": expressions.DTypeDouble.IntoExpr(nil)}))
+		if !l.IsType(typeArgs(expressions.RealTypes)...) && (r == nil || !r.IsType(typeArgs(expressions.RealTypes)...)) {
+			l.Replace(expressions.New(expressions.KindCast, expressions.Args{"this": l.Copy(), "to": expressions.DTypeDouble.IntoExpr(nil)}))
+		}
+	} else if !g.dialect.TypedDivision && boolValue(e.Arg("typed")) && l != nil && r != nil {
+		if l.IsType(typeArgs(expressions.IntegerTypes)...) && r.IsType(typeArgs(expressions.IntegerTypes)...) {
+			return g.gen(expressions.CastTo(expressions.BinOp(expressions.KindDiv, l, r), expressions.DTypeBigInt))
+		}
 	}
 	return g.binary(e, "/")
 }
@@ -2410,6 +2416,17 @@ func (g *Generator) hexSQL(e expressions.Expression) string {
 	return g.funcCall("HEX", []any{e.Arg("this")}, "(", ")", true)
 }
 
+// lowerHexSQL ports lowerhex_sql (generator.py:2024-2028). No ported dialect sets
+// HEX_LOWERCASE, so the hex call is always wrapped in LOWER; the hex call itself renders through
+// the dialect's Hex handler, which carries HEX_FUNC (Presto's TO_HEX).
+func (g *Generator) lowerHexSQL(e expressions.Expression) string {
+	this := e.This()
+	if this != nil {
+		this = this.Copy()
+	}
+	return g.funcCall("LOWER", []any{g.gen(expressions.New(expressions.KindHex, expressions.Args{"this": this}))}, "(", ")", true)
+}
+
 // arrayAggSQL ports arrayagg_sql and _add_arrayagg_null_filter (generator.py:5707-5753): a
 // NULL filter mimics a nulls-excluding source ARRAY_AGG (e.g. Spark) on a dialect whose
 // ARRAY_AGG includes nulls.
@@ -2828,9 +2845,36 @@ func (g *Generator) unnestSQL(e expressions.Expression) string {
 	return "UNNEST(" + args + ")" + suffix
 }
 
+// annotateTypes is `annotate_types(e, dialect=self.dialect)`, which upstream renderers import
+// lazily.
+func (g *Generator) annotateTypes(e expressions.Expression) expressions.Expression {
+	return optimizer.AnnotateTypes(e, optimizer.AnnotateTypesOpts{Dialect: g.dialect})
+}
+
+// typeArgs turns one of the expressions.*Types sets into is_type arguments.
+func typeArgs(types map[expressions.DType]bool) []any {
+	out := make([]any, 0, len(types))
+	for t := range types {
+		out = append(out, t)
+	}
+	return out
+}
+
+// bracketOffsetExpressions ports bracket_offset_expressions (generator.py:3583-3593); a zero
+// indexOffset means the dialect's INDEX_OFFSET.
+func (g *Generator) bracketOffsetExpressions(e expressions.Expression, indexOffset int) []expressions.Expression {
+	if truthy(e.Arg("json_access")) {
+		return e.Expressions()
+	}
+	if indexOffset == 0 {
+		indexOffset = g.dialect.IndexOffset
+	}
+	offset, _ := e.Arg("offset").(int)
+	return expressions.ApplyIndexOffset(e.This(), e.Expressions(), indexOffset-offset, g.dialect)
+}
+
 func (g *Generator) bracketSQL(e expressions.Expression) string {
-	// Base IndexOffset is 0, so apply_index_offset is unnecessary for slice 2.
-	exprs := listFromValue(e.Arg("expressions"))
+	exprs := g.bracketOffsetExpressions(e, 0)
 	sqls := make([]string, 0, len(exprs))
 	for _, expr := range exprs {
 		sqls = append(sqls, g.gen(expr))

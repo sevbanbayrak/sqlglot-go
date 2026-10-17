@@ -6,9 +6,7 @@
 {"read":"","write":"trino","category":"generate: mismatch","sql":"MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a\n            WHEN MATCHED THEN UPDATE SET target.b = COALESCE(src.b, target.b)\n            WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123-08:00', 'America/Los_Angeles')"}
 {"read":"","write":"trino","category":"generate: mismatch","sql":"TIME_STR_TO_TIME('2020-01-01 12:13:14.123456+00:00')"}
-{"read":"clickhouse","write":"hive","category":"generate: mismatch","sql":"SELECT col[1]"}
 {"read":"databricks","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
-{"read":"hive","write":"postgres","category":"generate: mismatch","sql":"ROUND(x::DOUBLE, 4)"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"DATE_FORMAT('2020-01-01', 'yyyy-MM-dd HH:mm:ss')"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"UNIX_TIMESTAMP(x)"}
 {"read":"hive","write":"presto","category":"generate: mismatch","sql":"from_unixtime(x, \"yyyy-MM-dd'T'HH\")"}
@@ -27,7 +25,6 @@
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT DATEDIFF(x, y)"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"SELECT TO_DAYS(x)"}
 {"read":"mysql","write":"presto","category":"generate: mismatch","sql":"STR_TO_DATE(x, '%Y-%m-%dT%T')"}
-{"read":"mysql","write":"presto","category":"generate: mismatch","sql":"TIMESTAMP(x)"}
 {"read":"mysql","write":"snowflake","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
 {"read":"mysql","write":"trino","category":"generate: mismatch","sql":"SELECT * FROM test LIMIT 0 + 1, 0 + 1"}
 {"read":"postgres","write":"","category":"generate: mismatch","sql":"ARRAY_PREPEND(x, arr)"}
@@ -40,7 +37,6 @@
 {"read":"postgres","write":"athena","category":"generate: mismatch","sql":"SELECT U&'can''t'"}
 {"read":"postgres","write":"databricks","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
 {"read":"postgres","write":"hive","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
-{"read":"postgres","write":"hive","category":"generate: mismatch","sql":"SELECT col[1]"}
 {"read":"postgres","write":"presto","category":"generate: expected unsupported","sql":"ARRAY_LENGTH(arr, foo)"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"ARRAY_LENGTH(arr, 1)"}
 {"read":"postgres","write":"presto","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
@@ -56,10 +52,8 @@
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES('2019-01-01'::TIMESTAMP, NOW(), '1day')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"GENERATE_SERIES(a, b, '  2   days  ')"}
 {"read":"postgres","write":"trino","category":"generate: mismatch","sql":"merge into x as x using (select id) as y on a = b WHEN matched then update set X.\"A\" = y.b"}
-{"read":"presto","write":"","category":"generate: mismatch","sql":"SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)"}
 {"read":"presto","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
 {"read":"presto","write":"hive","category":"generate: mismatch","sql":"CREATE TABLE x (w VARCHAR, y INTEGER, z INTEGER) WITH (PARTITIONED_BY=ARRAY['y', 'z'])"}
-{"read":"presto","write":"spark","category":"generate: mismatch","sql":"SELECT JSON_EXTRACT_SCALAR(TRY(FILTER(CAST(JSON_EXTRACT('{\"k1\": [{\"k2\": \"{\\\"k3\\\": 1}\", \"k4\": \"v\"}]}', '$.k1') AS ARRAY(MAP(VARCHAR, VARCHAR))), x -> x['k4'] = 'v')[1]['k2']), '$.k3')"}
 {"read":"snowflake","write":"presto","category":"generate: mismatch","sql":"ARRAY_GENERATE_RANGE(0, 3)"}
 {"read":"spark","write":"","category":"parse: Invalid expression / Unexpected token","sql":"WITH t AS (SELECT 1 AS all) SELECT 1 FROM t LIMIT all"}
 {"read":"spark","write":"hive","category":"generate: expected unsupported","sql":"ALTER TABLE db.example RENAME COLUMN col_a TO col_b"}
@@ -72,11 +66,7 @@
 {"read":"spark","write":"presto","category":"generate: mismatch","sql":"SELECT POSEXPLODE(ARRAY(2, 3)) AS x"}
 {"read":"spark","write":"presto","category":"generate: mismatch","sql":"SELECT POSEXPLODE(ARRAY(2, 3)), EXPLODE(ARRAY(4, 5, 6)) FROM tbl"}
 {"read":"spark","write":"presto","category":"generate: mismatch","sql":"SELECT POSEXPLODE(x) AS (a, b)"}
-{"read":"spark","write":"presto","category":"generate: mismatch","sql":"SELECT TO_JSON(STRUCT('blah' AS x)) AS y"}
 {"read":"spark","write":"presto","category":"generate: mismatch","sql":"SELECT TO_UTC_TIMESTAMP('2016-08-31', 'Asia/Seoul')"}
 {"read":"spark","write":"presto","category":"generate: mismatch","sql":"SELECT col, pos, POSEXPLODE(ARRAY(2, 3)) FROM _u"}
-{"read":"spark","write":"presto","category":"generate: mismatch","sql":"TIMESTAMPADD(MINUTE, FLOOR(EXTRACT(MINUTE FROM CURRENT_TIMESTAMP)/30)*30, col)"}
 {"read":"spark","write":"presto","category":"generate: mismatch","sql":"TO_DATE(x, 'yyyy-MM-dd')"}
 {"read":"spark","write":"presto","category":"generate: mismatch","sql":"WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl"}
-{"read":"spark","write":"trino","category":"generate: mismatch","sql":"SELECT TO_JSON(STRUCT('blah' AS x)) AS y"}
-{"read":"trino","write":"postgres","category":"generate: mismatch","sql":"\n            WITH t(boxcrate) AS (\n              SELECT JSON '[{\"boxes\": [{\"name\": \"f1\", \"type\": \"plant\", \"color\": \"red\"}]}]'\n            )\n            SELECT\n              JSON_EXTRACT_SCALAR(boxes,'$.name')  AS name,\n              JSON_EXTRACT_SCALAR(boxes,'$.type')  AS type,\n              JSON_EXTRACT_SCALAR(boxes,'$.color') AS color\n            FROM t\n            CROSS JOIN UNNEST(CAST(boxcrate AS array(json))) AS x(tbox)\n            CROSS JOIN UNNEST(CAST(json_extract(tbox, '$.boxes') AS array(json))) AS y(boxes)\n        "}

@@ -9,7 +9,8 @@ import (
 )
 
 // Hive ports the Hive dialect's parser and tokenizer surface. Generator transforms, type
-// mappings, INITCAP behavior, and typing metadata remain intentionally out of scope.
+// mappings and INITCAP behavior remain intentionally out of scope; the typing metadata and
+// COERCES_TO live in optimizer/typing_hive.go.
 func Hive() *Dialect {
 	d := Base()
 	// dialects/hive.py:24 ARRAY_AGG_INCLUDES_NULLS = None.

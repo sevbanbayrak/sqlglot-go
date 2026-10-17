@@ -11,8 +11,8 @@ import (
 // Snowflake ports dialects/snowflake.py (a direct Dialect subclass) plus the flags and the
 // FUNCTIONS overlay of parsers/snowflake.py and the flags of generators/snowflake.py. Generator
 // deltas live in generator/dialect_snowflake.go, parser callbacks in
-// parser/dialect_snowflake_overrides.go. typing/snowflake.py (EXPRESSION_METADATA) is out of
-// scope until annotate_types.
+// parser/dialect_snowflake_overrides.go, typing/snowflake.py (EXPRESSION_METADATA) in
+// optimizer/typing_snowflake.go.
 func Snowflake() *Dialect {
 	d := Base()
 	d.Name = "snowflake"
@@ -168,8 +168,9 @@ func snowflakeFunctions(d *Dialect) {
 	toNumber := func(safe bool) func([]exp.Expression) exp.Expression {
 		return func(args []exp.Expression) exp.Expression { return snowflakeBuildToNumber(args, safe) }
 	}
+	toChar := func(args []exp.Expression) exp.Expression { return snowflakeBuildTimeToStrOrToChar(d, args) }
 	trunc := func(args []exp.Expression) exp.Expression {
-		return BuildTrunc(args, true, "", false, true)
+		return BuildTrunc(args, d, true, "", false, true)
 	}
 	geo := func(name string, dtype exp.DType) func([]exp.Expression) exp.Expression {
 		return func(args []exp.Expression) exp.Expression {
@@ -386,7 +387,7 @@ func snowflakeFunctions(d *Dialect) {
 		"TRY_TO_TIMESTAMP_LTZ":     snowflakeBuildDatetime(d, "TRY_TO_TIMESTAMP_LTZ", exp.DTypeTimestampLtz, true),
 		"TRY_TO_TIMESTAMP_NTZ":     snowflakeBuildDatetime(d, "TRY_TO_TIMESTAMP_NTZ", exp.DTypeTimestampNtz, true),
 		"TRY_TO_TIMESTAMP_TZ":      snowflakeBuildDatetime(d, "TRY_TO_TIMESTAMP_TZ", exp.DTypeTimestampTz, true),
-		"TO_CHAR":                  snowflakeBuildTimeToStrOrToChar,
+		"TO_CHAR":                  toChar,
 		"TO_DATE":                  snowflakeBuildDatetime(d, "TO_DATE", exp.DTypeDate, false),
 		"TO_DECIMAL":               toNumber(false),
 		"TO_NUMBER":                toNumber(false),
@@ -398,7 +399,7 @@ func snowflakeFunctions(d *Dialect) {
 		"TO_TIMESTAMP_TZ":          snowflakeBuildDatetime(d, "TO_TIMESTAMP_TZ", exp.DTypeTimestampTz, false),
 		"TO_GEOGRAPHY":             geo("TO_GEOGRAPHY", exp.DTypeGeography),
 		"TO_GEOMETRY":              geo("TO_GEOMETRY", exp.DTypeGeometry),
-		"TO_VARCHAR":               snowflakeBuildTimeToStrOrToChar,
+		"TO_VARCHAR":               toChar,
 		"TO_JSON":                  exp.FromArgListFunc(exp.KindJSONFormat),
 		"VECTOR_COSINE_SIMILARITY": exp.FromArgListFunc(exp.KindCosineDistance),
 		"VECTOR_INNER_PRODUCT":     exp.FromArgListFunc(exp.KindDotProduct),
@@ -670,7 +671,7 @@ func snowflakeDateTruncToTime(args []exp.Expression) exp.Expression {
 	unit := MapDatePart(asExpr(trunc.Arg("unit")), nil)
 	trunc.Set("unit", unit)
 	this := trunc.This()
-	isTimeInput := this != nil && (exp.StaticTypeIs(this, exp.DTypeTime) || exp.StaticTypeIs(this, exp.DTypeTimeTz))
+	isTimeInput := this != nil && this.IsType(exp.DTypeTime, exp.DTypeTimeTz)
 	isDateUnit := IsDateUnit(unit)
 	if (trunc.Kind() == exp.KindTimestampTrunc && isDateUnit) || isTimeInput || (trunc.Kind() == exp.KindDateTrunc && !isDateUnit) {
 		trunc.Set("input_type_preserved", true)
@@ -777,11 +778,14 @@ func SnowflakeBuildObjectConstruct(args []exp.Expression) exp.Expression {
 	return exp.New(exp.KindStruct, exp.Args{"expressions": properties})
 }
 
-// snowflakeBuildTimeToStrOrToChar ports build_timetostr_or_tochar (dialect.py:2586-2599). The
-// argument type comes from exp.StaticType instead of annotate_types.
-func snowflakeBuildTimeToStrOrToChar(args []exp.Expression) exp.Expression {
+// snowflakeBuildTimeToStrOrToChar ports build_timetostr_or_tochar (dialect.py:2586-2599).
+func snowflakeBuildTimeToStrOrToChar(d *Dialect, args []exp.Expression) exp.Expression {
 	if len(args) == 2 {
-		if this := args[0]; this != nil && exp.TemporalTypes[exp.StaticType(this)] {
+		this := args[0]
+		if this != nil && this.Type() == nil {
+			annotateTypes(this, d)
+		}
+		if this != nil && this.IsType(typeSet(exp.TemporalTypes)...) {
 			format := snowflakeParseTime(args[1])
 			return exp.New(exp.KindTimeToStr, exp.Args{"this": this, "format": format})
 		}

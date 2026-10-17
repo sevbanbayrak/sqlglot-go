@@ -153,15 +153,9 @@ func (g *Generator) concatToDPipe(e expressions.Expression) string {
 	return g.gen(acc)
 }
 
-// convertConcatArgs ports convert_concat_args (generator.py:3636-3665) for the Concat shape
-// (ConcatWs and the STRICT_STRING_CONCAT `safe`->cast(TEXT) branch are out of scope for
-// base/mysql/postgres, which don't set those flags). When the write dialect's CONCAT does NOT
-// coalesce NULLs but the expression asks it to (coalesce=true), each non-string arg is wrapped
-// in a COALESCE with an empty-string default. Upstream annotate_types the arg to decide (skipping
-// an already-string or ARRAY-typed arg); this port defers full annotate_types (ROADMAP 4c) and
-// wraps every arg that isn't a statically-known string literal - which matches upstream for the
-// reachable cases (an unknown column annotates to a non-string type and is wrapped; a string
-// literal is left alone).
+// convertConcatArgs ports convert_concat_args (generator.py:3636-3665): when the write dialect's
+// CONCAT does NOT coalesce NULLs but the expression asks it to (coalesce=true), each arg that is
+// neither a string nor ARRAY-typed is wrapped in a COALESCE with an empty-string default.
 func (g *Generator) convertConcatArgs(e expressions.Expression) []any {
 	args := listFromValue(e.Arg("expressions"))
 	concatCoalesce := g.dialect.ConcatCoalesce
@@ -185,7 +179,10 @@ func (g *Generator) convertConcatArgs(e expressions.Expression) []any {
 	wrapped := make([]any, len(args))
 	for i, a := range args {
 		arg := asExpression(a)
-		if arg == nil || arg.IsString() {
+		if arg != nil && arg.Type() == nil {
+			arg = g.annotateTypes(arg)
+		}
+		if arg == nil || arg.IsString() || arg.IsType(expressions.DTypeArray) {
 			wrapped[i] = a
 			continue
 		}

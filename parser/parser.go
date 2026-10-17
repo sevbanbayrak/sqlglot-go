@@ -7,6 +7,9 @@ import (
 	"github.com/sevbanbayrak/sqlglot-go/dialects"
 	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
+	// The parse-time builders (build_trunc, apply_index_offset, ...) call annotate_types, which
+	// the optimizer installs as exp.AnnotateTypesFunc.
+	_ "github.com/sevbanbayrak/sqlglot-go/optimizer"
 	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
 

@@ -158,6 +158,7 @@ func init() {
 	dispatch[expressions.KindArraySize] = (*Generator).arraySizeSQL
 	dispatch[expressions.KindInitcap] = (*Generator).initcapSQL
 	dispatch[expressions.KindHex] = (*Generator).hexSQL
+	dispatch[expressions.KindLowerHex] = (*Generator).lowerHexSQL
 	dispatch[expressions.KindDateAdd] = (*Generator).dateAddSQL
 	dispatch[expressions.KindPartition] = (*Generator).partitionSQL
 	dispatch[expressions.KindPragma] = (*Generator).pragmaSQL

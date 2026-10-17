@@ -69,8 +69,7 @@ func Qualify(expression exp.Expression, opts QualifyOpts) exp.Expression {
 		panic(err)
 	}
 
-	// TODO(slice 4c): store_original_column_identifiers needs Node meta.
-	expression = NormalizeIdentifiers(expression, dialect)
+	expression = normalizeIdentifiers(expression, dialect, true)
 	expression = QualifyTables(expression, opts.DefaultSchema, opts.Catalog, dialect, opts.CanonicalizeTableAliases, opts.OnQualify, opts.SearchPath, s)
 
 	if opts.IsolateTables {

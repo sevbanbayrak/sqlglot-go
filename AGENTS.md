@@ -70,7 +70,8 @@ helpers. See **[CHANGELOG.md](./CHANGELOG.md)** for the per-version history.
 **Remaining work** (see `ROADMAP.md`): the rest of sqlglot's optimizer — `simplify` (full),
 `normalize`, `pushdown_predicates`/`pushdown_projections`, `eliminate_*`, `merge_subqueries`,
 `unnest_subqueries`, `optimize_joins`, `canonicalize`, and the top-level `optimize()` orchestrator;
-full `annotate_types`; verified cross-dialect transpilation; and dialects beyond base/MySQL/Postgres.
+and the dialects not yet ported (DuckDB, BigQuery, and the rest). `annotate_types` and cross-dialect
+transpilation for the twelve ported dialects are done.
 The parse/generate round-trip itself is done — a construct upstream parses that this port doesn't is a
 regression, not expected.
 
@@ -97,8 +98,7 @@ where Python renders `db=`, so apply `s/\bdb=/schema=/` (qualifier only) to any 
 ## How to continue the port
 
 1. `scripts/fetch-reference.sh` to get the pinned Python source (needed for parity + as the oracle).
-2. Read `ROADMAP.md` — it lists the remaining slices (**1d** parser tail, **4c** full
-   `annotate_types`, **5b** per-dialect parser/generator override tables) and, crucially, the
+2. Read `ROADMAP.md` — it lists the remaining slices and, crucially, the
    **known divergences** + **resolved-findings** ledger so you don't re-litigate settled decisions.
 3. Pick a slice, port from `.reference/` 1:1, port its tests, keep `go test ./...` green.
 4. Verify against upstream: port the matching upstream tests, and for parser/generator work do a

@@ -132,7 +132,12 @@ type Dialect struct {
 	ExcludesPseudocolumnsFromStar      bool
 	QueryResultsAreStructs             bool
 	RequiresParenthesizedStructAccess  bool
-	IndexOffset                        int
+	// SupportsNullType, DefaultNullType and PrioritizeNonLiteralTypes port the annotate_types
+	// dialect flags of the same names (dialect.py:651,787,801).
+	SupportsNullType          bool
+	DefaultNullType           exp.DType
+	PrioritizeNonLiteralTypes bool
+	IndexOffset               int
 	// RenameTableWithDB ports the generator flag of the same name (generator.py:344): base
 	// allows `ALTER TABLE db.a RENAME TO db.b`, some dialects (e.g. postgres, generators/
 	// postgres.py:234) only allow renaming within the same db and drop the db qualifier.
@@ -592,6 +597,7 @@ func Base() *Dialect {
 		UnnestColumnOnly:     false,
 		Pseudocolumns:        map[string]bool{},
 		IndexOffset:          0,
+		DefaultNullType:      exp.DTypeUnknown,
 		// generator.py:344 RENAME_TABLE_WITH_DB = True (base); postgres overrides to False
 		// (generators/postgres.py:234).
 		RenameTableWithDB: true,
@@ -1571,14 +1577,38 @@ func IsDateUnit(e exp.Expression) bool {
 	return e != nil && dateUnits[strings.ToLower(e.Name())]
 }
 
-// BuildTrunc ports build_trunc (dialect.py:1907-1945). The argument types come from
-// exp.StaticType instead of annotate_types.
-func BuildTrunc(args []exp.Expression, dateTruncUnabbreviate bool, defaultDateTruncUnit string, dateTruncRequiresPart bool, fractionsSupported bool) exp.Expression {
+// annotateTypes is upstream's lazily imported annotate_types: the optimizer package, which this one
+// cannot import, installs it as exp.AnnotateTypesFunc.
+func annotateTypes(e exp.Expression, dialect DialectType) exp.Expression {
+	if exp.AnnotateTypesFunc == nil {
+		return e
+	}
+	return exp.AnnotateTypesFunc(e, dialect)
+}
+
+// typeSet turns one of the exp.*Types sets into is_type arguments.
+func typeSet(types map[exp.DType]bool) []any {
+	out := make([]any, 0, len(types))
+	for t := range types {
+		out = append(out, t)
+	}
+	return out
+}
+
+// BuildTrunc ports build_trunc (dialect.py:1907-1945): type annotation distinguishes date vs
+// numeric truncation.
+func BuildTrunc(args []exp.Expression, dialect DialectType, dateTruncUnabbreviate bool, defaultDateTruncUnit string, dateTruncRequiresPart bool, fractionsSupported bool) exp.Expression {
 	this, second := hiveSeqGet(args, 0), hiveSeqGet(args, 1)
-	thisType, secondType := exp.StaticType(this), exp.StaticType(second)
+
+	if this != nil && this.Type() == nil {
+		this = annotateTypes(this, dialect)
+	}
+	if second != nil && second.Type() == nil {
+		second = annotateTypes(second, dialect)
+	}
 
 	// Date truncation
-	if (this != nil && exp.TemporalTypes[thisType] && (second != nil || defaultDateTruncUnit != "")) || (second != nil && exp.TextTypes[secondType]) {
+	if (this != nil && this.IsType(typeSet(exp.TemporalTypes)...) && (second != nil || defaultDateTruncUnit != "")) || (second != nil && second.IsType(typeSet(exp.TextTypes)...)) {
 		unit := second
 		if unit == nil {
 			unit = exp.LiteralString(defaultDateTruncUnit)
@@ -1587,7 +1617,7 @@ func BuildTrunc(args []exp.Expression, dateTruncUnabbreviate bool, defaultDateTr
 	}
 
 	// Numeric truncation
-	if (this != nil && exp.NumericTypes[thisType]) || (second != nil && exp.NumericTypes[secondType]) || (!dateTruncRequiresPart && second == nil) {
+	if (this != nil && this.IsType(typeSet(exp.NumericTypes)...)) || (second != nil && second.IsType(typeSet(exp.NumericTypes)...)) || (!dateTruncRequiresPart && second == nil) {
 		m := exp.Args{"this": this, "fractions_supported": fractionsSupported}
 		if second != nil {
 			m["decimals"] = second

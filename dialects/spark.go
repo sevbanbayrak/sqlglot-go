@@ -6,12 +6,13 @@ import (
 )
 
 // Spark ports dialects/spark.py and parsers/spark.py on top of Spark2. Generator deltas live in
-// generator/dialect_spark.go. EXPRESSION_METADATA (typing) is out of scope until annotate_types.
+// generator/dialect_spark.go. EXPRESSION_METADATA (typing) lives in optimizer/typing_spark.go.
 func Spark() *Dialect {
 	d := Spark2()
 	d.Name = "spark"
 	// dialects/spark.py:13-16.
 	d.SupportsOrderByAll = true
+	d.SupportsNullType = true
 	// generators/spark.py:68,70.
 	d.SupportsToNumber = true
 	d.SupportsConvertTimezone = true

@@ -1,6 +1,8 @@
 package dialects
 
 import (
+	"strconv"
+
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
@@ -63,7 +65,6 @@ func Postgres() *Dialect {
 	d.TimeFormat = "YYYY-MM-DD HH24:MI:SS"
 	d.FormatTime = PostgresFormatTime
 	// TODO(slice 5b): DEFAULT_FUNCTIONS_COLUMN_NAMES (needs KindExplodingGenerateSeries + FUNCTIONS override).
-	// TODO(slice 5b): typing/{mysql,postgres}.py EXPRESSION_METADATA — feeds annotate_types only, off probe's path (ROADMAP 4c).
 
 	// CHAR_LENGTH/CHARACTER_LENGTH close parity_gaps.txt gaps 177-178. Length._sql_names =
 	// ["LENGTH", "LEN", "CHAR_LENGTH", "CHARACTER_LENGTH"] (string.py:69-71) is base-scope
@@ -101,6 +102,8 @@ func Postgres() *Dialect {
 		// parsers/postgres.py:122-123
 		"TO_CHAR": postgresBuildFormattedTime(exp.KindTimeToStr),
 		"TO_DATE": postgresBuildFormattedTime(exp.KindStrToDate),
+		// parsers/postgres.py:121
+		"REGEXP_REPLACE": func(args []exp.Expression) exp.Expression { return postgresBuildRegexpReplace(args, d) },
 	} {
 		d.Functions[name] = builder
 	}
@@ -269,6 +272,33 @@ var postgresForwardTimeTrie = prestoTimeTrie(postgresForwardTimeMapping)
 var postgresInverseTimeTrie = prestoTimeTrie(postgresInverseTimeMapping)
 
 // PostgresFormatTime ports Generator.format_time under Postgres's INVERSE_TIME_MAPPING.
+// postgresBuildRegexpReplace ports _build_regexp_replace (parsers/postgres.py:44-67). The
+// signature is regexp_replace(source, pattern, replacement [, start [, N ]] [, flags ]); since
+// start, N and flags can be column references, the last argument is only taken as flags when it
+// is statically a non-integer string.
+func postgresBuildRegexpReplace(args []exp.Expression, dialect DialectType) exp.Expression {
+	var regexpReplace exp.Expression
+	if len(args) > 3 {
+		last := args[len(args)-1]
+		if _, err := strconv.Atoi(last.Name()); err != nil {
+			if last.Type() == nil || last.IsType(exp.DTypeUnknown, exp.DTypeNull) {
+				last = annotateTypes(last, dialect)
+			}
+
+			if last.IsType(typeSet(exp.TextTypes)...) {
+				regexpReplace = exp.FromArgList(exp.KindRegexpReplace, args[:len(args)-1])
+				regexpReplace.Set("modifiers", last)
+			}
+		}
+	}
+
+	if regexpReplace == nil {
+		regexpReplace = exp.FromArgList(exp.KindRegexpReplace, args)
+	}
+	regexpReplace.Set("single_replace", true)
+	return regexpReplace
+}
+
 func PostgresFormatTime(format string) string {
 	converted, _ := prestoConvertTimeFormatWith(format, postgresInverseTimeMapping, postgresInverseTimeTrie)
 	return converted

@@ -322,6 +322,15 @@ var TextTypes = map[DType]bool{
 	DTypeName:     true,
 }
 
+var BinaryTypes = map[DType]bool{
+	DTypeBinary:     true,
+	DTypeVarBinary:  true,
+	DTypeTinyBlob:   true,
+	DTypeBlob:       true,
+	DTypeMediumBlob: true,
+	DTypeLongBlob:   true,
+}
+
 var SignedIntegerTypes = map[DType]bool{
 	DTypeBigInt:    true,
 	DTypeInt:       true,
@@ -448,7 +457,7 @@ func DataTypeBuild(dtype any, dialect DialectType, udt bool, copyValue bool, kwa
 	case DType:
 		return applyKwargs(DataType(Args{"this": v}), kwargs), nil
 	case Expression:
-		if v.Kind() == KindDataType {
+		if dataTypeKinds[v.Kind()] {
 			return maybeCopy(v, copyValue), nil
 		}
 		if udt && (v.Kind() == KindIdentifier || v.Kind() == KindDot) {
@@ -480,24 +489,31 @@ func DataTypeIsType(e Expression, checkNullable bool, dtypes ...any) bool {
 		return false
 	}
 	self := e
-	if self.Kind() != KindDataType {
+	if !dataTypeKinds[self.Kind()] {
 		self = asExpression(e.Arg("to"))
-		if self == nil || self.Kind() != KindDataType {
+		if self == nil || !dataTypeKinds[self.Kind()] {
 			return false
 		}
 	}
 	selfNullable := truthy(self.Arg("nullable"))
+	selfThis := self.Arg("this")
 	for _, dtype := range dtypes {
+		if d, ok := dtype.(DType); ok && d != DTypeUserDefined && selfThis != DTypeUserDefined && !(checkNullable && selfNullable) {
+			if selfThis == d {
+				return true
+			}
+			continue
+		}
 		other, err := DataTypeBuild(dtype, "", true, false, nil)
 		if err != nil || other == nil {
 			continue
 		}
 		otherNullable := truthy(other.Arg("nullable"))
 		var matches bool
-		if len(other.Expressions()) > 0 || (checkNullable && (selfNullable || otherNullable)) || self.Arg("this") == DTypeUserDefined || other.Arg("this") == DTypeUserDefined {
+		if len(other.Expressions()) > 0 || (checkNullable && (selfNullable || otherNullable)) || selfThis == DTypeUserDefined || other.Arg("this") == DTypeUserDefined {
 			matches = self.Equal(other)
 		} else {
-			matches = self.Arg("this") == other.Arg("this")
+			matches = selfThis == other.Arg("this")
 		}
 		if matches {
 			return true
@@ -506,48 +522,63 @@ func DataTypeIsType(e Expression, checkNullable bool, dtypes ...any) bool {
 	return false
 }
 
-// StaticType stands in for annotate_types on the shapes whose type is known without a schema:
-// casts, literals, booleans, NULL and the niladic date/time functions (annotate_types.py:801-811,
-// typing/__init__.py). Anything else is UNKNOWN.
-// ponytail: a stand-in until annotate_types (ROADMAP 4c) is ported; columns and most function
-// calls stay UNKNOWN.
-func StaticType(e Expression) DType {
-	if e == nil {
-		return DTypeUnknown
+// AnnotateTypesFunc is set by the optimizer package to its annotate_types, for the builders
+// that upstream lets import it lazily (expressions/builders.py:1111, dialects/dialect.py:1920).
+var AnnotateTypesFunc func(e Expression, dialect DialectType) Expression
+
+// dataTypeKinds are the is_data_type classes (datatypes.py:190 and its subclasses).
+var dataTypeKinds = map[Kind]bool{KindDataType: true, KindPseudoType: true, KindObjectIdentifier: true, KindIntervalSpan: true}
+
+// castKinds are the is_cast classes (functions.py:35).
+var castKinds = map[Kind]bool{KindCast: true, KindTryCast: true, KindJSONCast: true}
+
+// Type ports the Expr.type property (core.py:969-974).
+func (n *Node) Type() Expression {
+	if dataTypeKinds[n.kind] {
+		return n
 	}
-	switch e.Kind() {
-	case KindCast, KindTryCast:
-		if to, ok := e.Arg("to").(Expression); ok && to != nil && to.Kind() == KindDataType {
-			if dtype, ok := to.Arg("this").(DType); ok {
-				return dtype
-			}
-		}
-	case KindLiteral:
-		switch {
-		case e.IsString():
-			return DTypeVarchar
-		case e.IsInt():
-			return DTypeInt
-		default:
-			return DTypeDouble
-		}
-	case KindBoolean:
-		return DTypeBoolean
-	case KindNull:
-		return DTypeNull
-	case KindParen:
-		return StaticType(e.This())
-	case KindArray:
-		return DTypeArray
-	case KindCurrentDate:
-		return DTypeDate
-	case KindCurrentTime, KindLocaltime:
-		return DTypeTime
-	case KindCurrentTimestamp, KindLocaltimestamp:
-		return DTypeTimestamp
+	if castKinds[n.kind] && n.typ == nil {
+		return asExpression(n.args["to"])
 	}
-	return DTypeUnknown
+	return n.typ
 }
 
-// StaticTypeIs reports whether StaticType(e) is t.
-func StaticTypeIs(e Expression, t DType) bool { return StaticType(e) == t }
+// SetType ports the Expr.type setter (core.py:977-982): anything but a DataType is built into one.
+func (n *Node) SetType(dtype any) {
+	switch v := dtype.(type) {
+	case nil:
+		n.typ = nil
+		return
+	case Expression:
+		if v == nil {
+			n.typ = nil
+			return
+		}
+		if dataTypeKinds[v.Kind()] {
+			n.typ = v
+			return
+		}
+	case string:
+		if v == "" {
+			n.typ = nil
+			return
+		}
+	}
+	built, err := DataTypeBuild(dtype, nil, false, true, nil)
+	if err != nil {
+		panic(err)
+	}
+	n.typ = built
+}
+
+// IsType ports Expr.is_type (core.py:984-986), DataType.is_type (datatypes.py:419) and
+// Cast.is_type (functions.py:57).
+func (n *Node) IsType(dtypes ...any) bool {
+	switch {
+	case dataTypeKinds[n.kind]:
+		return DataTypeIsType(n, false, dtypes...)
+	case castKinds[n.kind]:
+		return DataTypeIsType(asExpression(n.args["to"]), false, dtypes...)
+	}
+	return n.typ != nil && DataTypeIsType(n.typ, false, dtypes...)
+}
