@@ -60,9 +60,10 @@ from tests.dialects.test_mysql import TestMySQL  # noqa: E402
 from tests.dialects.test_postgres import TestPostgres  # noqa: E402
 from tests.dialects.test_spark import TestSpark  # noqa: E402
 from tests.dialects.test_databricks import TestDatabricks  # noqa: E402
+from tests.dialects.test_clickhouse import TestClickhouse  # noqa: E402
 
-DIALECTS = ("mysql", "postgres", "athena", "trino", "presto", "hive", "spark", "databricks")
-SAME_DIALECT_WRITES = {"athena", "trino", "presto", "hive", "spark", "databricks"}
+DIALECTS = ("mysql", "postgres", "athena", "trino", "presto", "hive", "spark", "databricks", "clickhouse")
+SAME_DIALECT_WRITES = {"athena", "trino", "presto", "hive", "spark", "databricks", "clickhouse"}
 
 captured = []
 
@@ -135,6 +136,7 @@ Validator.validate_all = patched_validate_all
 # silently incomplete), so it aborts extraction before anything is written.
 KNOWN_FAILURES = {
     ("TestPostgres", "test_array_offset"),
+    ("TestClickhouse", "test_array_offset"),
 }
 
 
@@ -160,7 +162,7 @@ def main():
 
     runner = unittest.TextTestRunner(verbosity=0)
     unexpected = []
-    for cls in (TestMySQL, TestPostgres, TestAthena, TestTrino, TestPresto, TestHive, TestSpark, TestDatabricks):
+    for cls in (TestMySQL, TestPostgres, TestAthena, TestTrino, TestPresto, TestHive, TestSpark, TestDatabricks, TestClickhouse):
         if cls.dialect not in selected:
             continue
         result = runner.run(unittest.defaultTestLoader.loadTestsFromTestCase(cls))

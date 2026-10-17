@@ -438,6 +438,71 @@ type Dialect struct {
 	// the built node's own "coalesce" arg to match; postgres is the only override (true) among
 	// base/mysql/postgres.
 	ConcatCoalesce bool
+
+	// PreserveOriginalNames ports PRESERVE_ORIGINAL_NAMES (dialect.py:405): a known function
+	// keeps the name it was written with (stored as meta "name") when it falls back to the
+	// generic function rendering.
+	PreserveOriginalNames bool
+	// CreatableKindMapping ports CREATABLE_KIND_MAPPING (dialect.py:732); the generator uses
+	// its inverse (INVERSE_CREATABLE_KIND_MAPPING, dialect.py:277-279).
+	CreatableKindMapping map[string]string
+	// SetOpDistinctByDefault ports SET_OP_DISTINCT_BY_DEFAULT (dialect.py:722-726): nil means
+	// the base table {Except: True, Intersect: True, Union: True}; a nil value means the
+	// set operation must spell DISTINCT/ALL out (upstream's None).
+	SetOpDistinctByDefault map[exp.Kind]*bool
+	// ModifiersAttachedToSetOp ports MODIFIERS_ATTACHED_TO_SET_OP (parser.py:1739).
+	ModifiersAttachedToSetOp bool
+	// OptionalAliasTokenCTE ports OPTIONAL_ALIAS_TOKEN_CTE (parser.py:1849).
+	OptionalAliasTokenCTE bool
+	// DisabledFunctions removes base FUNCTIONS entries (parsers/clickhouse.py:251-255).
+	DisabledFunctions map[string]bool
+	// Generator flags of generator.py consulted by the shared renderers; ClickHouse is the
+	// first ported dialect to override them (generators/clickhouse.py:160-187).
+	QueryHints               bool
+	StructDelimiter          [2]string
+	LastDaySupportsDatePart  bool
+	SupportsToNumber         bool
+	JoinHints                bool
+	TableHints               bool
+	GroupingsSep             string
+	SetOpModifiers           bool
+	AutoRefreshBareIntervals bool
+	SelectKinds              map[string]bool
+	// ArrayAggIncludesNulls ports ARRAY_AGG_INCLUDES_NULLS (dialect.py:694): true in base,
+	// upstream's None (false here) for Hive and its descendants.
+	ArrayAggIncludesNulls bool
+	// Version ports Dialect.version (dialect.py:1028-1030), set by the "version" setting; nil
+	// is upstream's default sys.maxsize, i.e. newer than any concrete version.
+	Version []int
+}
+
+// SetOpDistinctDefault reads SET_OP_DISTINCT_BY_DEFAULT (dialect.py:722-726) for a set
+// operation kind; nil is upstream's None (the operation must spell DISTINCT or ALL).
+func (d *Dialect) SetOpDistinctDefault(kind exp.Kind) *bool {
+	if d.SetOpDistinctByDefault == nil {
+		return &trueValue
+	}
+	if v, ok := d.SetOpDistinctByDefault[kind]; ok {
+		return v
+	}
+	return &trueValue
+}
+
+// VersionLess reports whether the dialect version is older than want (dialect.version < want).
+func (d *Dialect) VersionLess(want ...int) bool {
+	if d.Version == nil {
+		return false
+	}
+	for i, w := range want {
+		v := 0
+		if i < len(d.Version) {
+			v = d.Version[i]
+		}
+		if v != w {
+			return v < w
+		}
+	}
+	return len(d.Version) < len(want)
 }
 
 var trueValue = true
@@ -600,6 +665,18 @@ func Base() *Dialect {
 		// parser.py:1831 ZONE_AWARE_TIMESTAMP_CONSTRUCTOR = False (base); presto overrides to
 		// True (parsers/presto.py:61).
 		ZoneAwareTimestampConstructor: false,
+		ModifiersAttachedToSetOp:      true,
+		OptionalAliasTokenCTE:         true,
+		QueryHints:                    true,
+		StructDelimiter:               [2]string{"<", ">"},
+		LastDaySupportsDatePart:       true,
+		SupportsToNumber:              true,
+		JoinHints:                     true,
+		TableHints:                    true,
+		GroupingsSep:                  ",",
+		SetOpModifiers:                true,
+		SelectKinds:                   map[string]bool{"STRUCT": true, "VALUE": true},
+		ArrayAggIncludesNulls:         true,
 	}
 	// parser.py:426-431: the base FUNCTIONS entries whose builders take the dialect. Dialect
 	// constructors add to this map rather than replacing it.
@@ -607,6 +684,10 @@ func Base() *Dialect {
 		"JSON_EXTRACT":           buildExtractJSONWithPath(d, exp.KindJSONExtract),
 		"JSON_EXTRACT_SCALAR":    buildExtractJSONWithPath(d, exp.KindJSONExtractScalar),
 		"JSON_EXTRACT_PATH_TEXT": buildExtractJSONWithPath(d, exp.KindJSONExtractScalar),
+		// parser.py:389 build_array_remove (parser.py:256-273).
+		"ARRAY_REMOVE": func(args []exp.Expression) exp.Expression {
+			return exp.New(exp.KindArrayRemove, exp.Args{"this": hiveSeqGet(args, 0), "expression": hiveSeqGet(args, 1), "null_propagation": d.ArrayFuncsPropagatesNulls})
+		},
 		"JSON_KEYS": func(args []exp.Expression) exp.Expression {
 			return exp.New(exp.KindJSONKeys, exp.Args{"this": hiveSeqGet(args, 0), "expression": d.ToJSONPath(hiveSeqGet(args, 1))})
 		},
@@ -763,6 +844,8 @@ func dialectByName(name string) (*Dialect, error) {
 		return Databricks(), nil
 	case "athena":
 		return Athena(), nil
+	case "clickhouse":
+		return ClickHouse(), nil
 	default:
 		return nil, fmt.Errorf("unknown dialect %q", name)
 	}
@@ -843,6 +926,13 @@ func (d *Dialect) SettingsString() string {
 	}
 	if d.OpaqueFunctions {
 		out += ", opaque_functions=true"
+	}
+	if d.Version != nil {
+		parts := make([]string, len(d.Version))
+		for i, v := range d.Version {
+			parts[i] = strconv.Itoa(v)
+		}
+		out += ", version=" + strings.Join(parts, ".")
 	}
 	return out
 }
@@ -962,8 +1052,26 @@ func getOrRaiseString(name string) (*Dialect, error) {
 				return nil, err
 			}
 			d.OpaqueFunctions = on
+		case "version":
+			// dialect.py:1028-1030: the first three dot-separated integer parts.
+			if !hasVal {
+				return nil, fmt.Errorf("dialect setting %q requires a value", key)
+			}
+			parts := strings.Split(strings.TrimSpace(val), ".")
+			if len(parts) > 3 {
+				parts = parts[:3]
+			}
+			version := make([]int, 0, len(parts))
+			for _, part := range parts {
+				n, err := strconv.Atoi(part)
+				if err != nil {
+					return nil, fmt.Errorf("dialect setting %q wants a dotted integer version, got %q", key, val)
+				}
+				version = append(version, n)
+			}
+			d.Version = version
 		default:
-			return nil, fmt.Errorf("unsupported dialect setting %q (supported: normalization_strategy, mysql_version, mysql_ansi_quotes, opaque_functions)", key)
+			return nil, fmt.Errorf("unsupported dialect setting %q (supported: normalization_strategy, mysql_version, mysql_ansi_quotes, opaque_functions, version)", key)
 		}
 	}
 	// Apply the ANSI_QUOTES tokenizer change once, from the FINAL flag value — a duplicated setting
@@ -1271,6 +1379,9 @@ func (d *Dialect) QuoteIdentifier(identifier exp.Expression, identify bool) exp.
 }
 
 func (d *Dialect) GenerateValuesAliases(values exp.Expression) []exp.Expression {
+	if d.Name == "clickhouse" {
+		return clickHouseGenerateValuesAliases(values)
+	}
 	expressions := values.Expressions()
 	if len(expressions) == 0 || expressions[0] == nil {
 		return nil
@@ -1330,8 +1441,13 @@ func buildExtractJSONWithPath(d *Dialect, kind exp.Kind) func([]exp.Expression) 
 }
 
 // BuildJSONExtractPath ports build_json_extract_path (dialect.py:2205-2247) with its default
-// zero_based_indexing=True and json_type=None, the only values the ported dialects use.
+// zero_based_indexing=True and json_type=None.
 func BuildJSONExtractPath(kind exp.Kind, arrowReqJSONType bool) func([]exp.Expression) exp.Expression {
+	return buildJSONExtractPathWith(kind, true, arrowReqJSONType)
+}
+
+// buildJSONExtractPathWith is BuildJSONExtractPath with an explicit zero_based_indexing.
+func buildJSONExtractPathWith(kind exp.Kind, zeroBasedIndexing, arrowReqJSONType bool) func([]exp.Expression) exp.Expression {
 	return func(args []exp.Expression) exp.Expression {
 		segments := []exp.Expression{exp.New(exp.KindJSONPathRoot, nil)}
 		for _, arg := range args[1:] {
@@ -1346,6 +1462,9 @@ func BuildJSONExtractPath(kind exp.Kind, arrowReqJSONType bool) func([]exp.Expre
 
 			text := arg.Name()
 			if index, err := strconv.Atoi(strings.TrimSpace(text)); err == nil && (!arrowReqJSONType || !arg.IsString()) {
+				if !zeroBasedIndexing {
+					index--
+				}
 				segments = append(segments, exp.New(exp.KindJSONPathSubscript, exp.Args{"this": index}))
 			} else {
 				segments = append(segments, exp.New(exp.KindJSONPathKey, exp.Args{"this": text}))

@@ -6,6 +6,10 @@ var timeUnitKinds = map[Kind]bool{}
 
 func FromArgList(kind Kind, args []Expression) Expression {
 	node := fromArgList(kind, args)
+	if kind == KindDateTrunc {
+		// DateTrunc.__init__ (temporal.py:168-183) normalizes the unit, see DateTrunc.
+		return DateTrunc(node.(*Node).args)
+	}
 	if timeUnitKinds[kind] {
 		if unit, ok := node.Arg("unit").(Expression); ok && unit != nil {
 			node.Set("unit", TimeUnitVar(unit))

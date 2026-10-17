@@ -74,11 +74,32 @@ func (p *Parser) alterParsers() map[string]func(*Parser) []exp.Expression {
 	switch p.dialect.Name {
 	case "mysql":
 		return mysqlAlterParsers
+	case "clickhouse":
+		return clickHouseAlterParsers
 	}
 	if p.dialect.Is("hive") {
 		return hiveAlterParsers
 	}
 	return alterParsers
+}
+
+// clickHouseAlterParsers ports parsers/clickhouse.py:366-370 (ALTER_PARSERS + MODIFY/REPLACE).
+var clickHouseAlterParsers map[string]func(*Parser) []exp.Expression
+
+func init() {
+	clickHouseAlterParsers = make(map[string]func(*Parser) []exp.Expression, len(alterParsers)+2)
+	for k, v := range alterParsers {
+		clickHouseAlterParsers[k] = v
+	}
+	clickHouseAlterParsers["ALTER"] = func(p *Parser) []exp.Expression {
+		return ensureListExpr(p.parseClickHouseAlterTableAlter())
+	}
+	clickHouseAlterParsers["MODIFY"] = func(p *Parser) []exp.Expression {
+		return ensureListExpr(p.parseClickHouseAlterTableAlter())
+	}
+	clickHouseAlterParsers["REPLACE"] = func(p *Parser) []exp.Expression {
+		return ensureListExpr(p.parseClickHouseAlterTableReplace())
+	}
 }
 
 // hiveAlterParsers ports parsers/hive.py:138-141 (ALTER_PARSERS + CHANGE).

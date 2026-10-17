@@ -127,6 +127,14 @@ func init() {
 		"TITLE": func(p *Parser) exp.Expression {
 			return p.expression(exp.TitleColumnConstraint(exp.Args{"this": p.parseVarOrString(false)}), nil, nil)
 		},
+		// parser.py:1438-1440.
+		"EPHEMERAL": func(p *Parser) exp.Expression {
+			return p.expression(exp.New(exp.KindEphemeralColumnConstraint, exp.Args{"this": p.parseBitwise()}), nil, nil)
+		},
+		// parser.py:1468.
+		"TTL": func(p *Parser) exp.Expression {
+			return p.expression(exp.New(exp.KindMergeTreeTTL, exp.Args{"expressions": []exp.Expression{p.parseBitwise()}}), nil, nil)
+		},
 		"UNIQUE": func(p *Parser) exp.Expression { return p.parseUnique() },
 		"UPPERCASE": func(p *Parser) exp.Expression {
 			return p.expression(exp.UppercaseColumnConstraint(nil), nil, nil)
@@ -188,12 +196,18 @@ func (p *Parser) constraintParsers() map[string]func(*Parser) exp.Expression {
 	if p.dialect.Name == "mysql" {
 		return mysqlConstraintParsers
 	}
+	if p.dialect.Is("clickhouse") {
+		return clickHouseConstraintParsers
+	}
 	return constraintParsers
 }
 
 func (p *Parser) constraintParserKeys() map[string]bool {
 	if p.dialect.Name == "mysql" {
 		return mysqlConstraintParserKeySet
+	}
+	if p.dialect.Is("clickhouse") {
+		return clickHouseConstraintParserKeySet
 	}
 	return constraintParserKeySet
 }
@@ -202,7 +216,40 @@ func (p *Parser) schemaUnnamedConstraints() map[string]bool {
 	if p.dialect.Name == "mysql" {
 		return mysqlSchemaUnnamedConstraints
 	}
+	if p.dialect.Is("clickhouse") {
+		return clickHouseSchemaUnnamedConstraints
+	}
 	return schemaUnnamedConstraints
+}
+
+// clickHouse* port parsers/clickhouse.py:360-385 CONSTRAINT_PARSERS (INDEX/CODEC/ASSUME and
+// the CHECK override) and SCHEMA_UNNAMED_CONSTRAINTS (+INDEX, -CHECK).
+var (
+	clickHouseConstraintParsers        map[string]func(*Parser) exp.Expression
+	clickHouseConstraintParserKeySet   map[string]bool
+	clickHouseSchemaUnnamedConstraints map[string]bool
+)
+
+func init() {
+	clickHouseConstraintParsers = make(map[string]func(*Parser) exp.Expression, len(constraintParsers)+3)
+	for k, v := range constraintParsers {
+		clickHouseConstraintParsers[k] = v
+	}
+	clickHouseConstraintParsers["INDEX"] = (*Parser).parseClickHouseIndexConstraint
+	clickHouseConstraintParsers["CODEC"] = (*Parser).parseCompress
+	clickHouseConstraintParsers["ASSUME"] = func(p *Parser) exp.Expression {
+		return p.parseClickHouseCheckOrAssume(exp.KindAssumeColumnConstraint)
+	}
+	clickHouseConstraintParsers["CHECK"] = func(p *Parser) exp.Expression {
+		return p.parseClickHouseCheckOrAssume(exp.KindCheckColumnConstraint)
+	}
+	clickHouseConstraintParserKeySet = funcMapKeys(clickHouseConstraintParsers)
+	clickHouseSchemaUnnamedConstraints = map[string]bool{"INDEX": true}
+	for k, v := range schemaUnnamedConstraints {
+		if k != "CHECK" {
+			clickHouseSchemaUnnamedConstraints[k] = v
+		}
+	}
 }
 
 // peekTextSeq mirrors upstream's `_match_text_seq(..., advance=False)`: checks whether the
@@ -528,6 +575,10 @@ func (p *Parser) parsePrimaryKeyPart() exp.Expression {
 // derived from the dialect rather than accepted as a parameter, mirroring mysql's override
 // (parsers/mysql.py:630-638) which always forces it true regardless of the caller.
 func (p *Parser) parsePrimaryKey(wrappedOptional bool, inProps bool) exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		// parsers/clickhouse.py:709-720.
+		wrappedOptional = wrappedOptional || inProps
+	}
 	namedPrimaryKey := p.dialect.Name == "mysql"
 
 	var desc any
@@ -619,6 +670,10 @@ func (p *Parser) parseWrappedIdVars(optional ...bool) []exp.Expression {
 	opt := false
 	if len(optional) > 0 {
 		opt = optional[0]
+	}
+	if p.dialect.Is("clickhouse") {
+		// parsers/clickhouse.py:696-697.
+		opt = true
 	}
 	return p.parseWrappedCsv(func() exp.Expression { return p.parseIdVar(true, nil) }, opt)
 }

@@ -201,6 +201,11 @@ func (g *Generator) prestoExplodeToUnnestSQL(e exp.Expression) string {
 
 // strPositionSQLWith ports strposition_sql (dialect.py:1321-1363) for a named function.
 func (g *Generator) strPositionSQLWith(e exp.Expression, funcName string, supportsPosition, supportsOccurrence bool) string {
+	return g.strPositionSQLFull(e, funcName, supportsPosition, supportsOccurrence, true)
+}
+
+// strPositionSQLFull is strposition_sql with its use_ansi_position flag.
+func (g *Generator) strPositionSQLFull(e exp.Expression, funcName string, supportsPosition, supportsOccurrence, useANSIPosition bool) string {
 	str, substr := e.This(), asExpression(e.Arg("substr"))
 	position, occurrence := asExpression(e.Arg("position")), asExpression(e.Arg("occurrence"))
 	if supportsOccurrence && occurrence != nil && supportsPosition && position == nil {
@@ -211,7 +216,7 @@ func (g *Generator) strPositionSQLWith(e exp.Expression, funcName string, suppor
 		str = exp.New(exp.KindSubstring, exp.Args{"this": str, "start": position})
 	}
 	var fn exp.Expression
-	if funcName == "POSITION" {
+	if funcName == "POSITION" && useANSIPosition {
 		fn = exp.Anonymous(exp.Args{"this": funcName, "expressions": []exp.Expression{exp.New(exp.KindIn, exp.Args{"this": substr, "field": str})}})
 	} else {
 		args := []exp.Expression{str, substr}

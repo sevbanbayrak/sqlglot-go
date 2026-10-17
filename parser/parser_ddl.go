@@ -206,6 +206,10 @@ func (p *Parser) parseCreateStructured(start tokens.Token) exp.Expression {
 	}
 
 	kind := stringsUpper(createToken.Text)
+	// parser.py:2678 CREATABLE_KIND_MAPPING.
+	if mapped, ok := p.dialect.CreatableKindMapping[kind]; ok {
+		kind = mapped
+	}
 	var propertiesNode exp.Expression
 	if len(properties) > 0 {
 		propertiesNode = p.expression(exp.Properties(exp.Args{"expressions": properties}), nil, nil)
@@ -408,7 +412,12 @@ func (p *Parser) parseCreateFunction(ctt tokens.TokenType) (this, expression exp
 		// path below like PROCEDURE — upstream's single-statement path leaves the body's END
 		// as a dangling top-level EndStatement fragment; and under mysql a FUNCTION's bare
 		// routine_body is the same compound grammar as a PROCEDURE's (DEVIATIONS §1.18).
-		expression = p.parseStatement()
+		if p.dialect.Is("clickhouse") {
+			// parsers/clickhouse.py:413-415: the body is a lambda.
+			expression = p.parseLambda(false)
+		} else {
+			expression = p.parseStatement()
+		}
 	} else {
 		// exp.Block: the PROCEDURE (and BEGIN-bodied FUNCTION) body fallback (parser.py:2463).
 		// BEGIN ATOMIC consumed its BEGIN above, so the unterminated-END check must still apply.
@@ -685,6 +694,10 @@ func (p *Parser) parseFieldDef() exp.Expression {
 }
 
 func (p *Parser) parseColumnDef(this exp.Expression) exp.Expression {
+	if p.dialect.Is("clickhouse") && p.match(tokens.DOT) {
+		// parsers/clickhouse.py:701-707: Nested(...) sub-column names like n.a.
+		return exp.Dot(exp.Args{"this": this, "expression": p.parseIdVar(true, nil)})
+	}
 	if this != nil && this.Kind() == exp.KindColumn {
 		this = this.This()
 	}
@@ -709,7 +722,33 @@ func (p *Parser) parseColumnDef(this exp.Expression) exp.Expression {
 	// (ALIAS/MATERIALIZED-prefixed and IN/OUT parameter constraints, parser.py:7262-7281)
 	// are Oracle/T-SQL/procedure-only and aren't exercised by the base/mysql/postgres
 	// corpus, so they're omitted here (documented divergence).
-	if kind != nil && p.matchPair(tokens.ALIAS, tokens.L_PAREN, false) {
+	if (kind == nil && p.match(tokens.ALIAS)) || p.matchTexts(map[string]bool{"ALIAS": true, "MATERIALIZED": true}) {
+		// parser.py:7511-7531: `<col> [<kind>] ALIAS|MATERIALIZED <expr>` (and a typeless
+		// `<col> AS <expr>`). Storage is matched before the trailing data type.
+		persisted := stringsUpper(p.prev.Text) == "MATERIALIZED"
+		expression := p.parseDisjunction()
+		if !persisted {
+			if p.matchTextSeq("PERSISTED") {
+				persisted = true
+			} else if p.matchTexts(map[string]bool{"STORED": true, "VIRTUAL": true}) {
+				persisted = stringsUpper(p.prev.Text) == "STORED"
+			}
+		}
+		var dataType exp.Expression
+		if p.matchTextSeq("AUTO") {
+			dataType = exp.Var(exp.Args{"this": "AUTO"})
+		} else {
+			dataType = p.parseTypes(false, false, true, false)
+		}
+		constraints = append(constraints, p.expression(exp.ColumnConstraint(exp.Args{
+			"kind": exp.ComputedColumnConstraint(exp.Args{
+				"this":      expression,
+				"persisted": persisted,
+				"data_type": dataType,
+				"not_null":  p.matchPair(tokens.NOT, tokens.NULL, true),
+			}),
+		}), nil, nil))
+	} else if kind != nil && p.matchPair(tokens.ALIAS, tokens.L_PAREN, false) {
 		p.advance() // consume AS, leaving `(` as the current token for parseDisjunction below
 		// `this` MUST be parsed before the STORED/VIRTUAL match: upstream (parser.py:7295-7299)
 		// evaluates this=self._parse_disjunction() before persisted=self._match_texts(...), and
@@ -756,6 +795,17 @@ func (p *Parser) parseColumnDef(this exp.Expression) exp.Expression {
 // schema-level constraint drawn from schemaUnnamedConstraints (CHECK/FOREIGN KEY/PRIMARY
 // KEY/UNIQUE, +mysql's FULLTEXT/INDEX/KEY/SPATIAL).
 func (p *Parser) parseConstraint() exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		// parsers/clickhouse.py:871-872.
+		if constraint := p.parseConstraintBase(); constraint != nil {
+			return constraint
+		}
+		return p.parseClickHouseProjectionDef()
+	}
+	return p.parseConstraintBase()
+}
+
+func (p *Parser) parseConstraintBase() exp.Expression {
 	if !p.match(tokens.CONSTRAINT) {
 		return p.parseUnnamedConstraint(p.schemaUnnamedConstraints())
 	}
@@ -894,6 +944,7 @@ func (p *Parser) parseClusterProperty() exp.Expression {
 var propertyParsers map[string]propertyParserFunc
 
 func init() {
+	defer addDictAndMergeTreePropertyParsers()
 	propertyParsers = map[string]propertyParserFunc{
 		"ALGORITHM": func(p *Parser, _ bool) exp.Expression {
 			return p.parsePropertyAssignment(func(this exp.Expression) exp.Expression {

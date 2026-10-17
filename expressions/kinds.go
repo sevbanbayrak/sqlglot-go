@@ -741,6 +741,35 @@ const (
 	KindParameterStyleProperty // properties.py:164-165
 	KindStreamingTableProperty // properties.py:393-394
 	KindClone                  // ddl.py:117-118
+	// ClickHouse surface (dialects/clickhouse.py and the base parser paths it reaches).
+	KindArgMax                 // aggregate.py:61-63
+	KindArgMin                 // aggregate.py:66-68
+	KindAnonymousAggFunc       // core.py:2004-2006
+	KindAutoRefreshProperty    // properties.py:44-53
+	KindUuidProperty           // properties.py:148-149
+	KindOnCluster              // properties.py:258-259
+	KindToTableProperty        // properties.py:168-169
+	KindVolatileProperty       // properties.py:556-557
+	KindNestedJSONSelect       // core.py:2233-2234
+	KindProjectionDef          // query.py:464-465
+	KindPartitionId            // query.py:597-598
+	KindReplacePartition       // query.py:1965-1966
+	KindAlterModifySqlSecurity // ddl.py:299-300
+	KindDetach                 // ddl.py:138-146
+	KindAssumeColumnConstraint // constraints.py:60-61
+	KindWithFill               // query.py:849-855
+	KindSkipJSONColumn         // query.py:858-859
+	KindSettingsProperty       // properties.py:476-477
+	KindMergeTreeTTL           // ddl.py:337-343
+	KindMergeTreeTTLAction     // ddl.py:327-334
+	KindDictProperty           // properties.py:242-243
+	KindDictRange              // properties.py:250-251
+	KindDictSubProperty        // properties.py:246-247
+	KindEmptyProperty          // properties.py:262-263
+	KindSampleProperty         // properties.py:442-443
+	KindSecureProperty         // properties.py:513-514
+	// KindEphemeralColumnConstraint ports constraints.py:96-97.
+	KindEphemeralColumnConstraint
 )
 
 type Trait uint32
@@ -1370,6 +1399,34 @@ var argTypes = map[Kind][]argSpec{
 	KindParameterStyleProperty: defaultArgTypes,
 	KindStreamingTableProperty: {},
 	KindClone:                  {{"this", true}, {"shallow", false}, {"copy", false}},
+
+	KindArgMax:                    {{"this", true}, {"expression", true}, {"count", false}},
+	KindArgMin:                    {{"this", true}, {"expression", true}, {"count", false}},
+	KindAnonymousAggFunc:          {{"this", true}, {"expressions", false}},
+	KindAutoRefreshProperty:       {{"this", false}, {"cadence", false}, {"offset", false}, {"randomize", false}, {"expressions", false}, {"settings", false}, {"append", false}},
+	KindUuidProperty:              defaultArgTypes,
+	KindOnCluster:                 defaultArgTypes,
+	KindToTableProperty:           defaultArgTypes,
+	KindVolatileProperty:          {{"this", false}},
+	KindNestedJSONSelect:          {{"this", true}, {"expression", true}},
+	KindProjectionDef:             {{"this", true}, {"expression", true}},
+	KindPartitionId:               defaultArgTypes,
+	KindReplacePartition:          {{"expression", true}, {"source", true}},
+	KindAlterModifySqlSecurity:    {{"expressions", true}},
+	KindDetach:                    {{"this", true}, {"kind", false}, {"exists", false}, {"cluster", false}, {"permanent", false}, {"sync", false}},
+	KindAssumeColumnConstraint:    defaultArgTypes,
+	KindWithFill:                  {{"from_", false}, {"to", false}, {"step", false}, {"interpolate", false}},
+	KindSkipJSONColumn:            {{"regexp", false}, {"expression", true}},
+	KindSettingsProperty:          {{"expressions", true}},
+	KindMergeTreeTTL:              {{"expressions", true}, {"where", false}, {"group", false}, {"aggregates", false}},
+	KindMergeTreeTTLAction:        {{"this", true}, {"delete", false}, {"recompress", false}, {"to_disk", false}, {"to_volume", false}},
+	KindDictProperty:              {{"this", true}, {"kind", true}, {"settings", false}},
+	KindDictRange:                 {{"this", true}, {"min", true}, {"max", true}},
+	KindDictSubProperty:           {{"this", true}, {"value", true}},
+	KindEmptyProperty:             {},
+	KindSampleProperty:            defaultArgTypes,
+	KindSecureProperty:            {},
+	KindEphemeralColumnConstraint: {{"this", false}},
 }
 
 var traitsOf = map[Kind]Trait{
@@ -1654,6 +1711,10 @@ var traitsOf = map[Kind]Trait{
 	KindTimeToStr:        TraitCondition | TraitFunc,
 	KindStarMap:          TraitCondition | TraitFunc,
 	KindVarMap:           TraitCondition | TraitFunc,
+	KindArgMax:           TraitCondition | TraitFunc | TraitAggFunc,
+	KindArgMin:           TraitCondition | TraitFunc | TraitAggFunc,
+	KindAnonymousAggFunc: TraitCondition | TraitFunc | TraitAggFunc,
+	KindNestedJSONSelect: TraitCondition | TraitBinary,
 }
 
 var primitive = map[Kind]bool{
@@ -2127,38 +2188,65 @@ var className = map[Kind]string{
 	KindRefresh:                  "Refresh",
 	KindArrayFirst:               "ArrayFirst",
 	// hive cluster: exact upstream class names.
-	KindExternalProperty:       "ExternalProperty",
-	KindClusteredByProperty:    "ClusteredByProperty",
-	KindLocationProperty:       "LocationProperty",
-	KindStorageHandlerProperty: "StorageHandlerProperty",
-	KindUsingProperty:          "UsingProperty",
-	KindInputOutputFormat:      "InputOutputFormat",
-	KindQueryTransform:         "QueryTransform",
-	KindTransform:              "Transform",
-	KindToBase64:               "ToBase64",
-	KindFromBase64:             "FromBase64",
-	KindTsOrDsAdd:              "TsOrDsAdd",
-	KindTsOrDsToDate:           "TsOrDsToDate",
-	KindFirst:                  "First",
-	KindFirstValue:             "FirstValue",
-	KindLast:                   "Last",
-	KindLastValue:              "LastValue",
-	KindRegexpExtract:          "RegexpExtract",
-	KindRegexpExtractAll:       "RegexpExtractAll",
-	KindTimestampTrunc:         "TimestampTrunc",
-	KindDateTrunc:              "DateTrunc",
-	KindUnixToStr:              "UnixToStr",
-	KindTimeToStr:              "TimeToStr",
-	KindStarMap:                "StarMap",
-	KindVarMap:                 "VarMap",
-	KindTimeseriesKey:          "TimeseriesKey",
-	KindClusterProperty:        "ClusterProperty",
-	KindStream:                 "Stream",
-	KindEnviromentProperty:     "EnviromentProperty",
-	KindHandlerProperty:        "HandlerProperty",
-	KindParameterStyleProperty: "ParameterStyleProperty",
-	KindStreamingTableProperty: "StreamingTableProperty",
-	KindClone:                  "Clone",
+	KindExternalProperty:          "ExternalProperty",
+	KindClusteredByProperty:       "ClusteredByProperty",
+	KindLocationProperty:          "LocationProperty",
+	KindStorageHandlerProperty:    "StorageHandlerProperty",
+	KindUsingProperty:             "UsingProperty",
+	KindInputOutputFormat:         "InputOutputFormat",
+	KindQueryTransform:            "QueryTransform",
+	KindTransform:                 "Transform",
+	KindToBase64:                  "ToBase64",
+	KindFromBase64:                "FromBase64",
+	KindTsOrDsAdd:                 "TsOrDsAdd",
+	KindTsOrDsToDate:              "TsOrDsToDate",
+	KindFirst:                     "First",
+	KindFirstValue:                "FirstValue",
+	KindLast:                      "Last",
+	KindLastValue:                 "LastValue",
+	KindRegexpExtract:             "RegexpExtract",
+	KindRegexpExtractAll:          "RegexpExtractAll",
+	KindTimestampTrunc:            "TimestampTrunc",
+	KindDateTrunc:                 "DateTrunc",
+	KindUnixToStr:                 "UnixToStr",
+	KindTimeToStr:                 "TimeToStr",
+	KindStarMap:                   "StarMap",
+	KindVarMap:                    "VarMap",
+	KindTimeseriesKey:             "TimeseriesKey",
+	KindClusterProperty:           "ClusterProperty",
+	KindStream:                    "Stream",
+	KindEnviromentProperty:        "EnviromentProperty",
+	KindHandlerProperty:           "HandlerProperty",
+	KindParameterStyleProperty:    "ParameterStyleProperty",
+	KindStreamingTableProperty:    "StreamingTableProperty",
+	KindClone:                     "Clone",
+	KindArgMax:                    "ArgMax",
+	KindArgMin:                    "ArgMin",
+	KindAnonymousAggFunc:          "AnonymousAggFunc",
+	KindAutoRefreshProperty:       "AutoRefreshProperty",
+	KindUuidProperty:              "UuidProperty",
+	KindOnCluster:                 "OnCluster",
+	KindToTableProperty:           "ToTableProperty",
+	KindVolatileProperty:          "VolatileProperty",
+	KindNestedJSONSelect:          "NestedJSONSelect",
+	KindProjectionDef:             "ProjectionDef",
+	KindPartitionId:               "PartitionId",
+	KindReplacePartition:          "ReplacePartition",
+	KindAlterModifySqlSecurity:    "AlterModifySqlSecurity",
+	KindDetach:                    "Detach",
+	KindAssumeColumnConstraint:    "AssumeColumnConstraint",
+	KindWithFill:                  "WithFill",
+	KindSkipJSONColumn:            "SkipJSONColumn",
+	KindSettingsProperty:          "SettingsProperty",
+	KindMergeTreeTTL:              "MergeTreeTTL",
+	KindMergeTreeTTLAction:        "MergeTreeTTLAction",
+	KindDictProperty:              "DictProperty",
+	KindDictRange:                 "DictRange",
+	KindDictSubProperty:           "DictSubProperty",
+	KindEmptyProperty:             "EmptyProperty",
+	KindSampleProperty:            "SampleProperty",
+	KindSecureProperty:            "SecureProperty",
+	KindEphemeralColumnConstraint: "EphemeralColumnConstraint",
 }
 
 // varLenArgs is the authoritative is_var_len_args=True set (mirroring the upstream Func
@@ -2186,6 +2274,8 @@ var varLenArgs = map[Kind]bool{
 	KindMD5Digest: true,
 	// hive cluster: VarMap is_var_len_args=True (array.py:339-341).
 	KindVarMap: true,
+	// clickhouse: AnonymousAggFunc is_var_len_args=True (core.py:2004-2006).
+	KindAnonymousAggFunc: true,
 }
 
 // ArgKeys returns the arg keys of a Kind in class-declaration order (mirrors

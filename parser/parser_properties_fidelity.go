@@ -179,6 +179,9 @@ func (p *Parser) parseClusteredBy() exp.Expression {
 
 // parseDefiner ports _parse_definer (parser.py:3058-3069): DEFINER[=]user@host.
 func (p *Parser) parseDefiner() exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		return p.parseClickHouseDefiner()
+	}
 	p.match(tokens.EQ)
 	user := p.parseIdVar(true, nil)
 	p.match(tokens.PARAMETER)
@@ -323,6 +326,10 @@ func (p *Parser) parsePartitionedOf() exp.Expression {
 
 // parsePartitionedBy ports _parse_partitioned_by (parser.py:3310-3316).
 func (p *Parser) parsePartitionedBy() exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		// ClickHouse allows custom expressions as partition key (parsers/clickhouse.py:984-988).
+		return p.expression(exp.PartitionedByProperty(exp.Args{"this": p.parseAssignment()}), nil, nil)
+	}
 	p.match(tokens.EQ)
 	this := p.parseSchema(nil)
 	if this == nil {
@@ -370,6 +377,9 @@ func (p *Parser) parseNoProperty() exp.Expression {
 // (parser.py:3345-3350). The generic OnProperty branch is outside the AST worklist and is
 // left unconsumed by returning nil, so its enclosing statement fails closed.
 func (p *Parser) parseOnProperty() exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		return p.parseClickHouseOnProperty()
+	}
 	if p.matchTextSeq("COMMIT", "PRESERVE", "ROWS") {
 		return exp.OnCommitProperty(nil)
 	}

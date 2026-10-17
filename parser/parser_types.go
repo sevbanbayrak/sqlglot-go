@@ -308,6 +308,10 @@ func (p *Parser) parseTypesBase(checkFunc, schema, allowIdentifiers, withCollati
 			}
 		} else if enumTypeTokens[typeToken] || (p.dialect.Name == "mysql" && typeToken == tokens.SET) {
 			expressions = p.parseCsv(p.parseEquality)
+		} else if typeToken == tokens.JSON {
+			// ClickHouse JSON type supports arguments: JSON(col Type, SKIP col, param=value)
+			// https://clickhouse.com/docs/sql-reference/data-types/newjson
+			expressions = p.parseCsv(p.parseJSONTypeArg)
 		} else if isAggregate {
 			funcOrIdent := p.parseFunction(nil, true, true, false)
 			if funcOrIdent == nil {
@@ -324,7 +328,7 @@ func (p *Parser) parseTypesBase(checkFunc, schema, allowIdentifiers, withCollati
 				})...)
 			}
 		} else {
-			// TODO(1d): ClickHouse JSON type args and VECTOR expression normalization.
+			// TODO(1d): VECTOR expression normalization.
 			expressions = p.parseCsv(p.parseTypeSize)
 		}
 
@@ -617,6 +621,13 @@ func (p *Parser) parseVarOrString(upper bool) exp.Expression {
 }
 
 func (p *Parser) parseBracket(this exp.Expression) exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		return p.parseClickHouseBracket(this)
+	}
+	return p.parseBracketBase(this)
+}
+
+func (p *Parser) parseBracketBase(this exp.Expression) exp.Expression {
 	if !p.matchSet(map[tokens.TokenType]bool{tokens.L_BRACKET: true, tokens.L_BRACE: true}) {
 		return this
 	}
@@ -715,4 +726,30 @@ func (p *Parser) parseSlice(this exp.Expression) exp.Expression {
 		step = p.parseUnary()
 	}
 	return p.expression(exp.Slice(exp.Args{"this": this, "expression": end, "step": step}), nil, nil)
+}
+
+// parseJSONTypeArg ports _parse_json_type_arg (parser.py:6723-6748): a single argument to
+// ClickHouse's JSON type.
+func (p *Parser) parseJSONTypeArg() exp.Expression {
+	// SKIP col or SKIP REGEXP 'pattern'
+	if p.matchTextSeq("SKIP") {
+		regexp := p.match(tokens.RLIKE)
+		arg := p.parseColumn()
+		if arg != nil && arg.Kind() == exp.KindColumn {
+			arg = exp.ColumnsToDot(arg)
+		}
+		return p.expression(exp.New(exp.KindSkipJSONColumn, exp.Args{"regexp": regexp, "expression": arg}), nil, nil)
+	}
+	paramOrCol := p.parseColumn()
+	if paramOrCol == nil || paramOrCol.Kind() != exp.KindColumn {
+		return nil
+	}
+	// Parameter: name=value (e.g., max_dynamic_paths=2)
+	if len(paramOrCol.Parts()) == 1 && p.match(tokens.EQ) {
+		return p.expression(exp.EQ(exp.Args{"this": exp.Var(exp.Args{"this": paramOrCol.Name()}), "expression": p.parsePrimary()}), nil, nil)
+	}
+	// Column type hint: col_name Type
+	col := exp.ColumnsToDot(paramOrCol)
+	kind := p.parseTypes(false, false, false, false)
+	return p.expression(exp.ColumnDef(exp.Args{"this": col, "kind": kind}), nil, nil)
 }

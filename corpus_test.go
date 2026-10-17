@@ -241,6 +241,7 @@ const (
 	minPassHive       = 141
 	minPassSpark      = 226
 	minPassDatabricks = 176
+	minPassClickHouse = 468
 )
 
 // Total floors catch dropped failing records that pass floors cannot detect.
@@ -254,6 +255,7 @@ const (
 	minTotalHive       = 141
 	minTotalSpark      = 227
 	minTotalDatabricks = 176
+	minTotalClickHouse = 468
 )
 
 // TestCorpus is the single round-trip harness for both the base-dialect
@@ -309,6 +311,7 @@ func TestCorpus(t *testing.T) {
 		{"hive", minPassHive, minTotalHive},
 		{"spark", minPassSpark, minTotalSpark},
 		{"databricks", minPassDatabricks, minTotalDatabricks},
+		{"clickhouse", minPassClickHouse, minTotalClickHouse},
 	}
 	var counts []string
 	for _, floor := range floors {

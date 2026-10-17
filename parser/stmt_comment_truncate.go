@@ -78,10 +78,7 @@ func (p *Parser) parseComment() exp.Expression {
 	}), nil, nil)
 }
 
-// parseTruncateTable ports _parse_truncate_table (parser.py:9466-9515). The ON-cluster
-// branch (ClickHouse `ON CLUSTER ...`, parser.py:9484) is omitted - no corpus case
-// exercises it, and a leftover `ON ...` correctly falls through to the trailing-token
-// check below and degrades to Command instead.
+// parseTruncateTable ports _parse_truncate_table (parser.py:9466-9515).
 func (p *Parser) parseTruncateTable() exp.Expression {
 	start := p.prev
 
@@ -105,6 +102,12 @@ func (p *Parser) parseTruncateTable() exp.Expression {
 	expressions := p.parseCsv(func() exp.Expression {
 		return p.parseTable(true, false, nil, false, isDatabase, false, false)
 	})
+
+	// parser.py:9778: ClickHouse `ON CLUSTER ...`.
+	var cluster exp.Expression
+	if p.match(tokens.ON) {
+		cluster = p.parseOnProperty()
+	}
 
 	var identity any
 	if p.matchTextSeq("RESTART", "IDENTITY") {
@@ -130,6 +133,7 @@ func (p *Parser) parseTruncateTable() exp.Expression {
 		"expressions": expressions,
 		"is_database": isDatabase,
 		"exists":      exists,
+		"cluster":     cluster,
 		"identity":    identity,
 		"option":      option,
 		"partition":   partition,

@@ -46,8 +46,10 @@ func init() {
 		// generators/mysql.py:168.
 		exp.KindJSONExtractScalar: (*Generator).arrowJSONExtractSQL,
 
-		exp.KindArrayAgg:         rename("GROUP_CONCAT"),
-		exp.KindArray:            unsupportedFallback("Arrays are not supported by MySQL"),
+		exp.KindArrayAgg: rename("GROUP_CONCAT"),
+		exp.KindArray:    unsupportedFallback("Arrays are not supported by MySQL"),
+		// generators/mysql.py:222.
+		exp.KindUtcTimestamp:     prestoRename("UTC_TIMESTAMP"),
 		exp.KindArrayContainsAll: unsupportedFallback("Array operations are not supported by MySQL"),
 		exp.KindArrayContainedBy: unsupportedFallback("Array operations are not supported by MySQL"),
 		exp.KindDateDiff: func(g *Generator, e exp.Expression) string {

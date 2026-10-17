@@ -191,6 +191,9 @@ func init() {
 			return g.funcCall("LOCATE", []any{e.Arg("substr"), e.Arg("this"), e.Arg("position")}, "(", ")", true)
 		},
 		expressions.KindTimeStrToTime: func(g *Generator, e expressions.Expression) string { return timeStrToTimeSQL(g, e, false) },
+		// generators/hive.py:279-280.
+		expressions.KindArgMax: argMaxOrMinNoCount("MAX_BY"),
+		expressions.KindArgMin: argMaxOrMinNoCount("MIN_BY"),
 		expressions.KindLevenshtein: func(g *Generator, e expressions.Expression) string {
 			g.unsupportedArgs(e, "ins_cost", "del_cost", "sub_cost", "max_dist")
 			return g.funcCall("LEVENSHTEIN", []any{e.This(), e.Expr()}, "(", ")", true)

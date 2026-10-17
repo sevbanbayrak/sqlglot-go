@@ -28,12 +28,6 @@ func init() {
 }
 
 // dropSQL ports drop_sql (generator.py:1796-1818).
-//
-// Divergence: upstream rewrites `kind` through `self.dialect.INVERSE_CREATABLE_KIND_MAPPING`
-// (a per-dialect CREATABLE_KIND_MAPPING inverse, e.g. Postgres's `WAREHOUSE` -> `DATABASE`
-// remaps); that table isn't ported (out of scope for this slice, base/mysql/postgres don't
-// populate it for anything DROP-relevant), so `kind` is used as-is - a no-op equivalent to
-// `.get(kind) or kind` when the mapping is empty.
 func (g *Generator) dropSQL(e expressions.Expression) string {
 	// MySQL DROP {USER|ROLE} grammar extension: the body is not modeled; `this` holds a Command child
 	// with the verbatim statement text. Keying on the Command child (not the kind string) keeps a
@@ -46,7 +40,14 @@ func (g *Generator) dropSQL(e expressions.Expression) string {
 	if exprs != "" {
 		exprs = " (" + exprs + ")"
 	}
+	// generator.py:1833 INVERSE_CREATABLE_KIND_MAPPING.
 	kind := e.Text("kind")
+	for from, to := range g.dialect.CreatableKindMapping {
+		if to == kind {
+			kind = from
+			break
+		}
+	}
 
 	iceberg := ""
 	if boolValue(e.Arg("iceberg")) && g.dialect.SupportsDropAlterIcebergProperty {

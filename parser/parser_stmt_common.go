@@ -31,6 +31,9 @@ func (p *Parser) parsePragma() exp.Expression {
 // parsePartition ports _parse_partition (parser.py:3772-3781): `PARTITION(...)` /
 // `SUBPARTITION(...)`, used by TRUNCATE/ANALYZE/... family parsers.
 func (p *Parser) parsePartition() exp.Expression {
+	if p.dialect.Is("clickhouse") {
+		return p.parseClickHousePartition()
+	}
 	if !p.matchTexts(partitionKeywords) {
 		return nil
 	}

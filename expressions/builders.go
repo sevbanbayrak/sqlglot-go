@@ -242,6 +242,11 @@ func Or_(expressions ...Expression) Expression {
 	return combine(expressions, KindOr, true)
 }
 
+// Xor_ ports exp.xor (core.py:2950-2972).
+func Xor_(expressions ...Expression) Expression {
+	return combine(expressions, KindXor, true)
+}
+
 func Not_(expression Expression, copyValue bool) Expression {
 	if copyValue && expression != nil {
 		expression = expression.Copy()
@@ -268,9 +273,12 @@ func combine(expressions []Expression, kind Kind, wrapOperands bool) Expression 
 			expression = wrap(expression, TraitConnector)
 		}
 		args := Args{"this": this, "expression": expression}
-		if kind == KindAnd {
+		switch kind {
+		case KindAnd:
 			this = And(args)
-		} else {
+		case KindXor:
+			this = New(KindXor, args)
+		default:
 			this = Or(args)
 		}
 	}
