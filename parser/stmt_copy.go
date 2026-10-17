@@ -9,10 +9,8 @@ func init() {
 	statementParsers[tokens.COPY] = (*Parser).parseCopy
 }
 
-// parseCopy ports _parse_copy (parser.py:9616-9649): `COPY [INTO] <table-or-select>
-// FROM|TO <files> [<credentials>] [WITH] [(<params>)]`. Any input this doesn't
-// structurally recognize (e.g. dialect-specific option shapes this slice doesn't model)
-// degrades to a raw Command via parseAsCommand, mirroring upstream's own fallback.
+// parseCopy ports _parse_copy (parser.py:9909-9941): `COPY [INTO] <table-or-select>
+// FROM|TO <files> [<credentials>] [WITH] [(<params>)]`; trailing tokens degrade to Command.
 func (p *Parser) parseCopy() exp.Expression {
 	start := p.prev
 
@@ -26,49 +24,33 @@ func (p *Parser) parseCopy() exp.Expression {
 	}
 
 	// kind = self._match(TokenType.FROM) or not self._match_text_seq("TO")
-	// (parser.py:9631): only probe for TO when FROM didn't match, preserving Python's
-	// short-circuit "or".
 	kind := p.match(tokens.FROM)
 	if !kind {
 		kind = !p.matchTextSeq("TO")
 	}
 
-	files := p.parseCsv(func() exp.Expression { return p.parseField(false, nil, false) })
+	files := p.parseCsv(p.parseFileLocation)
 	if p.match(tokens.EQ, false) {
-		// Backtrack one token since we've consumed the lhs of a parameter assignment here
-		// (parser.py:9636-9640): this can happen for Snowflake dialect. Instead, we'd like
-		// to parse the parameter list via parseCopyParameters below.
-		p.retreat(p.index - 1)
+		// Backtrack one token since we've consumed the lhs of a parameter assignment here.
+		// This can happen for Snowflake dialect. Instead, we'd like to parse the parameter
+		// list via `_parse_wrapped(..)` below.
+		p.advance(-1)
 		files = nil
 	}
 
 	credentials := p.parseCredentials()
 
-	// The CREDENTIALS/ENCRYPTION/STORAGE_INTEGRATION/IAM_ROLE/REGION clauses are
-	// Snowflake/Redshift-only and render faithfully only via upstream's unported
-	// _parse_property grammar. None of base/mysql/postgres produce them, so when one is
-	// present degrade to a raw Command (exact round-trip via parseAsCommand's source
-	// recapture) rather than emit a lossy structural rewrite. This keeps every credential
-	// shape consistent — cf. the multi-option case that already degrades via trailing tokens.
-	if credentialsPresent(credentials) {
-		return p.parseAsCommand(start)
-	}
-
 	p.matchTextSeq("WITH")
 
-	// _parse_wrapped(self._parse_copy_parameters, optional=True) (parser.py:9646;
-	// _parse_wrapped at parser.py:8635-8641): _parse_wrapped ALWAYS invokes the parse method,
-	// matching the closing ")" only when an opening "(" was present. With optional=True a
-	// missing "(" is not an error, so unwrapped parameter lists parse too — postgres
-	// `COPY tbl FROM 'file' WITH FORMAT csv` -> `COPY tbl FROM 'file' WITH (FORMAT csv)`.
-	// Go has no list-returning parseWrapped, so the wrapper is inlined here.
+	// _parse_wrapped(self._parse_copy_parameters, optional=True): Go has no list-returning
+	// parseWrapped, so the wrapper is inlined here.
 	wrapped := p.match(tokens.L_PAREN)
 	params := p.parseCopyParameters()
 	if wrapped {
 		p.matchRParen(nil)
 	}
 
-	// Fallback case.
+	// Fallback case
 	if p.curr.IsValid() {
 		return p.parseAsCommand(start)
 	}
@@ -82,6 +64,15 @@ func (p *Parser) parseCopy() exp.Expression {
 	}), nil, nil)
 }
 
+// parseFileLocation ports _parse_file_location (parser.py:9906-9907) and its Snowflake
+// override (parsers/snowflake.py:1297-1303).
+func (p *Parser) parseFileLocation() exp.Expression {
+	if p.dialect.Is("snowflake") {
+		return p.parseSnowflakeFileLocation()
+	}
+	return p.parseField(false, nil, false)
+}
+
 // copyIntoVarlenOptions ports COPY_INTO_VARLEN_OPTIONS (parser.py:1781-1786).
 var copyIntoVarlenOptions = map[string]bool{"FILE_FORMAT": true, "COPY_OPTIONS": true, "FORMAT_OPTIONS": true, "CREDENTIAL": true}
 
@@ -92,12 +83,6 @@ func (p *Parser) parseWrappedOptions() []exp.Expression {
 
 	var opts []exp.Expression
 	for p.curr.IsValid() && !p.match(tokens.R_PAREN) {
-		// Upstream's _parse_property reaches _parse_sequence_properties (parser.py:2733-2767),
-		// which consumes a separating comma and yields an empty SequenceProperties that renders
-		// nothing. Sequence properties are not ported, so the comma is skipped here instead.
-		if p.match(tokens.COMMA) {
-			continue
-		}
 		var option exp.Expression
 		if p.matchTextSeq("FORMAT_NAME", "=") {
 			// The FORMAT_NAME can be set to an identifier for Snowflake and T-SQL
@@ -179,27 +164,7 @@ func (p *Parser) parseCopyParameters() []exp.Expression {
 	return options
 }
 
-// credentialsPresent reports whether parseCredentials matched any of its clauses (i.e.
-// set any of Credentials' args). Used to decide whether a COPY must degrade to Command.
-func credentialsPresent(e exp.Expression) bool {
-	if e == nil {
-		return false
-	}
-	for _, key := range []string{"storage", "credentials", "encryption", "iam_role", "region"} {
-		if e.Arg(key) != nil {
-			return true
-		}
-	}
-	return false
-}
-
-// parseCredentials ports _parse_credentials (parser.py:9590-9611): `[STORAGE_INTEGRATION
-// = <field>] [CREDENTIALS [= (<opts>)|<field>]] [ENCRYPTION (<opts>)] [IAM_ROLE
-// DEFAULT|<field>] [REGION <field>]`. This port's target dialects (base/mysql/postgres)
-// never exercise any of these guards (they're Snowflake/Redshift-specific), so this
-// always returns an all-nil Credentials node in practice; it's still ported structurally
-// so a stray CREDENTIALS/ENCRYPTION/... clause is consumed rather than falling through to
-// the Command fallback.
+// parseCredentials ports _parse_credentials (parser.py:9883-9904).
 func (p *Parser) parseCredentials() exp.Expression {
 	expr := p.expression(exp.Credentials(exp.Args{}), nil, nil)
 
@@ -207,17 +172,15 @@ func (p *Parser) parseCredentials() exp.Expression {
 		expr.Set("storage", p.parseField(false, nil, false))
 	}
 	if p.matchTextSeq("CREDENTIALS") {
-		// Snowflake case: CREDENTIALS = (...), Redshift case: CREDENTIALS <string>.
-		var credentials any
+		// Snowflake case: CREDENTIALS = (...), Redshift case: CREDENTIALS <string>
 		if p.match(tokens.EQ) {
-			credentials = p.parseCopyWrappedOptions()
+			expr.Set("credentials", p.parseWrappedOptions())
 		} else {
-			credentials = p.parseField(false, nil, false)
+			expr.Set("credentials", p.parseField(false, nil, false))
 		}
-		expr.Set("credentials", credentials)
 	}
 	if p.matchTextSeq("ENCRYPTION") {
-		expr.Set("encryption", p.parseCopyWrappedOptions())
+		expr.Set("encryption", p.parseWrappedOptions())
 	}
 	if p.matchTextSeq("IAM_ROLE") {
 		if p.match(tokens.DEFAULT) {
@@ -231,39 +194,4 @@ func (p *Parser) parseCredentials() exp.Expression {
 	}
 
 	return expr
-}
-
-// parseCopyWrappedOptions is a scoped-down port of _parse_wrapped_options
-// (parser.py:9530-9548), covering only the option shapes reachable from Credentials'
-// CREDENTIALS=(...)/ENCRYPTION(...) sub-clauses. Upstream's version falls back to
-// _parse_property for each option, which isn't ported in this slice (it's a large,
-// separate DDL-properties grammar); this instead captures each option generically as a
-// bare var or `var = value` pair, which is sufficient for the unreachable-in-corpus paths
-// this feeds (base/mysql/postgres never exercise Credentials' EQ sub-clauses).
-func (p *Parser) parseCopyWrappedOptions() []exp.Expression {
-	p.match(tokens.EQ)
-	p.match(tokens.L_PAREN)
-
-	var opts []exp.Expression
-	for p.curr.IsValid() && !p.match(tokens.R_PAREN) {
-		option := p.parseVar(true, nil, false)
-		if option == nil {
-			// Mirror _parse_wrapped_options' `if option is None: break` (parser.py:9545-9547).
-			// This port lacks the full _parse_property grammar, so any option shape it can't
-			// capture as a bare var / `var = value` pair — e.g. a comma separator inside a
-			// Snowflake/Redshift credential list — stops the loop rather than spinning forever
-			// on a token parseVar can't consume. The unconsumed tokens then reach parseCopy's
-			// trailing-token Command fallback (degrade-to-Command, exactly as upstream does for
-			// shapes it can't model). This guarantees termination.
-			break
-		}
-		if p.match(tokens.EQ) {
-			value := p.parseUnquotedField()
-			opts = append(opts, p.expression(exp.EQ(exp.Args{"this": option, "expression": value}), nil, nil))
-		} else {
-			opts = append(opts, option)
-		}
-	}
-
-	return opts
 }

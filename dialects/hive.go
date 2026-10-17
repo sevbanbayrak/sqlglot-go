@@ -14,6 +14,9 @@ func Hive() *Dialect {
 	d := Base()
 	// dialects/hive.py:24 ARRAY_AGG_INCLUDES_NULLS = None.
 	d.ArrayAggIncludesNulls = false
+	// generators/hive.py:235,238.
+	d.LastDaySupportsDatePart = false
+	d.SupportsToNumber = false
 	d.Name = "hive"
 	// generators/hive.py:227-251 and dialects/hive.py:23.
 	d.LimitFetch = "LIMIT"
@@ -21,6 +24,8 @@ func Hive() *Dialect {
 	d.IndexOn = "ON TABLE"
 	d.Nvl2Supported = false
 	d.TryUnsupported = true
+	d.UescapeUnsupported = true
+	d.ExtractDisallowsQuotes = true
 	d.DecodeCaseUnsupported = true
 	d.PadFillPatternIsRequired = true
 	d.ArraySizeName = "SIZE"
@@ -307,11 +312,9 @@ func hiveBuildGetJSONObject(d *Dialect) func([]exp.Expression) exp.Expression {
 func hiveBuildTimestampTrunc(args []exp.Expression) exp.Expression {
 	return exp.New(exp.KindTimestampTrunc, exp.Args{
 		"this": hiveSeqGet(args, 0),
-		"unit": hiveTimeUnit(hiveSeqGet(args, 1)),
+		"unit": hiveSeqGet(args, 1),
 	})
 }
-
-func hiveTimeUnit(unit exp.Expression) exp.Expression { return exp.TimeUnitVar(unit) }
 
 func hiveBuildDateFormat(args []exp.Expression) exp.Expression {
 	this := exp.New(exp.KindTimeStrToTime, exp.Args{"this": hiveSeqGet(args, 0)})

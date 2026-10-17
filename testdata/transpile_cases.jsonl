@@ -634,6 +634,115 @@
 {"read": "", "sql": "x ILIKE '%y'", "write": "presto", "pretty": false, "identify": false, "want": "LOWER(x) LIKE LOWER('%y')"}
 {"read": "", "sql": "x NOT ILIKE '%y'", "write": "presto", "pretty": false, "identify": false, "want": "LOWER(x) NOT LIKE LOWER('%y')"}
 {"read": "", "sql": "x[y]", "write": "presto", "pretty": false, "identify": false, "want": "x[y]"}
+{"read": "", "sql": "\n            MERGE INTO target USING source ON target.id = source.id\n                WHEN MATCHED AND source.is_deleted = 1 THEN DELETE\n                WHEN MATCHED THEN UPDATE SET val = source.val\n                WHEN NOT MATCHED THEN INSERT (id, val) VALUES (source.id, source.val)\n            ", "write": "snowflake", "pretty": false, "identify": false, "want": "MERGE INTO target USING source ON target.id = source.id WHEN MATCHED AND source.is_deleted = 1 THEN DELETE WHEN MATCHED THEN UPDATE SET val = source.val WHEN NOT MATCHED THEN INSERT (id, val) VALUES (source.id, source.val)"}
+{"read": "", "sql": "\n            MERGE INTO target USING source ON target.id = source.id\n                WHEN NOT MATCHED THEN INSERT (id) values (source.id)\n            ", "write": "snowflake", "pretty": false, "identify": false, "want": "MERGE INTO target USING source ON target.id = source.id WHEN NOT MATCHED THEN INSERT (id) VALUES (source.id)"}
+{"read": "", "sql": "\n            MERGE a b USING c d ON b.id = d.id\n            WHEN MATCHED AND EXISTS (\n                SELECT b.name\n                EXCEPT\n                SELECT d.name\n            )\n            THEN UPDATE SET b.name = d.name\n            ", "write": "snowflake", "pretty": false, "identify": false, "want": "MERGE INTO a AS b USING c AS d ON b.id = d.id WHEN MATCHED AND EXISTS(SELECT b.name EXCEPT SELECT d.name) THEN UPDATE SET b.name = d.name"}
+{"read": "", "sql": "ARRAY_ANY(arr, x -> pred)", "write": "snowflake", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "ARRAY_INTERSECT(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_INTERSECTION(x, y)"}
+{"read": "", "sql": "ARRAY_MAX(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_MAX(x)"}
+{"read": "", "sql": "ARRAY_MIN(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_MIN(x)"}
+{"read": "", "sql": "ARRAY_REMOVE(the_array, target)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_REMOVE(the_array, target)"}
+{"read": "", "sql": "ARRAY_REVERSE(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_REVERSE(x)"}
+{"read": "", "sql": "ARRAY_SLICE(x, 1, 3)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_SLICE(x, 1, 3)"}
+{"read": "", "sql": "ASCII('A')", "write": "snowflake", "pretty": false, "identify": false, "want": "ASCII('A')"}
+{"read": "", "sql": "BEGIN TRANSACTION", "write": "snowflake", "pretty": false, "identify": false, "want": "BEGIN"}
+{"read": "", "sql": "CAST(a AS BINARY(4))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS BINARY(4))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING(3))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS CHARACTER VARYING)", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(a AS DOUBLE)", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE)"}
+{"read": "", "sql": "CAST(a AS SMALLINT)", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS SMALLINT)"}
+{"read": "", "sql": "CAST(a AS STRING)", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(a AS TEXT)", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CAST(a AS VARBINARY(4))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS VARBINARY(4))"}
+{"read": "", "sql": "CAST(a AS VARCHAR(3))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR(3))"}
+{"read": "", "sql": "CAST(a AS VARCHAR)", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS VARCHAR)"}
+{"read": "", "sql": "CREATE TABLE a LIKE b", "write": "snowflake", "pretty": false, "identify": false, "want": "CREATE TABLE a LIKE b"}
+{"read": "", "sql": "DATE_ADD(x, 1, 'DAY')", "write": "snowflake", "pretty": false, "identify": false, "want": "DATEADD(DAY, 1, x)"}
+{"read": "", "sql": "DATE_FROM_UNIX_DATE(1)", "write": "snowflake", "pretty": false, "identify": false, "want": "DATEADD(DAY, 1, CAST('1970-01-01' AS DATE))"}
+{"read": "", "sql": "DATE_TRUNC('DAY', x)", "write": "snowflake", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "", "sql": "DATE_TRUNC('YEAR', x)", "write": "snowflake", "pretty": false, "identify": false, "want": "DATE_TRUNC('YEAR', x)"}
+{"read": "", "sql": "GROUPING(col1, col2, col3)", "write": "snowflake", "pretty": false, "identify": false, "want": "GROUPING(col1, col2, col3)"}
+{"read": "", "sql": "GROUPING(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "GROUPING(x)"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y')", "write": "snowflake", "pretty": false, "identify": false, "want": "GET_PATH(PARSE_JSON(x), 'y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y.*')", "write": "snowflake", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "snowflake", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[*]')", "write": "snowflake", "pretty": false, "identify": false, "want": "GET_PATH(PARSE_JSON(x), 'y')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$.y[0].z')", "write": "snowflake", "pretty": false, "identify": false, "want": "GET_PATH(PARSE_JSON(x), 'y[0].z')"}
+{"read": "", "sql": "JSON_EXTRACT(x, '$[\"a b\"]')", "write": "snowflake", "pretty": false, "identify": false, "want": "GET_PATH(PARSE_JSON(x), '[\"a b\"]')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y')", "write": "snowflake", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH_TEXT(x, 'y')"}
+{"read": "", "sql": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "write": "snowflake", "pretty": false, "identify": false, "want": "JSON_EXTRACT_PATH_TEXT(x, 'y[0].z')"}
+{"read": "", "sql": "JSON_KEYS(foo)", "write": "snowflake", "pretty": false, "identify": false, "want": "OBJECT_KEYS(foo)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2)", "write": "snowflake", "pretty": false, "identify": false, "want": "EDITDISTANCE(col1, col2)"}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3)", "write": "snowflake", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LEVENSHTEIN(col1, col2, 1, 2, 3, 4)", "write": "snowflake", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "LOG(10, a)", "write": "snowflake", "pretty": false, "identify": false, "want": "LOG(10, a)"}
+{"read": "", "sql": "LOG(2, a)", "write": "snowflake", "pretty": false, "identify": false, "want": "LOG(2, a)"}
+{"read": "", "sql": "LTRIM('Hello World')", "write": "snowflake", "pretty": false, "identify": false, "want": "LTRIM('Hello World')"}
+{"read": "", "sql": "LTRIM('Hello World', 'H')", "write": "snowflake", "pretty": false, "identify": false, "want": "LTRIM('Hello World', 'H')"}
+{"read": "", "sql": "MEDIAN(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "MEDIAN(x)"}
+{"read": "", "sql": "MEDIAN(x) OVER ()", "write": "snowflake", "pretty": false, "identify": false, "want": "MEDIAN(x) OVER ()"}
+{"read": "", "sql": "MOD(8 - 1 + 7, 7)", "write": "snowflake", "pretty": false, "identify": false, "want": "(8 - 1 + 7) % 7"}
+{"read": "", "sql": "MOD(a, b + 1)", "write": "snowflake", "pretty": false, "identify": false, "want": "a % (b + 1)"}
+{"read": "", "sql": "NEXT_DAY(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "NEXT_DAY(x, y)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par)"}
+{"read": "", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)"}
+{"read": "", "sql": "REGR_COUNT(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGR_COUNT(x, y)"}
+{"read": "", "sql": "REGR_INTERCEPT(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGR_INTERCEPT(x, y)"}
+{"read": "", "sql": "REGR_R2(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGR_R2(x, y)"}
+{"read": "", "sql": "REGR_SLOPE(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGR_SLOPE(x, y)"}
+{"read": "", "sql": "REGR_SXX(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGR_SXX(x, y)"}
+{"read": "", "sql": "REGR_SXY(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGR_SXY(x, y)"}
+{"read": "", "sql": "REGR_SYY(x, y)", "write": "snowflake", "pretty": false, "identify": false, "want": "REGR_SYY(x, y)"}
+{"read": "", "sql": "REVERSE(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "REVERSE(x)"}
+{"read": "", "sql": "RTRIM('Hello World')", "write": "snowflake", "pretty": false, "identify": false, "want": "RTRIM('Hello World')"}
+{"read": "", "sql": "RTRIM('Hello World', 'd')", "write": "snowflake", "pretty": false, "identify": false, "want": "RTRIM('Hello World', 'd')"}
+{"read": "", "sql": "SELECT \"user id\", some_id, 1 as other_id, 2 as \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT \"user id\", some_id, 1 AS other_id, 2 AS \"2 nd id\" FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read": "", "sql": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq"}
+{"read": "", "sql": "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT DATEADD(WEEK, CAST(value AS INT), CAST('2020-01-01' AS DATE)) AS value FROM TABLE(FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(WEEK, CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE)) + 1))) AS _t0(seq, key, path, index, value, this))"}
+{"read": "", "sql": "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK)) AS _q(date_week)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT DATEADD(WEEK, CAST(date_week AS INT), CAST('2020-01-01' AS DATE)) AS date_week FROM TABLE(FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(WEEK, CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE)) + 1))) AS _q(seq, key, path, index, date_week, this)) AS _q(date_week)"}
+{"read": "", "sql": "SELECT * FROM t QUALIFY COUNT(*) OVER () > 1", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT * FROM t QUALIFY COUNT(*) OVER () > 1"}
+{"read": "", "sql": "SELECT 1 AS \"x\"\"\"", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT 1 AS \"x\"\"\""}
+{"read": "", "sql": "SELECT 1 EXCEPT ALL SELECT 1", "write": "snowflake", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "SELECT ARRAY_AGG(x) WITHIN GROUP (ORDER BY y) FILTER(WHERE z > 0) FROM t", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT ARRAY_AGG(IFF(z > 0, x, NULL)) WITHIN GROUP (ORDER BY y NULLS FIRST) FROM t"}
+{"read": "", "sql": "SELECT ARRAY_EXCEPT(ARRAY(1, 2, 3), ARRAY(2))", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT ARRAY_EXCEPT([1, 2, 3], [2])"}
+{"read": "", "sql": "SELECT ARRAY_LENGTH(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT ARRAY_SIZE((SELECT ARRAY_AGG(*) FROM (SELECT DATEADD(WEEK, CAST(value AS INT), CAST('2020-01-01' AS DATE)) AS value FROM TABLE(FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(WEEK, CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE)) + 1))) AS _t0(seq, key, path, index, value, this))))"}
+{"read": "", "sql": "SELECT ARRAY_POSITION(ARRAY(1, 2, 3), 2)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT ARRAY_POSITION(2, [1, 2, 3])"}
+{"read": "", "sql": "SELECT COUNT_IF(col % 2 = 0) FROM foo", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT COUNT_IF(col % 2 = 0) FROM foo"}
+{"read": "", "sql": "SELECT DECODE(a, 1, 'one')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DECODE(a, 1, 'one')"}
+{"read": "", "sql": "SELECT DECODE(a, 1, 'one', 'default')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DECODE(a, 1, 'one', 'default')"}
+{"read": "", "sql": "SELECT DECODE(a, NULL, 'null')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DECODE(a, NULL, 'null')"}
+{"read": "", "sql": "SELECT DECODE(a, b, c)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DECODE(a, b, c)"}
+{"read": "", "sql": "SELECT DECODE(tbl.col, 'some_string', 'foo')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DECODE(tbl.col, 'some_string', 'foo')"}
+{"read": "", "sql": "SELECT FOO(x) WITHIN GROUP (ORDER BY y) FILTER(WHERE z > 0) FROM t", "write": "snowflake", "pretty": false, "identify": false, "want": "", "unsupported": true}
+{"read": "", "sql": "SELECT LPAD('bar', 5)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5)"}
+{"read": "", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT LPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT NVL2(a, b)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT NVL2(a, b)"}
+{"read": "", "sql": "SELECT NVL2(a, b, c)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT NVL2(a, b, c)"}
+{"read": "", "sql": "SELECT RPAD('bar', 5)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5)"}
+{"read": "", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT RPAD('bar', 5, ' ')"}
+{"read": "", "sql": "SELECT col LIKE ALL (x, y, z)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT col LIKE ALL (x, y, z)"}
+{"read": "", "sql": "SELECT col LIKE ANY (x, y, z)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT col LIKE ANY (x, y, z)"}
+{"read": "", "sql": "SORT_ARRAY(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_SORT(x)"}
+{"read": "", "sql": "SOUNDEX(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "SOUNDEX(x)"}
+{"read": "", "sql": "STRUCT(b as a, d as c)", "write": "snowflake", "want": "OBJECT_CONSTRUCT('a', b, 'c', d)", "pretty": false, "identify": false}
+{"read": "", "sql": "STR_POSITION(haystack, needle)", "write": "snowflake", "pretty": false, "identify": false, "want": "CHARINDEX(needle, haystack)"}
+{"read": "", "sql": "STR_POSITION(haystack, needle, position)", "write": "snowflake", "pretty": false, "identify": false, "want": "CHARINDEX(needle, haystack, position)"}
+{"read": "", "sql": "TIMESTAMP_TRUNC(x, DAY, 'UTC')", "write": "snowflake", "pretty": false, "identify": false, "want": "DATE_TRUNC('DAY', x)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01 12:13:14-08:00', 'America/Los_Angeles')", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST('2020-01-01 12:13:14-08:00' AS TIMESTAMPTZ)"}
+{"read": "", "sql": "TIME_STR_TO_TIME('2020-01-01')", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST('2020-01-01' AS TIMESTAMP)"}
+{"read": "", "sql": "TIME_STR_TO_TIME(col, 'America/Los_Angeles')", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(col AS TIMESTAMPTZ)"}
+{"read": "", "sql": "TO_BINARY('1C')", "write": "snowflake", "pretty": false, "identify": false, "want": "TO_BINARY('1C')"}
+{"read": "", "sql": "TO_BINARY('1C', 'HEX')", "write": "snowflake", "pretty": false, "identify": false, "want": "TO_BINARY('1C', 'HEX')"}
+{"read": "", "sql": "TO_CHAR(x, y)", "write": "snowflake", "want": "TO_CHAR(x, y)", "pretty": false, "identify": false}
+{"read": "", "sql": "TRANSLATE(x, y, z)", "write": "snowflake", "pretty": false, "identify": false, "want": "TRANSLATE(x, y, z)"}
+{"read": "", "sql": "TRIM('abc', 'a')", "write": "snowflake", "pretty": false, "identify": false, "want": "TRIM('abc', 'a')"}
+{"read": "", "sql": "TS_OR_DS_TO_DATE(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "TO_DATE(x)"}
+{"read": "", "sql": "UUID()", "write": "snowflake", "pretty": false, "identify": false, "want": "UUID_STRING()"}
+{"read": "", "sql": "WEEKOFYEAR(CAST('2025-01-01' AS DATE))", "write": "snowflake", "pretty": false, "identify": false, "want": "WEEKISO(CAST('2025-01-01' AS DATE))"}
+{"read": "", "sql": "a / b", "write": "snowflake", "pretty": false, "identify": false, "want": "a / b"}
+{"read": "", "sql": "x ILIKE '%y'", "write": "snowflake", "pretty": false, "identify": false, "want": "x ILIKE '%y'"}
 {"read": "", "sql": "\n            MERGE INTO target USING source ON target.id = source.id\n                WHEN MATCHED AND source.is_deleted = 1 THEN DELETE\n                WHEN MATCHED THEN UPDATE SET val = source.val\n                WHEN NOT MATCHED THEN INSERT (id, val) VALUES (source.id, source.val)\n            ", "write": "spark", "pretty": false, "identify": false, "want": "MERGE INTO target USING source ON target.id = source.id WHEN MATCHED AND source.is_deleted = 1 THEN DELETE WHEN MATCHED THEN UPDATE SET val = source.val WHEN NOT MATCHED THEN INSERT (id, val) VALUES (source.id, source.val)"}
 {"read": "", "sql": "\n            MERGE INTO target USING source ON target.id = source.id\n                WHEN MATCHED THEN UPDATE *\n                WHEN NOT MATCHED THEN INSERT *\n            ", "write": "spark", "pretty": false, "identify": false, "want": "MERGE INTO target USING source ON target.id = source.id WHEN MATCHED THEN UPDATE * WHEN NOT MATCHED THEN INSERT *"}
 {"read": "", "sql": "\n            MERGE INTO target USING source ON target.id = source.id\n                WHEN NOT MATCHED THEN INSERT (id) values (source.id)\n            ", "write": "spark", "pretty": false, "identify": false, "want": "MERGE INTO target USING source ON target.id = source.id WHEN NOT MATCHED THEN INSERT (id) VALUES (source.id)"}
@@ -965,6 +1074,7 @@
 {"read": "clickhouse", "sql": "toStartOfMONTH(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('MONTH', x)"}
 {"read": "clickhouse", "sql": "toStartOfSECOND(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('SECOND', x)"}
 {"read": "clickhouse", "sql": "toStartOfYEAR(x)", "write": "presto", "pretty": false, "identify": false, "want": "DATE_TRUNC('YEAR', x)"}
+{"read": "clickhouse", "sql": "endsWith('abc', 'c')", "write": "snowflake", "want": "ENDSWITH('abc', 'c')", "pretty": false, "identify": false}
 {"read": "clickhouse", "sql": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
 {"read": "clickhouse", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "spark", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname NULLS LAST"}
 {"read": "clickhouse", "sql": "SELECT substringIndex('a.b.c.d', '.', 2)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT SUBSTRING_INDEX('a.b.c.d', '.', 2)"}
@@ -1068,6 +1178,13 @@
 {"read": "databricks", "sql": "SELECT DATEDIFF(year, 'start', 'end')", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT CAST(EXTRACT(year FROM AGE(CAST('end' AS TIMESTAMP), CAST('start' AS TIMESTAMP))) AS BIGINT)"}
 {"read": "databricks", "sql": "SELECT col:`fr'uit`", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT JSON_EXTRACT_PATH(col, 'fr''uit')"}
 {"read": "databricks", "sql": "SIZE(arr)", "write": "postgres", "want": "ARRAY_LENGTH(arr, 1)", "pretty": false, "identify": false}
+{"read": "databricks", "sql": "ARRAY_COMPACT(arr)", "write": "snowflake", "want": "ARRAY_COMPACT(arr)", "pretty": false, "identify": false}
+{"read": "databricks", "sql": "ENDSWITH('abc', 'c')", "write": "snowflake", "want": "ENDSWITH('abc', 'c')", "pretty": false, "identify": false}
+{"read": "databricks", "sql": "REGEXP_EXTRACT(subject, pattern)", "write": "snowflake", "want": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "pretty": false, "identify": false}
+{"read": "databricks", "sql": "SELECT IF(x > 0, 'positive', 'non-positive')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT IFF(x > 0, 'positive', 'non-positive')"}
+{"read": "databricks", "sql": "SELECT TRY_DIVIDE(a, b)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT IFF(b <> 0, a / b, NULL)"}
+{"read": "databricks", "sql": "UNIFORM(1, 10)", "write": "snowflake", "pretty": false, "identify": false, "want": "UNIFORM(1, 10, RANDOM())"}
+{"read": "databricks", "sql": "UNIFORM(1, 10, 5)", "write": "snowflake", "pretty": false, "identify": false, "want": "UNIFORM(1, 10, RANDOM(5))"}
 {"read": "databricks", "sql": "APPROX_PERCENTILE(DISTINCT col, 0.3)", "write": "spark", "want": "PERCENTILE_APPROX(DISTINCT col, 0.3)", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "APPROX_PERCENTILE(DISTINCT col, 0.3, 200)", "write": "spark", "want": "PERCENTILE_APPROX(DISTINCT col, 0.3, 200)", "pretty": false, "identify": false}
 {"read": "databricks", "sql": "SELECT * FROM foo TIMESTAMP AS OF '2020-01-01 00:00:00' AS bar", "write": "spark", "want": "SELECT * FROM foo TIMESTAMP AS OF '2020-01-01 00:00:00' AS bar", "pretty": false, "identify": false}
@@ -1208,6 +1325,22 @@
 {"read": "hive", "sql": "x DIV y", "write": "presto", "pretty": false, "identify": false, "want": "CAST(CAST(x AS DOUBLE) / y AS INTEGER)"}
 {"read": "hive", "sql": "x | 1", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_OR(x, 1)"}
 {"read": "hive", "sql": "~x", "write": "presto", "pretty": false, "identify": false, "want": "BITWISE_NOT(x)"}
+{"read": "hive", "sql": "APPROX_COUNT_DISTINCT(a)", "write": "snowflake", "pretty": false, "identify": false, "want": "APPROX_COUNT_DISTINCT(a)"}
+{"read": "hive", "sql": "ARRAY_CONTAINS(x, 1)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_CONTAINS(CAST(1 AS VARIANT), x)"}
+{"read": "hive", "sql": "CAST('foo' AS STRING)", "write": "snowflake", "want": "TRY_CAST('foo' AS VARCHAR)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "CAST('val' AS STRING)", "write": "snowflake", "want": "TRY_CAST('val' AS VARCHAR)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "CAST(5 + 5 AS STRING)", "write": "snowflake", "want": "CAST(5 + 5 AS VARCHAR)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "CAST(CAST('2020-01-01' AS DATE) AS STRING)", "write": "snowflake", "want": "CAST(TRY_CAST('2020-01-01' AS DATE) AS VARCHAR)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "COLLECT_SET(x)", "write": "snowflake", "pretty": false, "identify": false, "want": "ARRAY_UNIQUE_AGG(x)"}
+{"read": "hive", "sql": "DATE_ADD('2020-01-01', 1)", "write": "snowflake", "pretty": false, "identify": false, "want": "DATEADD(DAY, 1, CAST(CAST('2020-01-01' AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "DATE_SUB('2020-01-01', 1)", "write": "snowflake", "pretty": false, "identify": false, "want": "DATEADD(DAY, 1 * -1, CAST(CAST('2020-01-01' AS TIMESTAMP) AS DATE))"}
+{"read": "hive", "sql": "MAP(a, b)", "write": "snowflake", "pretty": false, "identify": false, "want": "OBJECT_CONSTRUCT(a, b)"}
+{"read": "hive", "sql": "MAP(a, b, c, d)", "write": "snowflake", "pretty": false, "identify": false, "want": "OBJECT_CONSTRUCT(a, b, c, d)"}
+{"read": "hive", "sql": "REGEXP_EXTRACT(subject, pattern)", "write": "snowflake", "want": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGEXP_EXTRACT(subject, pattern, group)", "write": "snowflake", "want": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REGEXP_REPLACE(subject, pattern, replacement)", "write": "snowflake", "want": "REGEXP_REPLACE(subject, pattern, replacement)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "REPLACE(subject, pattern, replacement)", "write": "snowflake", "want": "REPLACE(subject, pattern, replacement)", "pretty": false, "identify": false}
+{"read": "hive", "sql": "SELECT * FROM x TABLESAMPLE (1 PERCENT) AS foo", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT * FROM x AS foo TABLESAMPLE (1)"}
 {"read": "hive", "sql": "\"'x'\"", "write": "spark", "pretty": false, "identify": false, "want": "'\\'x\\''"}
 {"read": "hive", "sql": "'\"x\"'", "write": "spark", "pretty": false, "identify": false, "want": "'\"x\"'"}
 {"read": "hive", "sql": "'\\''", "write": "spark", "pretty": false, "identify": false, "want": "'\\''"}
@@ -1459,6 +1592,31 @@
 {"read": "mysql", "sql": "STR_TO_DATE(x, '%Y-%m-%dT%T')", "write": "presto", "pretty": false, "identify": false, "want": "DATE_PARSE(x, '%Y-%m-%dT%T')"}
 {"read": "mysql", "sql": "TIMESTAMP(x)", "write": "presto", "want": "CAST(x AS TIMESTAMP)", "pretty": false, "identify": false}
 {"read": "mysql", "sql": "a / b", "write": "presto", "pretty": false, "identify": false, "want": "CAST(a AS DOUBLE) / NULLIF(b, 0)"}
+{"read": "mysql", "sql": "SELECT * FROM test LIMIT 0 + 1, 0 + 1", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT * FROM test LIMIT 1 OFFSET 1"}
+{"read": "mysql", "sql": "SELECT 0b1011", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT 0x0000CC", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT 0xCC ", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('1900-10-04 22:23:00', '%d %y %a %d %m %b')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('1900-10-04 22:23:00' AS TIMESTAMP), 'DD yy DY DD mm mon')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2007-10-04 22:23:00', '%H:%i:%s')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2007-10-04 22:23:00' AS TIMESTAMP), 'hh24:mi:ss')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2009-10-04 22:23:00', '%a %M %Y')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2009-10-04 22:23:00' AS TIMESTAMP), 'DY mmmm yyyy')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2017-06-15 22:23:34', '%H')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2017-06-15 22:23:34' AS TIMESTAMP), 'hh24')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2017-06-15', '%Y')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2017-06-15' AS TIMESTAMP), 'yyyy')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2017-06-15', '%Y-%m-%d')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2017-06-15' AS TIMESTAMP), 'yyyy-mm-DD')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2017-06-15', '%d')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2017-06-15' AS TIMESTAMP), 'DD')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2017-06-15', '%m')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2017-06-15' AS TIMESTAMP), 'mm')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2017-06-15', '%w')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2017-06-15' AS TIMESTAMP), 'dy')"}
+{"read": "mysql", "sql": "SELECT DATE_FORMAT('2024-08-22 14:53:12', '%a')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(CAST('2024-08-22 14:53:12' AS TIMESTAMP), 'DY')"}
+{"read": "mysql", "sql": "SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2) FROM table1", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2 NULLS FIRST) FROM table1"}
+{"read": "mysql", "sql": "SELECT INSERT(a, 0, 0, 'b')", "write": "snowflake", "want": "SELECT INSERT(a, 0, 0, 'b')", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "SELECT LEAD(col1, 1) RESPECT NULLS OVER (ORDER BY col2) FROM table1", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT LEAD(col1, 1) RESPECT NULLS OVER (ORDER BY col2 NULLS FIRST) FROM table1"}
+{"read": "mysql", "sql": "SELECT b'1011'", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT 11"}
+{"read": "mysql", "sql": "SELECT x'0000CC'", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT x'0000CC'"}
+{"read": "mysql", "sql": "SELECT x'CC'", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT x'CC'"}
+{"read": "mysql", "sql": "TRUNCATE(3.14159, 2)", "write": "snowflake", "pretty": false, "identify": false, "want": "TRUNC(3.14159, 2)"}
+{"read": "mysql", "sql": "TRUNCATE(price, 2)", "write": "snowflake", "want": "TRUNC(price, 2)", "pretty": false, "identify": false}
+{"read": "mysql", "sql": "a / b", "write": "snowflake", "pretty": false, "identify": false, "want": "a / NULLIF(b, 0)"}
+{"read": "mysql", "sql": "a XOR b", "write": "snowflake", "pretty": false, "identify": false, "want": "BOOLXOR(a, b)"}
 {"read": "mysql", "sql": "'a \\' b '' '", "write": "spark", "pretty": false, "identify": false, "want": "'a \\' b \\' '"}
 {"read": "mysql", "sql": "CAST(x AS MEDIUMBLOB) + CAST(y AS LONGBLOB) + CAST(z AS TINYBLOB)", "write": "spark", "pretty": false, "identify": false, "want": "CAST(x AS BLOB) + CAST(y AS BLOB) + CAST(z AS BLOB)"}
 {"read": "mysql", "sql": "CAST(x AS MEDIUMTEXT) + CAST(y AS LONGTEXT) + CAST(z AS TINYTEXT)", "write": "spark", "pretty": false, "identify": false, "want": "CAST(x AS TEXT) + CAST(y AS TEXT) + CAST(z AS TEXT)"}
@@ -1647,6 +1805,22 @@
 {"read": "postgres", "sql": "TRIM(LEADING FROM ' XXX ')", "write": "presto", "pretty": false, "identify": false, "want": "LTRIM(' XXX ')"}
 {"read": "postgres", "sql": "TRIM(TRAILING FROM ' XXX ')", "write": "presto", "pretty": false, "identify": false, "want": "RTRIM(' XXX ')"}
 {"read": "postgres", "sql": "a || b", "write": "presto", "pretty": false, "identify": false, "want": "CONCAT(CAST(a AS VARCHAR), CAST(b AS VARCHAR))"}
+{"read": "postgres", "sql": "CREATE OR REPLACE TRANSIENT TABLE a (id INT)", "write": "snowflake", "want": "CREATE OR REPLACE TRANSIENT TABLE a (id INT)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "CREATE TABLE c (pk BIGINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY -1))", "write": "snowflake", "want": "CREATE TABLE c (pk BIGINT AUTOINCREMENT INCREMENT -1)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "CREATE TABLE c (pk BIGINT GENERATED ALWAYS AS IDENTITY (START WITH 10))", "write": "snowflake", "want": "CREATE TABLE c (pk BIGINT AUTOINCREMENT START 10)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "GENERATE_SERIES(0, 3)", "write": "snowflake", "want": "ARRAY_GENERATE_RANGE(0, 3 + 1)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT CORR(a, b)", "write": "snowflake", "want": "SELECT CORR(a, b)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT CORR(a, b) OVER (PARTITION BY c)", "write": "snowflake", "want": "SELECT CORR(a, b) OVER (PARTITION BY c)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT DATE_PART('minute', timestamp '2023-01-04 04:05:06.789')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DATE_PART(minute, CAST('2023-01-04 04:05:06.789' AS TIMESTAMP))"}
+{"read": "postgres", "sql": "SELECT DATE_PART('month', date '20220502')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DATE_PART(month, CAST('20220502' AS DATE))"}
+{"read": "postgres", "sql": "SELECT MODE() WITHIN GROUP (ORDER BY x) FROM t", "write": "snowflake", "want": "SELECT MODE(x) FROM t", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)", "write": "snowflake", "want": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) OVER ()", "write": "snowflake", "want": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) OVER ()", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "TRUNC(price, 2)", "write": "snowflake", "want": "TRUNC(price, 2)", "pretty": false, "identify": false}
+{"read": "postgres", "sql": "merge into x as x using (select id) as y on a = b WHEN matched then update set X.\"A\" = y.b", "write": "snowflake", "pretty": false, "identify": false, "want": "MERGE INTO x AS x USING (SELECT id) AS y ON a = b WHEN MATCHED THEN UPDATE SET X.\"A\" = y.b"}
+{"read": "postgres", "sql": "merge into x as z using (select id) as y on a = b WHEN matched then update set X.a = y.b", "write": "snowflake", "pretty": false, "identify": false, "want": "MERGE INTO x AS z USING (SELECT id) AS y ON a = b WHEN MATCHED THEN UPDATE SET X.a = y.b"}
+{"read": "postgres", "sql": "merge into x as z using (select id) as y on a = b WHEN matched then update set Z.a = y.b", "write": "snowflake", "pretty": false, "identify": false, "want": "MERGE INTO x AS z USING (SELECT id) AS y ON a = b WHEN MATCHED THEN UPDATE SET Z.a = y.b"}
+{"read": "postgres", "sql": "merge into x using (select id) as y on a = b WHEN matched then update set x.a = y.b", "write": "snowflake", "pretty": false, "identify": false, "want": "MERGE INTO x USING (SELECT id) AS y ON a = b WHEN MATCHED THEN UPDATE SET x.a = y.b"}
 {"read": "postgres", "sql": "ARRAY_LENGTH(arr, 1)", "write": "spark", "pretty": false, "identify": false, "want": "SIZE(arr)"}
 {"read": "postgres", "sql": "ARRAY_LENGTH(arr, foo)", "write": "spark", "pretty": false, "identify": false, "want": "", "unsupported": true}
 {"read": "postgres", "sql": "CREATE TABLE x (a UUID, b BYTEA)", "write": "spark", "pretty": false, "identify": false, "want": "CREATE TABLE x (a STRING, b BINARY)"}
@@ -1792,6 +1966,27 @@
 {"read": "presto", "sql": "SELECT COALESCE(ELEMENT_AT(MAP_FROM_ENTRIES(ARRAY[(51, '1')]), id), quantity) FROM my_table", "write": "postgres", "pretty": false, "identify": false, "want": "", "unsupported": true}
 {"read": "presto", "sql": "SELECT ELEMENT_AT(ARRAY[1, 2, 3], 4)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT (ARRAY[1, 2, 3])[4]"}
 {"read": "presto", "sql": "SELECT U&'Hello winter \\2603 !'", "write": "postgres", "want": "SELECT U&'Hello winter \\2603 !'", "pretty": false, "identify": false}
+{"read": "presto", "sql": "CAST(ARRAY[1, 2] AS ARRAY(BIGINT))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST([1, 2] AS ARRAY(BIGINT))"}
+{"read": "presto", "sql": "CAST(MAP(ARRAY['a','b','c'], ARRAY[ARRAY[1], ARRAY[2], ARRAY[3]]) AS MAP(VARCHAR, ARRAY(INT)))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(OBJECT_CONSTRUCT('a', [1], 'b', [2], 'c', [3]) AS MAP(VARCHAR, ARRAY(INT)))"}
+{"read": "presto", "sql": "CAST(MAP(ARRAY['key'], ARRAY[1]) AS MAP(VARCHAR, INT))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(OBJECT_CONSTRUCT('key', 1) AS MAP(VARCHAR, INT))"}
+{"read": "presto", "sql": "CAST(a AS ARRAY(INT))", "write": "snowflake", "pretty": false, "identify": false, "want": "CAST(a AS ARRAY(INT))"}
+{"read": "presto", "sql": "DAY_OF_WEEK(foo)", "write": "snowflake", "want": "DAYOFWEEKISO(foo)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DOW(foo)", "write": "snowflake", "want": "DAYOFWEEKISO(foo)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "DOY(foo)", "write": "snowflake", "want": "DAYOFYEAR(foo)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "ENDS_WITH('abc', 'c')", "write": "snowflake", "want": "ENDSWITH('abc', 'c')", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REGEXP_EXTRACT(subject, pattern, group)", "write": "snowflake", "want": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "REPLACE(subject, pattern)", "write": "snowflake", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, '')"}
+{"read": "presto", "sql": "REPLACE(subject, pattern, replacement)", "write": "snowflake", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, replacement)"}
+{"read": "presto", "sql": "SELECT APPROX_PERCENTILE(a, 1, 0.5, 0.001) FROM t", "write": "snowflake", "want": "SELECT APPROX_PERCENTILE(a, 0.5) FROM t", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT CONTAINS(ARRAY['1'], '1')", "write": "snowflake", "want": "SELECT ARRAY_CONTAINS(CAST('1' AS VARIANT), ['1'])", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT CONTAINS(ARRAY[DATE '2020-10-10'], DATE '2020-10-10')", "write": "snowflake", "want": "SELECT ARRAY_CONTAINS(CAST(CAST('2020-10-10' AS DATE) AS VARIANT), [CAST('2020-10-10' AS DATE)])", "pretty": false, "identify": false}
+{"read": "presto", "sql": "SELECT FROM_ISO8601_DATE('2020-05-11')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT CAST('2020-05-11' AS DATE)"}
+{"read": "presto", "sql": "SELECT FROM_ISO8601_TIMESTAMP('2020-05-11T11:15:05')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT CAST('2020-05-11T11:15:05' AS TIMESTAMPTZ)"}
+{"read": "presto", "sql": "SEQUENCE(0, 3)", "write": "snowflake", "want": "ARRAY_GENERATE_RANGE(0, 3 + 1)", "pretty": false, "identify": false}
+{"read": "presto", "sql": "U&'Hello winter #2603 !' UESCAPE '#'", "write": "snowflake", "pretty": false, "identify": false, "want": "'Hello winter \\u2603 !'"}
+{"read": "presto", "sql": "U&'Hello winter \\2603 !'", "write": "snowflake", "pretty": false, "identify": false, "want": "'Hello winter \\u2603 !'"}
+{"read": "presto", "sql": "u&'Hello winter #2603 !' UESCAPE '#'", "write": "snowflake", "pretty": false, "identify": false, "want": "'Hello winter \\u2603 !'"}
+{"read": "presto", "sql": "u&'Hello winter \\2603 !'", "write": "snowflake", "pretty": false, "identify": false, "want": "'Hello winter \\u2603 !'"}
 {"read": "presto", "sql": "''''", "write": "spark", "pretty": false, "identify": false, "want": "'\\''"}
 {"read": "presto", "sql": "'''x'", "write": "spark", "pretty": false, "identify": false, "want": "'\\'x'"}
 {"read": "presto", "sql": "'''x'''", "write": "spark", "pretty": false, "identify": false, "want": "'\\'x\\''"}
@@ -1869,6 +2064,273 @@
 {"read": "presto", "sql": "SELECT SHA512(x)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT SHA512(x)"}
 {"read": "presto", "sql": "SELECT WEEK_OF_YEAR(y)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT WEEK_OF_YEAR(y)"}
 {"read": "presto", "sql": "STRPOS(haystack, needle, occurrence)", "write": "trino", "pretty": false, "identify": false, "want": "STRPOS(haystack, needle, occurrence)"}
+{"read": "snowflake", "sql": "ARRAY_INTERSECTION(x, y)", "write": "", "want": "ARRAY_INTERSECT(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "ARRAY_MAX(x)", "write": "", "want": "ARRAY_MAX(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "ARRAY_MIN(x)", "write": "", "want": "ARRAY_MIN(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "ARRAY_REVERSE(x)", "write": "", "want": "ARRAY_REVERSE(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "ARRAY_SLICE(x, 1, 3)", "write": "", "want": "ARRAY_SLICE(x, 1, 3)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "ASCII('A')", "write": "", "want": "ASCII('A')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "CHARINDEX(needle, haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "CHARINDEX(needle, haystack, position)", "write": "", "want": "STR_POSITION(haystack, needle, position)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "COPY INTO 's3://example/data.csv'\n    FROM EXTRA.EXAMPLE.TABLE\n    CREDENTIALS = ()\n    FILE_FORMAT = (TYPE = CSV COMPRESSION = NONE NULL_IF = ('') FIELD_OPTIONALLY_ENCLOSED_BY = '\"')\n    HEADER = TRUE\n    OVERWRITE = TRUE\n    SINGLE = TRUE\n            ", "write": "", "pretty": true, "identify": false, "want": "COPY INTO 's3://example/data.csv'\nFROM EXTRA.EXAMPLE.TABLE\nCREDENTIALS = () WITH (\n  FILE_FORMAT = (TYPE=CSV COMPRESSION=NONE NULL_IF=(\n    ''\n  ) FIELD_OPTIONALLY_ENCLOSED_BY='\"'),\n  HEADER TRUE,\n  OVERWRITE TRUE,\n  SINGLE TRUE\n)"}
+{"read": "snowflake", "sql": "COPY INTO 's3://example/data.csv'\n    FROM EXTRA.EXAMPLE.TABLE\n    STORAGE_INTEGRATION = S3_INTEGRATION\n    FILE_FORMAT = (TYPE=CSV COMPRESSION=NONE NULL_IF=('') FIELD_OPTIONALLY_ENCLOSED_BY='\"')\n    HEADER = TRUE\n    OVERWRITE = TRUE\n    SINGLE = TRUE\n            ", "write": "", "pretty": false, "identify": false, "want": "COPY INTO 's3://example/data.csv' FROM EXTRA.EXAMPLE.TABLE STORAGE_INTEGRATION = S3_INTEGRATION WITH (FILE_FORMAT = (TYPE=CSV COMPRESSION=NONE NULL_IF=('') FIELD_OPTIONALLY_ENCLOSED_BY='\"'), HEADER TRUE, OVERWRITE TRUE, SINGLE TRUE)"}
+{"read": "snowflake", "sql": "DATEADD('DAY', 1, x)", "write": "", "want": "DATE_ADD(x, 1, 'DAY')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "DATE_TRUNC('DAY', x::DATE)", "write": "", "want": "DATE_TRUNC('DAY', CAST(x AS DATE))", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "DATE_TRUNC('day', x)", "write": "", "want": "TIMESTAMP_TRUNC(x, DAY)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "DATE_TRUNC(year, x)", "write": "", "want": "TIMESTAMP_TRUNC(x, YEAR)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "EDITDISTANCE(col1, col2)", "write": "", "want": "LEVENSHTEIN(col1, col2)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "GET_PATH(x, 'y')", "write": "", "want": "JSON_EXTRACT(x, '$.y')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "GET_PATH(x, 'y[0].z')", "write": "", "want": "JSON_EXTRACT(x, '$.y[0].z')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "GROUPING(col1, col2, col3)", "write": "", "want": "GROUPING(col1, col2, col3)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "GROUPING(x)", "write": "", "want": "GROUPING(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "JSON_EXTRACT_PATH_TEXT(x, 'y')", "write": "", "want": "JSON_EXTRACT_SCALAR(x, '$.y')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "JSON_EXTRACT_PATH_TEXT(x, 'y[0].z')", "write": "", "want": "JSON_EXTRACT_SCALAR(x, '$.y[0].z')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "LOG(b, n)", "write": "", "want": "LOG(b, n)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "LTRIM('Hello World')", "write": "", "want": "LTRIM('Hello World')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "LTRIM('Hello World', 'H')", "write": "", "want": "LTRIM('Hello World', 'H')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "MEDIAN(x)", "write": "", "want": "MEDIAN(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "MEDIAN(x) OVER ()", "write": "", "want": "MEDIAN(x) OVER ()", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "OBJECT_CONSTRUCT('a', b, 'c', d)", "write": "", "pretty": false, "identify": false, "want": "STRUCT(b AS a, d AS c)"}
+{"read": "snowflake", "sql": "OBJECT_KEYS(foo)", "write": "", "want": "JSON_KEYS(foo)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "POSITION(needle in haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "POSITION(needle, haystack)", "write": "", "want": "STR_POSITION(haystack, needle)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "POSITION(needle, haystack, position)", "write": "", "want": "STR_POSITION(haystack, needle, position)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGEXP_INSTR(src, reg)", "write": "", "want": "REGEXP_INSTR(src, reg)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)", "write": "", "want": "REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGR_COUNT(x, y)", "write": "", "want": "REGR_COUNT(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGR_INTERCEPT(x, y)", "write": "", "want": "REGR_INTERCEPT(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGR_R2(x, y)", "write": "", "want": "REGR_R2(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGR_SLOPE(x, y)", "write": "", "want": "REGR_SLOPE(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGR_SXX(x, y)", "write": "", "want": "REGR_SXX(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGR_SXY(x, y)", "write": "", "want": "REGR_SXY(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REGR_SYY(x, y)", "write": "", "want": "REGR_SYY(x, y)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "REVERSE(x)", "write": "", "want": "REVERSE(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "RTRIM('Hello World')", "write": "", "want": "RTRIM('Hello World')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "RTRIM('Hello World', 'd')", "write": "", "want": "RTRIM('Hello World', 'd')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT * FROM (SELECT 1 AS col) apply", "write": "", "want": "SELECT * FROM (SELECT 1 AS col) AS apply", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT 1 AS \"x\"\"\"", "write": "", "want": "SELECT 1 AS \"x\"\"\"", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT BOOLAND_AGG(c1), BOOLAND_AGG(c2) FROM test", "write": "", "pretty": false, "identify": false, "want": "SELECT LOGICAL_AND(c1), LOGICAL_AND(c2) FROM test"}
+{"read": "snowflake", "sql": "SELECT BOOLOR_AGG(c1), BOOLOR_AGG(c2) FROM test", "write": "", "pretty": false, "identify": false, "want": "SELECT LOGICAL_OR(c1), LOGICAL_OR(c2) FROM test"}
+{"read": "snowflake", "sql": "SELECT COVAR_POP(y, x)", "write": "", "pretty": false, "identify": false, "want": "SELECT COVAR_POP(y, x)"}
+{"read": "snowflake", "sql": "SELECT COVAR_POP(y, x) OVER ()", "write": "", "pretty": false, "identify": false, "want": "SELECT COVAR_POP(y, x) OVER ()"}
+{"read": "snowflake", "sql": "SELECT COVAR_SAMP(y, x)", "write": "", "pretty": false, "identify": false, "want": "SELECT COVAR_SAMP(y, x)"}
+{"read": "snowflake", "sql": "SELECT COVAR_SAMP(y, x) OVER ()", "write": "", "pretty": false, "identify": false, "want": "SELECT COVAR_SAMP(y, x) OVER ()"}
+{"read": "snowflake", "sql": "SELECT LPAD('bar', 5)", "write": "", "want": "SELECT LPAD('bar', 5)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT LPAD('bar', 5, ' ')", "write": "", "want": "SELECT LPAD('bar', 5, ' ')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)", "write": "", "pretty": false, "identify": false, "want": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x NULLS LAST)"}
+{"read": "snowflake", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) OVER ()", "write": "", "pretty": false, "identify": false, "want": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x NULLS LAST) OVER ()"}
+{"read": "snowflake", "sql": "SELECT RPAD('bar', 5)", "write": "", "want": "SELECT RPAD('bar', 5)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT RPAD('bar', 5, ' ')", "write": "", "want": "SELECT RPAD('bar', 5, ' ')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT TOP 10 x FROM y", "write": "", "want": "SELECT x FROM y LIMIT 10", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP('2025-01-16 14:45:30.123', 'yyyy-mm-DD hh24:mi:ss.ff6')", "write": "", "pretty": false, "identify": false, "want": "SELECT STR_TO_TIME('2025-01-16 14:45:30.123', '%Y-%m-%d %H:%M:%S.%f')"}
+{"read": "snowflake", "sql": "SELECT col LIKE ALL (x, y, z)", "write": "", "want": "SELECT col LIKE ALL (x, y, z)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT col LIKE ANY (x, y, z)", "write": "", "want": "SELECT col LIKE ANY (x, y, z)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1", "write": "", "pretty": false, "identify": false, "want": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o NULLS LAST) = 1"}
+{"read": "snowflake", "sql": "SOUNDEX(x)", "write": "", "want": "SOUNDEX(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "TO_BINARY('1C')", "write": "", "want": "TO_BINARY('1C')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "TO_BINARY('1C', 'HEX')", "write": "", "want": "TO_BINARY('1C', 'HEX')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "TO_CHAR(x, y)", "write": "", "pretty": false, "identify": false, "want": "CAST(x AS TEXT)"}
+{"read": "snowflake", "sql": "TRANSLATE(x, y, z)", "write": "", "want": "TRANSLATE(x, y, z)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "TRIM('abc', 'a')", "write": "", "want": "TRIM('abc', 'a')", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "x ILIKE '%y'", "write": "", "want": "x ILIKE '%y'", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "ENDSWITH('abc', 'c')", "write": "clickhouse", "pretty": false, "identify": false, "want": "endsWith('abc', 'c')"}
+{"read": "snowflake", "sql": "JAROWINKLER_SIMILARITY('hello', 'world')", "write": "clickhouse", "pretty": false, "identify": false, "want": "jaroWinklerSimilarity(UPPER('hello'), UPPER('world'))"}
+{"read": "snowflake", "sql": "SELECT CURRENT_VERSION()", "write": "clickhouse", "pretty": false, "identify": false, "want": "SELECT VERSION()"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "clickhouse", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "TRUNC(3.14159, 2)", "write": "clickhouse", "pretty": false, "identify": false, "want": "trunc(3.14159, 2)"}
+{"read": "snowflake", "sql": "ARRAY_COMPACT(arr)", "write": "databricks", "pretty": false, "identify": false, "want": "ARRAY_COMPACT(arr)"}
+{"read": "snowflake", "sql": "ENDSWITH('abc', 'c')", "write": "databricks", "pretty": false, "identify": false, "want": "ENDSWITH('abc', 'c')"}
+{"read": "snowflake", "sql": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "write": "databricks", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT(subject, pattern)"}
+{"read": "snowflake", "sql": "SELECT * FROM example TABLESAMPLE BERNOULLI (3) SEED (82)", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT * FROM example TABLESAMPLE (3 PERCENT) REPEATABLE (82)"}
+{"read": "snowflake", "sql": "SELECT CONVERT_TIMEZONE('America/Los_Angeles', 'America/New_York', '2024-08-06 09:10:00.000')", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT CONVERT_TIMEZONE('America/Los_Angeles', 'America/New_York', '2024-08-06 09:10:00.000')"}
+{"read": "snowflake", "sql": "SELECT CONVERT_TIMEZONE('America/New_York', '2024-08-06 09:10:00.000')", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT CONVERT_TIMEZONE('America/New_York', '2024-08-06 09:10:00.000')"}
+{"read": "snowflake", "sql": "SELECT CURRENT_VERSION()", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT CURRENT_VERSION()"}
+{"read": "snowflake", "sql": "SELECT GETBIT(11, 1)", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT GETBIT(11, 1)"}
+{"read": "snowflake", "sql": "SELECT PARSE_JSON('{\"fruit\":\"banana\"}'):fruit", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT PARSE_JSON('{\"fruit\":\"banana\"}'):fruit"}
+{"read": "snowflake", "sql": "SELECT TYPEOF(1)", "write": "databricks", "want": "SELECT TYPEOF(1)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1", "write": "databricks", "pretty": false, "identify": false, "want": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o NULLS LAST) = 1"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "databricks", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "TO_CHAR(x, y)", "write": "databricks", "pretty": false, "identify": false, "want": "TO_CHAR(x, y)"}
+{"read": "snowflake", "sql": "UNIFORM(1, 10, 5)", "write": "databricks", "pretty": false, "identify": false, "want": "UNIFORM(1, 10, 5)"}
+{"read": "snowflake", "sql": "UNIFORM(1, 10, RANDOM())", "write": "databricks", "pretty": false, "identify": false, "want": "UNIFORM(1, 10)"}
+{"read": "snowflake", "sql": "UNIFORM(1, 10, RANDOM(5))", "write": "databricks", "pretty": false, "identify": false, "want": "UNIFORM(1, 10, 5)"}
+{"read": "snowflake", "sql": "UUID_STRING('fe971b24-9572-4005-b22f-351e9c09274d', 'foo')", "write": "databricks", "pretty": false, "identify": false, "want": "CAST(UUID() AS STRING)"}
+{"read": "snowflake", "sql": "ARRAY_CONTAINS(1, x)", "write": "hive", "want": "ARRAY_CONTAINS(x, 1)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "ARRAY_UNIQUE_AGG(x)", "write": "hive", "want": "COLLECT_SET(x)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "DIV0(a - b, c - d)", "write": "hive", "pretty": false, "identify": false, "want": "IF((c - d) = 0 AND NOT (a - b) IS NULL, 0, (a - b) / (c - d))"}
+{"read": "snowflake", "sql": "DIV0(foo, bar)", "write": "hive", "pretty": false, "identify": false, "want": "IF(bar = 0 AND NOT foo IS NULL, 0, foo / bar)"}
+{"read": "snowflake", "sql": "DIV0NULL(a - b, c - d)", "write": "hive", "pretty": false, "identify": false, "want": "IF((c - d) = 0 OR (c - d) IS NULL, 0, (a - b) / (c - d))"}
+{"read": "snowflake", "sql": "DIV0NULL(foo, bar)", "write": "hive", "pretty": false, "identify": false, "want": "IF(bar = 0 OR bar IS NULL, 0, foo / bar)"}
+{"read": "snowflake", "sql": "NULLIFZERO(foo)", "write": "hive", "pretty": false, "identify": false, "want": "IF(foo = 0, NULL, foo)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern)", "write": "hive", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, '')"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement)", "write": "hive", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, position)", "write": "hive", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, position, occurrence, 'c')", "write": "hive", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement)"}
+{"read": "snowflake", "sql": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "write": "hive", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT(subject, pattern)"}
+{"read": "snowflake", "sql": "REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)", "write": "hive", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT(subject, pattern, group)"}
+{"read": "snowflake", "sql": "REPLACE(subject, pattern)", "write": "hive", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, '')"}
+{"read": "snowflake", "sql": "REPLACE(subject, pattern, replacement)", "write": "hive", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, replacement)"}
+{"read": "snowflake", "sql": "SELECT * FROM x AS foo TABLESAMPLE (1)", "write": "hive", "want": "SELECT * FROM x TABLESAMPLE (1 PERCENT) AS foo", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT DATE_PART('year', TIMESTAMP '2020-01-01')", "write": "hive", "pretty": false, "identify": false, "want": "SELECT EXTRACT(year FROM CAST('2020-01-01' AS TIMESTAMP))"}
+{"read": "snowflake", "sql": "SELECT RLIKE(a, b)", "write": "hive", "pretty": false, "identify": false, "want": "SELECT a RLIKE b"}
+{"read": "snowflake", "sql": "SELECT a NOT RLIKE b", "write": "hive", "pretty": false, "identify": false, "want": "SELECT NOT a RLIKE b"}
+{"read": "snowflake", "sql": "SELECT a RLIKE b", "write": "hive", "pretty": false, "identify": false, "want": "SELECT a RLIKE b"}
+{"read": "snowflake", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "hive", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname NULLS LAST"}
+{"read": "snowflake", "sql": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1", "write": "hive", "pretty": false, "identify": false, "want": "SELECT i, p, o FROM (SELECT i, p, o, ROW_NUMBER() OVER (PARTITION BY p ORDER BY o NULLS LAST) AS _w FROM qt) AS _t WHERE _w = 1"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "hive", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "UUID_STRING('fe971b24-9572-4005-b22f-351e9c09274d', 'foo')", "write": "hive", "pretty": false, "identify": false, "want": "CAST(UUID() AS STRING)"}
+{"read": "snowflake", "sql": "ZEROIFNULL(foo)", "write": "hive", "pretty": false, "identify": false, "want": "IF(foo IS NULL, 0, foo)"}
+{"read": "snowflake", "sql": "'foo' NOT REGEXP 'bar'", "write": "mysql", "pretty": false, "identify": false, "want": "NOT REGEXP_LIKE('foo', 'bar')"}
+{"read": "snowflake", "sql": "'foo' REGEXP 'bar'", "write": "mysql", "pretty": false, "identify": false, "want": "REGEXP_LIKE('foo', 'bar')"}
+{"read": "snowflake", "sql": "BOOLXOR(a, b)", "write": "mysql", "want": "a XOR b", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "CREATE OR REPLACE TRANSIENT TABLE a (id INT)", "write": "mysql", "pretty": false, "identify": false, "want": "CREATE OR REPLACE TABLE a (id INT)"}
+{"read": "snowflake", "sql": "DATE_TRUNC(DAY, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(DAY, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) DAY)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "DATE_TRUNC(MONTH, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(MONTH, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) MONTH)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "DATE_TRUNC(SECOND, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(SECOND, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) SECOND)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "DATE_TRUNC(YEAR, TIMESTAMP '2001-02-16 20:38:40')", "write": "mysql", "want": "DATE_ADD('0000-01-01 00:00:00', INTERVAL (TIMESTAMPDIFF(YEAR, '0000-01-01 00:00:00', CAST('2001-02-16 20:38:40' AS DATETIME))) YEAR)", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT BOOLAND_AGG(c1), BOOLAND_AGG(c2) FROM test", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT MIN(c1), MIN(c2) FROM test"}
+{"read": "snowflake", "sql": "SELECT CONVERT_TIMEZONE('America/Los_Angeles', 'America/New_York', '2024-08-06 09:10:00.000')", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT CONVERT_TZ('2024-08-06 09:10:00.000', 'America/Los_Angeles', 'America/New_York')"}
+{"read": "snowflake", "sql": "SELECT CURRENT_VERSION()", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT VERSION()"}
+{"read": "snowflake", "sql": "SELECT FIRST_VALUE(col1) IGNORE NULLS OVER (ORDER BY col2) FROM table1", "write": "mysql", "want": "SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT INSERT(a, 0, 0, 'b')", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT INSERT(a, 0, 0, 'b')"}
+{"read": "snowflake", "sql": "SELECT LAG(col1) IGNORE NULLS OVER (ORDER BY col2) FROM table1", "write": "mysql", "want": "SELECT LAG(col1) OVER (ORDER BY CASE WHEN col2 IS NULL THEN 1 ELSE 0 END, col2) FROM table1", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT LAST_VALUE(col1) IGNORE NULLS OVER (PARTITION BY col3 ORDER BY col2) FROM table1", "write": "mysql", "want": "SELECT LAST_VALUE(col1) OVER (PARTITION BY col3 ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT PARSE_JSON('{\"a\": {\"b c\": \"foo\"}}'):a:\"b c\"", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT JSON_EXTRACT('{\"a\": {\"b c\": \"foo\"}}', '$.a.\"b c\"')"}
+{"read": "snowflake", "sql": "SELECT PARSE_JSON('{\"fruit\":\"banana\"}'):fruit", "write": "mysql", "pretty": false, "identify": false, "want": "SELECT JSON_EXTRACT('{\"fruit\":\"banana\"}', '$.fruit')"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "mysql", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "TRUNC(3.14159)", "write": "mysql", "pretty": false, "identify": false, "want": "TRUNCATE(3.14159)"}
+{"read": "snowflake", "sql": "TRUNC(3.14159, 2)", "write": "mysql", "pretty": false, "identify": false, "want": "TRUNCATE(3.14159, 2)"}
+{"read": "snowflake", "sql": "WITH vartab(v) AS (select parse_json('[{\"attr\": [{\"name\": \"banana\"}]}]')) SELECT GET_PATH(v, '[0].attr[0].name') FROM vartab", "write": "mysql", "pretty": false, "identify": false, "want": "WITH vartab(v) AS (SELECT '[{\"attr\": [{\"name\": \"banana\"}]}]') SELECT JSON_EXTRACT(v, '$[0].attr[0].name') FROM vartab"}
+{"read": "snowflake", "sql": "WITH vartab(v) AS (select parse_json('{\"attr\": [{\"name\": \"banana\"}]}')) SELECT GET_PATH(v, 'attr[0].name') FROM vartab", "write": "mysql", "pretty": false, "identify": false, "want": "WITH vartab(v) AS (SELECT '{\"attr\": [{\"name\": \"banana\"}]}') SELECT JSON_EXTRACT(v, '$.attr[0].name') FROM vartab"}
+{"read": "snowflake", "sql": "\n            SELECT col:\"customer's department\"\n            ", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT JSON_EXTRACT_PATH(col, 'customer''s department')"}
+{"read": "snowflake", "sql": "'foo' NOT REGEXP 'bar'", "write": "postgres", "pretty": false, "identify": false, "want": "NOT 'foo' ~ 'bar'"}
+{"read": "snowflake", "sql": "'foo' REGEXP 'bar'", "write": "postgres", "pretty": false, "identify": false, "want": "'foo' ~ 'bar'"}
+{"read": "snowflake", "sql": "ALTER TABLE a ALTER COLUMN my_column DROP NOT NULL", "write": "postgres", "pretty": false, "identify": false, "want": "ALTER TABLE a ALTER COLUMN my_column DROP NOT NULL"}
+{"read": "snowflake", "sql": "ALTER TABLE a ALTER COLUMN my_column SET NOT NULL", "write": "postgres", "pretty": false, "identify": false, "want": "ALTER TABLE a ALTER COLUMN my_column SET NOT NULL"}
+{"read": "snowflake", "sql": "ARRAY_GENERATE_RANGE(0, 3)", "write": "postgres", "pretty": false, "identify": false, "want": "GENERATE_SERIES(0, 3 - 1)"}
+{"read": "snowflake", "sql": "CREATE OR REPLACE TRANSIENT TABLE a (id INT)", "write": "postgres", "pretty": false, "identify": false, "want": "CREATE OR REPLACE TABLE a (id INT)"}
+{"read": "snowflake", "sql": "EDITDISTANCE(col1, col2, 3)", "write": "postgres", "pretty": false, "identify": false, "want": "LEVENSHTEIN_LESS_EQUAL(col1, col2, 3)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement)", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement, 'g')"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, 1, 0, 'c')", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement, 1, 0, 'cg')"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, 1, 1)", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement, 1, 1)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, position)", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement, position, 'g')"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, position, occurrence, 'c')", "write": "postgres", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement, position, occurrence, 'c')"}
+{"read": "snowflake", "sql": "SELECT * FROM test AS _tmp TABLESAMPLE (5)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT * FROM test AS _tmp TABLESAMPLE BERNOULLI (5)"}
+{"read": "snowflake", "sql": "SELECT BOOLAND_AGG(c1), BOOLAND_AGG(c2) FROM test", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT BOOL_AND(c1), BOOL_AND(c2) FROM test"}
+{"read": "snowflake", "sql": "SELECT BOOLOR_AGG(c1), BOOLOR_AGG(c2) FROM test", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT BOOL_OR(c1), BOOL_OR(c2) FROM test"}
+{"read": "snowflake", "sql": "SELECT CORR(a, b)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT CORR(a, b)"}
+{"read": "snowflake", "sql": "SELECT CORR(a, b) OVER (PARTITION BY c)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT CORR(a, b) OVER (PARTITION BY c)"}
+{"read": "snowflake", "sql": "SELECT COVAR_POP(y, x)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT COVAR_POP(y, x)"}
+{"read": "snowflake", "sql": "SELECT COVAR_POP(y, x) OVER ()", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT COVAR_POP(y, x) OVER ()"}
+{"read": "snowflake", "sql": "SELECT COVAR_SAMP(y, x)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT COVAR_SAMP(y, x)"}
+{"read": "snowflake", "sql": "SELECT COVAR_SAMP(y, x) OVER ()", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT COVAR_SAMP(y, x) OVER ()"}
+{"read": "snowflake", "sql": "SELECT CURRENT_VERSION()", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT VERSION()"}
+{"read": "snowflake", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)"}
+{"read": "snowflake", "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) OVER ()", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) OVER ()"}
+{"read": "snowflake", "sql": "SELECT RPAD('data', 8)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT RPAD('data', 8)"}
+{"read": "snowflake", "sql": "SELECT VAR_POP(x)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT VAR_POP(x)"}
+{"read": "snowflake", "sql": "SELECT VAR_SAMP(x)", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT VAR_SAMP(x)"}
+{"read": "snowflake", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "postgres", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC, fname ASC, lname"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "postgres", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "TO_CHAR(x, y)", "write": "postgres", "pretty": false, "identify": false, "want": "TO_CHAR(x, y)"}
+{"read": "snowflake", "sql": "TRUNC(3.14159)", "write": "postgres", "pretty": false, "identify": false, "want": "TRUNC(3.14159)"}
+{"read": "snowflake", "sql": "TRUNC(3.14159, 2)", "write": "postgres", "pretty": false, "identify": false, "want": "TRUNC(3.14159, 2)"}
+{"read": "snowflake", "sql": "UUID_STRING('fe971b24-9572-4005-b22f-351e9c09274d', 'foo')", "write": "postgres", "pretty": false, "identify": false, "want": "GEN_RANDOM_UUID()"}
+{"read": "snowflake", "sql": "trim(date_column, 'UTC')", "write": "postgres", "pretty": false, "identify": false, "want": "TRIM('UTC' FROM date_column)"}
+{"read": "snowflake", "sql": "ARRAY_CONSTRUCT(0, 1, 2)", "write": "presto", "pretty": false, "identify": false, "want": "ARRAY[0, 1, 2]"}
+{"read": "snowflake", "sql": "ARRAY_GENERATE_RANGE(0, 3)", "write": "presto", "pretty": false, "identify": false, "want": "SEQUENCE(0, 2)"}
+{"read": "snowflake", "sql": "DIV0(a - b, c - d)", "write": "presto", "pretty": false, "identify": false, "want": "IF((c - d) = 0 AND NOT (a - b) IS NULL, 0, CAST((a - b) AS DOUBLE) / (c - d))"}
+{"read": "snowflake", "sql": "DIV0(foo, bar)", "write": "presto", "pretty": false, "identify": false, "want": "IF(bar = 0 AND NOT foo IS NULL, 0, CAST(foo AS DOUBLE) / bar)"}
+{"read": "snowflake", "sql": "DIV0NULL(a - b, c - d)", "write": "presto", "pretty": false, "identify": false, "want": "IF((c - d) = 0 OR (c - d) IS NULL, 0, CAST((a - b) AS DOUBLE) / (c - d))"}
+{"read": "snowflake", "sql": "DIV0NULL(foo, bar)", "write": "presto", "pretty": false, "identify": false, "want": "IF(bar = 0 OR bar IS NULL, 0, CAST(foo AS DOUBLE) / bar)"}
+{"read": "snowflake", "sql": "ENDSWITH('abc', 'c')", "write": "presto", "pretty": false, "identify": false, "want": "ENDS_WITH('abc', 'c')"}
+{"read": "snowflake", "sql": "NULLIFZERO(foo)", "write": "presto", "pretty": false, "identify": false, "want": "IF(foo = 0, NULL, foo)"}
+{"read": "snowflake", "sql": "REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)", "write": "presto", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT(subject, pattern, \"group\")"}
+{"read": "snowflake", "sql": "SELECT APPROX_PERCENTILE(a, 0.5) FROM t", "write": "presto", "pretty": false, "identify": false, "want": "SELECT APPROX_PERCENTILE(a, 0.5) FROM t"}
+{"read": "snowflake", "sql": "SELECT ARRAY_AGG(DISTINCT a)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT ARRAY_AGG(DISTINCT a) FILTER(WHERE a IS NOT NULL)"}
+{"read": "snowflake", "sql": "SELECT DATE_PART(epoch_milliseconds, foo) as ddate from table_name", "write": "presto", "pretty": false, "identify": false, "want": "SELECT TO_UNIXTIME(CAST(foo AS TIMESTAMP)) * 1000 AS ddate FROM table_name"}
+{"read": "snowflake", "sql": "SELECT DATE_PART(epoch_second, foo) as ddate from table_name", "write": "presto", "pretty": false, "identify": false, "want": "SELECT TO_UNIXTIME(CAST(foo AS TIMESTAMP)) AS ddate FROM table_name"}
+{"read": "snowflake", "sql": "SELECT PARSE_JSON('{\"fruit\":\"banana\"}'):fruit", "write": "presto", "pretty": false, "identify": false, "want": "SELECT JSON_EXTRACT(JSON_PARSE('{\"fruit\":\"banana\"}'), '$.fruit')"}
+{"read": "snowflake", "sql": "SELECT SHA2(x, 256)", "write": "presto", "want": "SELECT LOWER(TO_HEX(SHA256(x)))", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT SHA2(x, 512)", "write": "presto", "want": "SELECT LOWER(TO_HEX(SHA512(x)))", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP(1659981729000000000, 9)", "write": "presto", "pretty": false, "identify": false, "want": "SELECT FROM_UNIXTIME(CAST(1659981729000000000 AS DOUBLE) / POW(10, 9))"}
+{"read": "snowflake", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "presto", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC, lname"}
+{"read": "snowflake", "sql": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1", "write": "presto", "pretty": false, "identify": false, "want": "SELECT i, p, o FROM (SELECT i, p, o, ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) AS _w FROM qt) AS _t WHERE _w = 1"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "presto", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "TRUNC(3.14159, 2)", "write": "presto", "pretty": false, "identify": false, "want": "TRUNCATE(3.14159, 2)"}
+{"read": "snowflake", "sql": "UUID_STRING('fe971b24-9572-4005-b22f-351e9c09274d', 'foo')", "write": "presto", "pretty": false, "identify": false, "want": "CAST(UUID() AS VARCHAR)"}
+{"read": "snowflake", "sql": "WITH vartab(v) AS (select parse_json('[{\"attr\": [{\"name\": \"banana\"}]}]')) SELECT GET_PATH(v, '[0].attr[0].name') FROM vartab", "write": "presto", "pretty": false, "identify": false, "want": "WITH vartab(v) AS (SELECT JSON_PARSE('[{\"attr\": [{\"name\": \"banana\"}]}]')) SELECT JSON_EXTRACT(v, '$[0].attr[0].name') FROM vartab"}
+{"read": "snowflake", "sql": "WITH vartab(v) AS (select parse_json('{\"attr\": [{\"name\": \"banana\"}]}')) SELECT GET_PATH(v, 'attr[0].name') FROM vartab", "write": "presto", "pretty": false, "identify": false, "want": "WITH vartab(v) AS (SELECT JSON_PARSE('{\"attr\": [{\"name\": \"banana\"}]}')) SELECT JSON_EXTRACT(v, '$.attr[0].name') FROM vartab"}
+{"read": "snowflake", "sql": "ZEROIFNULL(foo)", "write": "presto", "pretty": false, "identify": false, "want": "IF(foo IS NULL, 0, foo)"}
+{"read": "snowflake", "sql": "ARRAY_COMPACT(arr)", "write": "spark", "pretty": false, "identify": false, "want": "ARRAY_COMPACT(arr)"}
+{"read": "snowflake", "sql": "ARRAY_CONSTRUCT(0, 1, 2)", "write": "spark", "pretty": false, "identify": false, "want": "ARRAY(0, 1, 2)"}
+{"read": "snowflake", "sql": "ARRAY_CONSTRUCT_COMPACT(1, null, 2)", "write": "spark", "pretty": false, "identify": false, "want": "ARRAY_COMPACT(ARRAY(1, NULL, 2))"}
+{"read": "snowflake", "sql": "DESC TABLE db.table", "write": "spark", "pretty": false, "identify": false, "want": "DESCRIBE db.table"}
+{"read": "snowflake", "sql": "DESC VIEW db.table", "write": "spark", "pretty": false, "identify": false, "want": "DESCRIBE db.table"}
+{"read": "snowflake", "sql": "DESCRIBE TABLE db.table", "write": "spark", "pretty": false, "identify": false, "want": "DESCRIBE db.table"}
+{"read": "snowflake", "sql": "DESCRIBE db.table", "write": "spark", "pretty": false, "identify": false, "want": "DESCRIBE db.table"}
+{"read": "snowflake", "sql": "DIV0(a - b, c - d)", "write": "spark", "pretty": false, "identify": false, "want": "IF((c - d) = 0 AND NOT (a - b) IS NULL, 0, (a - b) / (c - d))"}
+{"read": "snowflake", "sql": "DIV0(foo, bar)", "write": "spark", "pretty": false, "identify": false, "want": "IF(bar = 0 AND NOT foo IS NULL, 0, foo / bar)"}
+{"read": "snowflake", "sql": "DIV0NULL(a - b, c - d)", "write": "spark", "pretty": false, "identify": false, "want": "IF((c - d) = 0 OR (c - d) IS NULL, 0, (a - b) / (c - d))"}
+{"read": "snowflake", "sql": "DIV0NULL(foo, bar)", "write": "spark", "pretty": false, "identify": false, "want": "IF(bar = 0 OR bar IS NULL, 0, foo / bar)"}
+{"read": "snowflake", "sql": "ENDSWITH('abc', 'c')", "write": "spark", "pretty": false, "identify": false, "want": "ENDSWITH('abc', 'c')"}
+{"read": "snowflake", "sql": "NULLIFZERO(foo)", "write": "spark", "pretty": false, "identify": false, "want": "IF(foo = 0, NULL, foo)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern)", "write": "spark", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, '')"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement)", "write": "spark", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, position)", "write": "spark", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement, position)"}
+{"read": "snowflake", "sql": "REGEXP_REPLACE(subject, pattern, replacement, position, occurrence, 'c')", "write": "spark", "pretty": false, "identify": false, "want": "REGEXP_REPLACE(subject, pattern, replacement, position)"}
+{"read": "snowflake", "sql": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "write": "spark", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT(subject, pattern)"}
+{"read": "snowflake", "sql": "REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)", "write": "spark", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT(subject, pattern, group)"}
+{"read": "snowflake", "sql": "REPLACE(subject, pattern)", "write": "spark", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, '')"}
+{"read": "snowflake", "sql": "REPLACE(subject, pattern, replacement)", "write": "spark", "pretty": false, "identify": false, "want": "REPLACE(subject, pattern, replacement)"}
+{"read": "snowflake", "sql": "SELECT $1 AS \"_1\" FROM VALUES ('a'), ('b')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT ${1} AS `_1` FROM VALUES ('a'), ('b')"}
+{"read": "snowflake", "sql": "SELECT * FROM (SELECT * FROM t1 join t2 on t1.a = t2.c) SAMPLE (1)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT * FROM (SELECT * FROM t1 JOIN t2 ON t1.a = t2.c) TABLESAMPLE (1 PERCENT)"}
+{"read": "snowflake", "sql": "SELECT * FROM produce PIVOT (SUM(produce.sales) FOR produce.quarter IN ('Q1', 'Q2'))", "write": "spark", "want": "SELECT * FROM produce PIVOT(SUM(produce.sales) FOR quarter IN ('Q1' AS `'Q1'`, 'Q2' AS `'Q2'`))", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT ARRAY_AGG(DISTINCT a)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT COLLECT_LIST(DISTINCT a)"}
+{"read": "snowflake", "sql": "SELECT ARRAY_TO_STRING(x, '')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT ARRAY_JOIN(x, '')"}
+{"read": "snowflake", "sql": "SELECT BOOLAND_AGG(c1), BOOLAND_AGG(c2) FROM test", "write": "spark", "pretty": false, "identify": false, "want": "SELECT BOOL_AND(c1), BOOL_AND(c2) FROM test"}
+{"read": "snowflake", "sql": "SELECT BOOLOR_AGG(c1), BOOLOR_AGG(c2) FROM test", "write": "spark", "pretty": false, "identify": false, "want": "SELECT BOOL_OR(c1), BOOL_OR(c2) FROM test"}
+{"read": "snowflake", "sql": "SELECT CONVERT_TIMEZONE('America/Los_Angeles', 'America/New_York', '2024-08-06 09:10:00.000')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT CONVERT_TIMEZONE('America/Los_Angeles', 'America/New_York', '2024-08-06 09:10:00.000')"}
+{"read": "snowflake", "sql": "SELECT CONVERT_TIMEZONE('America/New_York', '2024-08-06 09:10:00.000')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT CONVERT_TIMEZONE('America/New_York', '2024-08-06 09:10:00.000')"}
+{"read": "snowflake", "sql": "SELECT CURRENT_VERSION()", "write": "spark", "pretty": false, "identify": false, "want": "SELECT VERSION()"}
+{"read": "snowflake", "sql": "SELECT DATE_PART('year', TIMESTAMP '2020-01-01')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT EXTRACT(year FROM CAST('2020-01-01' AS TIMESTAMP))"}
+{"read": "snowflake", "sql": "SELECT IFF(TRUE, 'true', 'false')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT IF(TRUE, 'true', 'false')"}
+{"read": "snowflake", "sql": "SELECT PARSE_JSON('{\"fruit\":\"banana\"}'):fruit", "write": "spark", "pretty": false, "identify": false, "want": "SELECT GET_JSON_OBJECT('{\"fruit\":\"banana\"}', '$.fruit')"}
+{"read": "snowflake", "sql": "SELECT RLIKE(a, b)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT a RLIKE b"}
+{"read": "snowflake", "sql": "SELECT SKEW(a)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT SKEWNESS(a)"}
+{"read": "snowflake", "sql": "SELECT TO_ARRAY(['test'])", "write": "spark", "pretty": false, "identify": false, "want": "SELECT ARRAY('test')"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP('04/05/2013 01:02:03', 'mm/DD/yyyy hh24:mi:ss')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT TO_TIMESTAMP('04/05/2013 01:02:03', 'M/d/yyyy H:m:s')"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP('1659981729')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT CAST(FROM_UNIXTIME('1659981729') AS TIMESTAMP)"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP('2013-04-05 01:02:03')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT CAST('2013-04-05 01:02:03' AS TIMESTAMP)"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP(1659981729)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT CAST(FROM_UNIXTIME(1659981729) AS TIMESTAMP)"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP(1659981729000, 3)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT TIMESTAMP_MILLIS(1659981729000)"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP(16599817290000, 4)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT TIMESTAMP_SECONDS(16599817290000 / POWER(10, 4))"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP(1659981729000000000, 9)", "write": "spark", "pretty": false, "identify": false, "want": "SELECT TIMESTAMP_SECONDS(1659981729000000000 / POWER(10, 9))"}
+{"read": "snowflake", "sql": "SELECT TO_TIMESTAMP(col, 'DD-MM-YYYY HH12:MI:SS') FROM t", "write": "spark", "pretty": false, "identify": false, "want": "SELECT TO_TIMESTAMP(col, 'd-M-yyyy h:m:s') FROM t"}
+{"read": "snowflake", "sql": "SELECT a NOT RLIKE b", "write": "spark", "pretty": false, "identify": false, "want": "SELECT NOT a RLIKE b"}
+{"read": "snowflake", "sql": "SELECT a RLIKE b", "write": "spark", "pretty": false, "identify": false, "want": "SELECT a RLIKE b"}
+{"read": "snowflake", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "spark", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname NULLS LAST"}
+{"read": "snowflake", "sql": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1", "write": "spark", "pretty": false, "identify": false, "want": "SELECT i, p, o FROM (SELECT i, p, o, ROW_NUMBER() OVER (PARTITION BY p ORDER BY o NULLS LAST) AS _w FROM qt) AS _t WHERE _w = 1"}
+{"read": "snowflake", "sql": "SELECT piv.Q1 FROM (SELECT * FROM produce) PIVOT(SUM(sales) FOR quarter IN ('Q1', 'Q2')) piv", "write": "spark", "want": "SELECT piv.Q1 FROM (SELECT * FROM (SELECT * FROM produce) PIVOT(SUM(sales) FOR quarter IN ('Q1' AS `'Q1'`, 'Q2' AS `'Q2'`))) AS piv", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT piv.Q1 FROM produce PIVOT(SUM(sales) FOR quarter IN ('Q1', 'Q2')) piv", "write": "spark", "want": "SELECT piv.Q1 FROM (SELECT * FROM produce PIVOT(SUM(sales) FOR quarter IN ('Q1' AS `'Q1'`, 'Q2' AS `'Q2'`))) AS piv", "pretty": false, "identify": false}
+{"read": "snowflake", "sql": "SELECT { 'Manitoba': 'Winnipeg', 'foo': 'bar' } AS province_capital", "write": "spark", "pretty": false, "identify": false, "want": "SELECT STRUCT('Winnipeg' AS Manitoba, 'bar' AS foo) AS province_capital"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "spark", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "TO_ARRAY(x)", "write": "spark", "pretty": false, "identify": false, "want": "IF(x IS NULL, NULL, ARRAY(x))"}
+{"read": "snowflake", "sql": "TRUNC(3.14159, 2)", "write": "spark", "pretty": false, "identify": false, "want": "CAST(3.14159 AS BIGINT)"}
+{"read": "snowflake", "sql": "UUID_STRING('fe971b24-9572-4005-b22f-351e9c09274d', 'foo')", "write": "spark", "pretty": false, "identify": false, "want": "CAST(UUID() AS STRING)"}
+{"read": "snowflake", "sql": "ZEROIFNULL(foo)", "write": "spark", "pretty": false, "identify": false, "want": "IF(foo IS NULL, 0, foo)"}
+{"read": "snowflake", "sql": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "write": "spark2", "pretty": false, "identify": false, "want": "REGEXP_EXTRACT(subject, pattern)"}
+{"read": "snowflake", "sql": "UUID_STRING('fe971b24-9572-4005-b22f-351e9c09274d', 'foo')", "write": "spark2", "pretty": false, "identify": false, "want": "CAST(UUID() AS STRING)"}
+{"read": "snowflake", "sql": "SELECT APPROX_PERCENTILE(a, 0.5) FROM t", "write": "trino", "pretty": false, "identify": false, "want": "SELECT APPROX_PERCENTILE(a, 0.5) FROM t"}
+{"read": "snowflake", "sql": "SELECT CURRENT_VERSION()", "write": "trino", "pretty": false, "identify": false, "want": "SELECT VERSION()"}
+{"read": "snowflake", "sql": "SELECT LISTAGG(DISTINCT col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LISTAGG(DISTINCT col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t"}
+{"read": "snowflake", "sql": "SELECT LISTAGG(col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t", "write": "trino", "pretty": false, "identify": false, "want": "SELECT LISTAGG(col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t"}
+{"read": "snowflake", "sql": "SELECT SKEW(a)", "write": "trino", "pretty": false, "identify": false, "want": "SELECT SKEWNESS(a)"}
+{"read": "snowflake", "sql": "SELECT i, p, o FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1", "write": "trino", "pretty": false, "identify": false, "want": "SELECT i, p, o FROM (SELECT i, p, o, ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) AS _w FROM qt) AS _t WHERE _w = 1"}
+{"read": "snowflake", "sql": "SQUARE(x)", "write": "trino", "pretty": false, "identify": false, "want": "POWER(x, 2)"}
+{"read": "snowflake", "sql": "UUID_STRING('fe971b24-9572-4005-b22f-351e9c09274d', 'foo')", "write": "trino", "pretty": false, "identify": false, "want": "CAST(UUID() AS VARCHAR)"}
 {"read": "spark", "sql": "ARRAY_INTERSECT(x, y)", "write": "", "want": "ARRAY_INTERSECT(x, y)", "pretty": false, "identify": false}
 {"read": "spark", "sql": "BOOLEAN(x)", "write": "", "pretty": false, "identify": false, "want": "CAST(x AS BOOLEAN)"}
 {"read": "spark", "sql": "DATE(x)", "write": "", "pretty": false, "identify": false, "want": "CAST(x AS DATE)"}
@@ -2110,6 +2572,25 @@
 {"read": "spark", "sql": "TO_DATE(x, 'yyyy-MM-dd')", "write": "presto", "pretty": false, "identify": false, "want": "CAST(CAST(x AS TIMESTAMP) AS DATE)"}
 {"read": "spark", "sql": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl", "write": "presto", "pretty": false, "identify": false, "want": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT CASE WHEN id IS NULL THEN NULL WHEN name IS NULL THEN NULL ELSE (id, name) END) AS cnt FROM tbl"}
 {"read": "spark", "sql": "YEAR('2021-03-01')", "write": "presto", "pretty": false, "identify": false, "want": "YEAR(CAST(CAST('2021-03-01' AS TIMESTAMP) AS DATE))"}
+{"read": "spark", "sql": "ARRAY_COMPACT(arr)", "write": "snowflake", "want": "ARRAY_COMPACT(arr)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "CREATE TABLE db.example_table (col_a array<int>, col_b array<array<int>>)", "write": "snowflake", "pretty": false, "identify": false, "want": "CREATE TABLE db.example_table (col_a ARRAY, col_b ARRAY)"}
+{"read": "spark", "sql": "ENDSWITH('abc', 'c')", "write": "snowflake", "want": "ENDSWITH('abc', 'c')", "pretty": false, "identify": false}
+{"read": "spark", "sql": "MAP_FROM_ARRAYS(ARRAY(1), c)", "write": "snowflake", "pretty": false, "identify": false, "want": "OBJECT_CONSTRUCT([1], c)"}
+{"read": "spark", "sql": "REGEXP_EXTRACT(subject, pattern)", "write": "snowflake", "want": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "REGEXP_EXTRACT(subject, pattern, group)", "write": "snowflake", "want": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "REGEXP_REPLACE(subject, pattern, replacement)", "write": "snowflake", "want": "REGEXP_REPLACE(subject, pattern, replacement)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "REGEXP_REPLACE(subject, pattern, replacement, position)", "write": "snowflake", "want": "REGEXP_REPLACE(subject, pattern, replacement, position)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "REPLACE(subject, pattern, replacement)", "write": "snowflake", "want": "REPLACE(subject, pattern, replacement)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "SELECT DATEDIFF(week, '2020-01-01', '2020-12-31')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT DATEDIFF(WEEK, TO_DATE('2020-01-01'), TO_DATE('2020-12-31'))"}
+{"read": "spark", "sql": "SELECT RLIKE('John Doe', 'John.*')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT REGEXP_LIKE('John Doe', 'John.*')"}
+{"read": "spark", "sql": "SELECT SKEWNESS(a)", "write": "snowflake", "want": "SELECT SKEW(a)", "pretty": false, "identify": false}
+{"read": "spark", "sql": "SELECT TO_UTC_TIMESTAMP('2016-08-31', 'Asia/Seoul')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT CONVERT_TIMEZONE('Asia/Seoul', 'UTC', CAST('2016-08-31' AS TIMESTAMP))"}
+{"read": "spark", "sql": "SELECT TRY_DIVIDE(a, b)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT IFF(b <> 0, a / b, NULL)"}
+{"read": "spark", "sql": "SELECT `c0`, `c1` FROM (VALUES (1, 2), (3, 4)) AS `t0`(`c0`, `c1`)", "write": "snowflake", "want": "SELECT \"c0\", \"c1\" FROM (VALUES (1, 2), (3, 4)) AS \"t0\"(\"c0\", \"c1\")", "pretty": false, "identify": false}
+{"read": "spark", "sql": "SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT fname, lname, age FROM person ORDER BY age DESC, fname ASC, lname NULLS FIRST"}
+{"read": "spark", "sql": "TO_DATE(x, 'yyyy')", "write": "snowflake", "pretty": false, "identify": false, "want": "TRY_TO_DATE(x, 'yyyy')"}
+{"read": "spark", "sql": "TO_DATE(x, 'yyyy-MM-dd')", "write": "snowflake", "pretty": false, "identify": false, "want": "TRY_TO_DATE(x, 'yyyy-mm-DD')"}
+{"read": "spark", "sql": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl", "write": "snowflake", "pretty": false, "identify": false, "want": "WITH tbl AS (SELECT 1 AS id, 'eggy' AS name UNION ALL SELECT NULL AS id, 'jake' AS name) SELECT COUNT(DISTINCT id, name) AS cnt FROM tbl"}
 {"read": "spark", "sql": "INSERT OVERWRITE TABLE table WITH cte AS (SELECT cola FROM other_table) SELECT cola FROM cte", "write": "spark2", "pretty": false, "identify": false, "want": "WITH cte AS (SELECT cola FROM other_table) INSERT OVERWRITE TABLE table SELECT cola FROM cte"}
 {"read": "spark", "sql": "SELECT CAST(123456 AS VARCHAR(3))", "write": "spark2", "pretty": false, "identify": false, "want": "SELECT CAST(123456 AS STRING)"}
 {"read": "spark", "sql": "SELECT CAST(col AS TIMESTAMP)", "write": "spark2", "pretty": false, "identify": false, "want": "SELECT CAST(col AS TIMESTAMP)"}
@@ -2161,6 +2642,7 @@
 {"read": "spark2", "sql": "SELECT MAP(*), STRUCT(*) FROM t", "write": "hive", "want": "SELECT MAP(*), STRUCT(*) FROM t", "pretty": false, "identify": false}
 {"read": "spark2", "sql": "x DIV y", "write": "hive", "want": "x DIV y", "pretty": false, "identify": false}
 {"read": "spark2", "sql": "SIZE(arr)", "write": "postgres", "want": "ARRAY_LENGTH(arr, 1)", "pretty": false, "identify": false}
+{"read": "spark2", "sql": "REGEXP_EXTRACT(subject, pattern)", "write": "snowflake", "want": "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", "pretty": false, "identify": false}
 {"read": "spark2", "sql": "SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)", "write": "spark", "want": "SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)", "pretty": false, "identify": false}
 {"read": "trino", "sql": "ARRAY_INTERSECT(x, y)", "write": "", "want": "ARRAY_INTERSECT(x, y)", "pretty": false, "identify": false}
 {"read": "trino", "sql": "FROM_BASE32(x)", "write": "", "want": "FROM_BASE32(x)", "pretty": false, "identify": false}
@@ -2196,6 +2678,16 @@
 {"read": "trino", "sql": "BITWISE_AND_AGG(x)", "write": "presto", "want": "BITWISE_AND_AGG(x)", "pretty": false, "identify": false}
 {"read": "trino", "sql": "BITWISE_OR_AGG(x)", "write": "presto", "want": "BITWISE_OR_AGG(x)", "pretty": false, "identify": false}
 {"read": "trino", "sql": "BITWISE_XOR_AGG(x)", "write": "presto", "want": "BITWISE_XOR_AGG(x)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "DAY_OF_WEEK(foo)", "write": "snowflake", "want": "DAYOFWEEKISO(foo)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "DOW(foo)", "write": "snowflake", "want": "DAYOFWEEKISO(foo)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "DOY(foo)", "write": "snowflake", "want": "DAYOFYEAR(foo)", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT 1 ORDER BY 1 OFFSET 0", "write": "snowflake", "want": "SELECT 1 ORDER BY 1 LIMIT NULL OFFSET 0", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT APPROX_PERCENTILE(a, 1, 0.5, 0.001) FROM t", "write": "snowflake", "want": "SELECT APPROX_PERCENTILE(a, 0.5) FROM t", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT FORMAT('%s', 123)", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT TO_CHAR(123)"}
+{"read": "trino", "sql": "SELECT FROM_ISO8601_TIMESTAMP_NANOS('2020-05-11T11:15:05.000000000')", "write": "snowflake", "pretty": false, "identify": false, "want": "SELECT CAST('2020-05-11T11:15:05.000000000' AS TIMESTAMPTZ)"}
+{"read": "trino", "sql": "SELECT LISTAGG(DISTINCT col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t", "write": "snowflake", "want": "SELECT LISTAGG(DISTINCT col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT LISTAGG(col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t", "write": "snowflake", "want": "SELECT LISTAGG(col, '|SEPARATOR|') WITHIN GROUP (ORDER BY col2) FROM t", "pretty": false, "identify": false}
+{"read": "trino", "sql": "SELECT SKEWNESS(a)", "write": "snowflake", "want": "SELECT SKEW(a)", "pretty": false, "identify": false}
 {"read": "trino", "sql": "CAST(x AS TIMESTAMP(6) WITH TIME ZONE)", "write": "spark", "want": "CAST(x AS TIMESTAMP)", "pretty": false, "identify": false}
 {"read": "trino", "sql": "MAP()", "write": "spark", "want": "MAP()", "pretty": false, "identify": false}
 {"read": "trino", "sql": "SELECT FROM_ISO8601_TIMESTAMP_NANOS('2020-05-11T11:15:05.000000000')", "write": "spark", "pretty": false, "identify": false, "want": "SELECT CAST('2020-05-11T11:15:05.000000000' AS TIMESTAMP)"}

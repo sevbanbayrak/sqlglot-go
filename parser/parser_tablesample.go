@@ -18,9 +18,7 @@ var tablesampleSeedTexts = map[string]bool{"SEED": true, "REPEATABLE": true}
 
 // parseTableSample ports _parse_table_sample (parser.py:5057-5121). base/mysql/postgres all
 // have TABLESAMPLE_CSV = False (parser.py:1768, no per-dialect override in any of the three),
-// so the `expressions`/CSV branch is never taken here. DEFAULT_SAMPLING_METHOD is nil for all
-// three dialects too, so the trailing `if not method and self.DEFAULT_SAMPLING_METHOD` fallback
-// is omitted.
+// so the `expressions`/CSV branch is never taken here.
 func (p *Parser) parseTableSample(asModifier bool) exp.Expression {
 	if !p.match(tokens.TABLE_SAMPLE) && !(asModifier && p.matchTextSeq("USING", "SAMPLE")) {
 		return nil
@@ -67,6 +65,10 @@ func (p *Parser) parseTableSample(asModifier bool) exp.Expression {
 		p.matchRParen(nil)
 	} else if p.matchTexts(tablesampleSeedTexts) {
 		seed = p.parseWrapped(p.parseNumber, false)
+	}
+
+	if method == nil && p.dialect.DefaultSamplingMethod != "" {
+		method = exp.Var(exp.Args{"this": p.dialect.DefaultSamplingMethod})
 	}
 
 	return p.expression(exp.TableSample(exp.Args{

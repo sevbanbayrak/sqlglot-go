@@ -266,3 +266,32 @@ func (g *Generator) rightToSubstringSQL(e exp.Expression) string {
 }
 
 var _ = strings.ToUpper
+
+// extract_sql (generators/presto.py:501-524): EPOCH parts become TO_UNIXTIME.
+func init() {
+	registerDialectDispatch("presto", map[exp.Kind]func(*Generator, exp.Expression) string{
+		exp.KindExtract: func(g *Generator, e exp.Expression) string {
+			datePart := e.Name()
+			if !strings.HasPrefix(datePart, "EPOCH") {
+				return g.extractSQL(e)
+			}
+			scale := 0
+			switch datePart {
+			case "EPOCH_MILLISECOND":
+				scale = 1000
+			case "EPOCH_MICROSECOND":
+				scale = 1000000
+			case "EPOCH_NANOSECOND":
+				scale = 1000000000
+			}
+			var toUnix exp.Expression = exp.New(exp.KindTimeToUnix, exp.Args{"this": exp.CastTo(e.Expr(), exp.DTypeTimestamp)})
+			if scale != 0 {
+				toUnix = exp.Mul(exp.Args{"this": toUnix, "expression": exp.LiteralNumber(scale)})
+			}
+			return g.gen(toUnix)
+		},
+		exp.KindToChar: func(g *Generator, e exp.Expression) string {
+			return g.funcCall("DATE_FORMAT", []any{e.This(), g.formatTime(e)}, "(", ")", true)
+		},
+	})
+}

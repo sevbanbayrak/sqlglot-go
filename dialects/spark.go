@@ -12,6 +12,9 @@ func Spark() *Dialect {
 	d.Name = "spark"
 	// dialects/spark.py:13-16.
 	d.SupportsOrderByAll = true
+	// generators/spark.py:68,70.
+	d.SupportsToNumber = true
+	d.SupportsConvertTimezone = true
 	d.SupportsLimitAll = true
 	d.ArrayFuncsPropagatesNulls = true
 	// dialects/spark.py:19-28: strict again, so the Hive lenient rewrite applies.

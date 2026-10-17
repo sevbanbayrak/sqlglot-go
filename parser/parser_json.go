@@ -75,11 +75,11 @@ func (p *Parser) parseJSONObject(agg bool) exp.Expression {
 
 	p.matchTextSeq("KEYS")
 
-	var returnType exp.Expression
+	var returnType any = false
 	if p.matchTextSeq("RETURNING") {
 		returnType = p.parseFormatJson(p.parseType(true, false))
 	}
-	var encoding exp.Expression
+	var encoding any = false
 	if p.matchTextSeq("ENCODING") {
 		encoding = p.parseVar(false, nil, false)
 	}

@@ -14,6 +14,8 @@ func Spark2() *Dialect {
 	d.Name = "spark2"
 	// dialects/spark2.py:11,29.
 	d.AlterTableSupportsCascade = false
+	// parsers/spark2.py:24.
+	d.PivotColumnNaming = "agg_name_if_multiple"
 	d.InitcapDefaultDelimiterChars = " "
 	// generators/spark2.py:130-134,222-223.
 	d.Nvl2Supported = true

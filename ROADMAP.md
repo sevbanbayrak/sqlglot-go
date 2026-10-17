@@ -119,12 +119,11 @@ differential-check against the pinned Python):
   another is not. The per-dialect override tables that make it correct are partial — per-dialect
   parser `FUNCTIONS` ↔ generator `TRANSFORMS`/`TYPE_MAPPING` remaps (must land paired to avoid
   round-trip regressions), MySQL `||`/`&&`/`XOR` logical operators, MySQL `CAST(x AS TIMESTAMP/BLOB)`.
-- DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena, Spark2, Spark, Databricks and
-  ClickHouse (upstream ships 30+; ClickHouse is described in its own section below). Spark2 (dialects/spark2.go, generator/dialect_spark2.go,
+- DIALECTS beyond base, MySQL, Postgres, Presto, Trino, Hive, Athena, Spark2, Spark, Databricks,
+  ClickHouse and Snowflake (upstream ships 30+; ClickHouse and Snowflake are described in their own
+  sections below). Spark2 (dialects/spark2.go, generator/dialect_spark2.go,
   parser/dialect_spark2_overrides.go) is a 1:1 port except: `EXPRESSION_METADATA` (typing, waits for
-  annotate_types), the PIVOT column naming (`PIVOT_COLUMN_NAMING`/`_pivot_column_names` — pivot
-  column inference is not ported for any dialect yet, see parser/parser_pivot.go), and
-  `bracket_to_element_at_sql`, which shifts only a literal index by `apply_index_offset`. Spark
+  annotate_types) and `bracket_to_element_at_sql`, which shifts only a literal index by `apply_index_offset`. Spark
   (dialects/spark.go, generator/dialect_spark.go, parser/dialect_spark_overrides.go) additionally
   defers `TYPE_PARAM_SETTINGS` (MONEY precision bounds), the `ifblock_sql` DROP IF EXISTS rewrite,
   and the `_dateadd_sql` return type, which reads the `return_type` arg instead of annotate_types.
@@ -658,7 +657,49 @@ generators/clickhouse.py (a direct `Dialect` subclass, so no parent chain). The 
   `UTC_TIMESTAMP` rename.
 - Deferred: `typing/clickhouse.py` (EXPRESSION_METADATA, waits for annotate_types);
   `apply_index_offset` (INDEX_OFFSET=1 shifts literal bracket indexes only after annotate_types, so
-  `col[1]` is written unchanged to Hive — the same gap Postgres has); `unicodestring_sql` for
-  dialects without UNICODE_START (SUPPORTS_UESCAPE), so Postgres `U&'...'` strings are not rewritten
-  for ClickHouse. `ALTER ... MODIFY COLUMN c REMOVE DEFAULT`, `ATTACH`, `EXCHANGE`, `SYSTEM` and a
+  `col[1]` is written unchanged to Hive — the same gap Postgres has). `ALTER ... MODIFY COLUMN c REMOVE DEFAULT`, `ATTACH`, `EXCHANGE`, `SYSTEM` and a
   bare `REFRESH` stay `Command`, as upstream.
+
+## Snowflake dialect — DONE (branch feat/snowflake-dialect)
+
+`dialects/snowflake.go` (+ the generated `dialects/timezones.go`), `generator/dialect_snowflake.go`,
+`generator/stage_nodes.go`, `parser/dialect_snowflake_overrides.go` and `transforms/snowflake.go` port
+dialects/snowflake.py, parsers/snowflake.py, generators/snowflake.py and the transforms they use. The
+identity corpus (TestSnowflake, 1543 records) passes completely; 490 of the 492 Snowflake transpile
+pairs pass (the whole transpile corpus went from 2113/2201 to 2611/2693). `snowflake_test.go` ports
+the AST assertions of test_snowflake.py, and `testdata/fidelity_cases.txt` carries eight Snowflake
+oracle rows.
+
+- Ported: every dialect, tokenizer, parser and generator flag; TIME_MAPPING and the format-time
+  helpers; the FUNCTIONS overlay with its builders (DATEADD/DATEDIFF families, TO_NUMBER, TRUNC,
+  DIV0/ZEROIFNULL/NULLIFZERO, REGEXP_*, the ARRAY_* null-propagation flags, OBJECT_CONSTRUCT,
+  TIMESTAMP_FROM_PARTS, RANDOM/UNIFORM, UUID_STRING, GREATEST/LEAST_IGNORE_NULLS ...);
+  FUNCTION_PARSERS, STATEMENT_PARSERS (SHOW with its scope kinds, PUT, GET, UNDROP), PROPERTY_PARSERS,
+  `@stage` and `DIRECTORY(...)` table parts, `IDENTIFIER(...)`, `:` variant paths, `!` model
+  attributes, LATERAL FLATTEN, time travel (`AT`/`BEFORE`/`CHANGES`), directed joins, COPY INTO
+  options and credentials, and every TYPE_MAPPING entry, TRANSFORM, Select preprocess
+  (eliminate_window_clause, explode_projection_to_unnest, GENERATE_DATE_ARRAY unnesting,
+  unnested-column qualification, inherit_struct_field_names) and generator method.
+- Base pieces ported on the way (shared files, faithful to upstream): `_parse_sequence_properties`,
+  multi-table `INSERT ALL/FIRST` (`MultitableInserts`/`ConditionalInsert`), PIVOT column-name
+  inference (`_parse_pivot` columns + `_pivot_column_names`, the Spark2 override) and the
+  generator's `_pivot_in_value_aliases`, the TimeUnit unit normalization on every node construction,
+  ALLOWED_VALUES and EXECUTE AS properties, VECTOR type arguments, `getextract_sql`,
+  `converttimezone_sql` (SUPPORTS_CONVERT_TIMEZONE), `rand_sql`, `tsordstotime_sql`,
+  `todouble_sql`, `dynamicidentifier_sql`, `modelattribute_sql`, `unicodestring_sql` for dialects
+  without UNICODE_START, the base ARRAY_CAT/ARRAY_CONCAT builders, MySQL `DATE_ADD`/`DATE_SUB`
+  (`build_date_delta_with_interval`), MySQL/Hive/Presto `SUPPORTS_TO_NUMBER` and
+  `LAST_DAY_SUPPORTS_DATE_PART`, Postgres `no_last_day_sql`/`no_pivot_sql`/array null propagation/
+  `MAKE_TIMESTAMP`/`MAKE_TIME`/`BIT_*`/`#`, MySQL and Presto `no_pivot_sql`, MySQL
+  `no_tablesample_sql`, Presto bitwise arity, and the parenthesized DECODE null branch.
+- Deferred: `typing/snowflake.py` (EXPRESSION_METADATA, waits for annotate_types); where upstream
+  calls annotate_types the port asks `exp.StaticType` (see DEVIATIONS §2). The two remaining
+  transpile gaps need `simplify` (`LIMIT 0 + 1, 0 + 1` from mysql; `ARRAY_GENERATE_RANGE(0, 3)` to
+  presto folds `3 - 1`).
+- Python differential (`sqlglot.transpile` vs `sqlglot.Transpile`): over the 1543 identity statements
+  written to base, postgres, spark, mysql and presto, 7472 of 7715 outputs are byte-identical. The
+  rest is the MySQL-style base `SHOW` renderer (144), `simplify` folding (10), the DEVIATIONS
+  `DESCRIBE TABLE` under MySQL (9), Presto `DATE_DIFF` date-part-boundary truncation (11),
+  annotate_types-dependent casts (about 15), five statements where Python itself raises, and a long
+  tail of single target-dialect renderers.
+

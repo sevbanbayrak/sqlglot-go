@@ -372,3 +372,31 @@ func supportsArg(kind Kind, key string) bool {
 	}
 	return false
 }
+
+// Wrap ports exp._wrap (core.py): a node with the given trait is wrapped in Paren.
+func Wrap(expression Expression, trait Trait) Expression { return wrap(expression, trait) }
+
+// CastTo ports exp.cast (builders.py:457-509) for a DType target without a dialect: an
+// expression that is already a Cast to the same type is returned as is.
+// ponytail: compares DTypes directly instead of through the base TYPE_MAPPING, so e.g. an NCHAR
+// cast is re-cast to CHAR; route through the generator's mapping if that ever matters.
+func CastTo(expression Expression, to DType) Expression {
+	if expression != nil && expression.Kind() == KindCast {
+		if target, ok := expression.Arg("to").(Expression); ok && IsType(target, to) {
+			return expression
+		}
+	}
+	return Cast(Args{"this": expression, "to": to.IntoExpr(nil)})
+}
+
+// BinOp ports Expr._binop (core.py:1399-1407), the operator overloads (`a + 1`, `a * -1`):
+// both operands are copied and, unless one is already a kind node, wrapped in Paren when binary.
+func BinOp(kind Kind, this Expression, other any) Expression {
+	left := this.Copy()
+	right := Convert(other, true)
+	if left.Kind() != kind && right.Kind() != kind {
+		left = wrap(left, TraitBinary)
+		right = wrap(right, TraitBinary)
+	}
+	return New(kind, Args{"this": left, "expression": right})
+}

@@ -46,6 +46,7 @@ func ClickHouse() *Dialect {
 
 	// generators/clickhouse.py:162-187 flags.
 	d.TryUnsupported = true
+	d.UescapeUnsupported = true
 	d.DecodeCaseUnsupported = true
 	d.QueryHints = false
 	d.StructDelimiter = [2]string{"(", ")"}
@@ -306,8 +307,7 @@ func buildDateDelta(kind exp.Kind, defaultUnit string, supportsTimezone bool) fu
 		} else if defaultUnit != "" {
 			unit = exp.LiteralString(defaultUnit)
 		}
-		// The TimeUnit constructor (expressions/core.py:2055-2068) normalizes the unit into a Var.
-		expression := exp.New(kind, exp.Args{"this": this, "expression": hiveSeqGet(args, 1), "unit": exp.TimeUnitVar(unit)})
+		expression := exp.New(kind, exp.Args{"this": this, "expression": hiveSeqGet(args, 1), "unit": unit})
 		if supportsTimezone && len(args) == 4 {
 			expression.Set("zone", args[3])
 		}

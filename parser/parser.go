@@ -999,7 +999,8 @@ func (p *Parser) parseConnectWithPrior() exp.Expression {
 }
 
 func (p *Parser) parseQueryModifiers(this exp.Expression) exp.Expression {
-	if this != nil && (this.Is(exp.TraitQuery) || this.Kind() == exp.KindTable) {
+	// MODIFIABLES (parser.py:1834).
+	if this != nil && (this.Is(exp.TraitQuery) || this.Kind() == exp.KindTable || this.Kind() == exp.KindTableFromRows || this.Kind() == exp.KindValues) {
 		for {
 			join := p.parseJoin(false, false, nil)
 			if join == nil {
@@ -1284,6 +1285,9 @@ func (p *Parser) parseFrom(joins bool, skipFromToken bool, consumePipe bool) exp
 }
 
 func (p *Parser) parseTable(schema bool, joins bool, aliasTokens map[tokens.TokenType]bool, parseBracket bool, isDBReference bool, parsePartition bool, consumePipe bool) exp.Expression {
+	if p.dialect.Is("snowflake") {
+		return snowflakeHoistTableFromRows(p.parseTableBase(schema, joins, aliasTokens, parseBracket, isDBReference, parsePartition, consumePipe))
+	}
 	if !p.dialect.Is("clickhouse") {
 		return p.parseTableBase(schema, joins, aliasTokens, parseBracket, isDBReference, parsePartition, consumePipe)
 	}
@@ -1424,6 +1428,12 @@ func (p *Parser) parseTableBase(schema bool, joins bool, aliasTokens map[tokens.
 	if p.curr.TokenType == tokens.ALIAS || (!mysqlIndexHint && !p.joinKindsFor()[p.curr.TokenType] && !joinMethods[p.curr.TokenType] && !joinSides[p.curr.TokenType]) {
 		if alias := p.parseTableAlias(aliasTokens); alias != nil {
 			this.Set("alias", alias)
+			// parser.py:5078-5081: the time-travel clause may also follow the alias.
+			if this.Kind() == exp.KindTable && this.Arg("when") == nil {
+				if when := p.parseHistoricalData(); when != nil {
+					this.Set("when", when)
+				}
+			}
 		}
 	}
 	if hints := p.parseTableHints(); len(hints) > 0 {
@@ -1469,6 +1479,16 @@ func (p *Parser) parseTableBase(schema bool, joins bool, aliasTokens map[tokens.
 }
 
 func (p *Parser) parseTableParts(schema bool, isDBReference bool, wildcard bool, fast bool) exp.Expression {
+	if p.dialect.Is("snowflake") {
+		// https://docs.snowflake.com/en/user-guide/querying-stage
+		if table := p.parseSnowflakeStagedFile(isDBReference); table != nil {
+			return table
+		}
+	}
+	return p.parseTablePartsBase(schema, isDBReference, wildcard, fast)
+}
+
+func (p *Parser) parseTablePartsBase(schema bool, isDBReference bool, wildcard bool, fast bool) exp.Expression {
 	var catalog exp.Expression
 	// schemaPart holds the ANSI-schema-level qualifier (upstream's "db" arg — the port renames
 	// this arg to "schema"; the local can't be named "schema" here as that is already the
@@ -1499,6 +1519,13 @@ func (p *Parser) parseTableParts(schema bool, isDBReference bool, wildcard bool,
 		p.raiseError(fmt.Sprintf("Expected database name but got %s", p.curr.String()))
 	}
 	result := p.expression(exp.Table(exp.Args{"this": table, "schema": schemaPart, "catalog": catalog}), nil, nil)
+	// parser.py:4962-4969: CHANGES and the AT/BEFORE time-travel clause bind to the table parts.
+	if changes := p.parseChanges(); changes != nil {
+		result.Set("changes", changes)
+	}
+	if atBefore := p.parseHistoricalData(); atBefore != nil {
+		result.Set("when", atBefore)
+	}
 	// parser.py:4973-4975: a PIVOT clause binds to the table parts, ahead of any alias, so a
 	// bare `pivot` that is not followed by `(` stays available as an alias.
 	if pivots := p.parsePivots(); pivots != nil {
@@ -1574,6 +1601,49 @@ func (p *Parser) parseVersion() exp.Expression {
 		expression = p.parseType(true, false)
 	}
 	return p.expression(exp.Version(exp.Args{"this": this, "kind": kind, "expression": expression}), nil, nil)
+}
+
+// historicalDataPrefix and historicalDataKind port HISTORICAL_DATA_PREFIX and
+// HISTORICAL_DATA_KIND (parser.py:1747-1748).
+var historicalDataPrefix = map[string]bool{"AT": true, "BEFORE": true, "END": true}
+var historicalDataKind = map[string]bool{"OFFSET": true, "STATEMENT": true, "STREAM": true, "TIMESTAMP": true, "VERSION": true}
+
+// parseHistoricalData ports _parse_historical_data (parser.py:5148-5168).
+func (p *Parser) parseHistoricalData() exp.Expression {
+	// https://docs.snowflake.com/en/sql-reference/constructs/at-before
+	index := p.index
+	if !p.matchTexts(historicalDataPrefix) {
+		return nil
+	}
+	this := stringsUpper(p.prev.Text)
+	var kind any
+	if p.match(tokens.L_PAREN) && p.matchTexts(historicalDataKind) {
+		kind = stringsUpper(p.prev.Text)
+	}
+	var expression exp.Expression
+	if p.match(tokens.FARROW) {
+		expression = p.parseBitwise()
+	}
+	if expression == nil {
+		p.retreat(index)
+		return nil
+	}
+	p.matchRParen(nil)
+	return p.expression(exp.New(exp.KindHistoricalData, exp.Args{"this": this, "kind": kind, "expression": expression}), nil, nil)
+}
+
+// parseChanges ports _parse_changes (parser.py:5170-5183).
+func (p *Parser) parseChanges() exp.Expression {
+	if !p.matchTextSeq("CHANGES", "(", "INFORMATION", "=>") {
+		return nil
+	}
+	information := p.parseVar(true, nil, false)
+	p.matchRParen(nil)
+	return p.expression(exp.New(exp.KindChanges, exp.Args{
+		"information": information,
+		"at_before":   p.parseHistoricalData(),
+		"end":         p.parseHistoricalData(),
+	}), nil, nil)
 }
 
 func (p *Parser) parseTableAlias(aliasTokensArg map[tokens.TokenType]bool) exp.Expression {
@@ -1744,6 +1814,7 @@ func (p *Parser) parseJoinBase(skipJoinToken bool, parseBracket bool, aliasToken
 	}
 	index := p.index
 	method, side, kind := p.parseJoinParts()
+	directed := p.matchTextSeq("DIRECTED")
 	join := p.match(tokens.JOIN) || (kind != nil && kind.TokenType == tokens.STRAIGHT_JOIN)
 	joinComments := p.prevComments
 	if !skipJoinToken && !join {
@@ -1773,6 +1844,9 @@ func (p *Parser) parseJoinBase(skipJoinToken bool, parseBracket bool, aliasToken
 		kwargs["kind"] = stringsUpper(kind.Text)
 	}
 	joinThis := asExpr(kwargs["this"])
+	if p.match(tokens.MATCH_CONDITION) {
+		kwargs["match_condition"] = p.parseWrapped(p.parseComparison, false)
+	}
 	if p.match(tokens.ON) {
 		kwargs["on"] = p.parseDisjunction()
 	} else if p.match(tokens.USING) {
@@ -1807,6 +1881,9 @@ func (p *Parser) parseJoinBase(skipJoinToken bool, parseBracket bool, aliasToken
 			}
 		}
 	}
+	if pivots := p.parsePivots(); pivots != nil {
+		kwargs["pivots"] = pivots
+	}
 	joinKind, _ := kwargs["kind"].(string)
 	if p.dialect.AddJoinOnTrue && kwargs["on"] == nil && kwargs["using"] == nil && kwargs["method"] == nil &&
 		(joinKind == "" || joinKind == "INNER" || joinKind == "OUTER") {
@@ -1817,6 +1894,9 @@ func (p *Parser) parseJoinBase(skipJoinToken bool, parseBracket bool, aliasToken
 		if token != nil {
 			comments = append(comments, token.Comments...)
 		}
+	}
+	if directed {
+		kwargs["directed"] = directed
 	}
 	return p.expression(exp.Join(kwargs), nil, comments)
 }
@@ -2065,6 +2145,11 @@ func (p *Parser) parseRange(this exp.Expression) exp.Expression {
 			// tokenized by dialects that remap it (e.g. postgres' bare `~`), so this case is
 			// effectively dialect-gated at the tokenizer without needing a check here.
 			p.advance()
+			if p.dialect.Is("snowflake") {
+				// parsers/snowflake.py:390-395.
+				this = p.expression(exp.RegexpLike(exp.Args{"this": this, "expression": p.parseBitwise(), "full_match": true}), nil, nil)
+				break
+			}
 			this = p.parseEscape(p.expression(exp.RegexpLike(exp.Args{"this": this, "expression": p.parseBitwise()}), nil, nil))
 		case tokens.IRLIKE:
 			// binary_range_parser(exp.RegexpILike) (parser.py:1191): base `~*` keyword.
@@ -2239,6 +2324,9 @@ func (p *Parser) isRangeChainToken(tt tokens.TokenType) bool {
 // negateRange ports _negate_range (parser.py:6019-6029): LIKE/ILIKE absorb the NOT as
 // their negate arg (through an Escape wrapper); everything else wraps in Not.
 func (p *Parser) negateRange(this exp.Expression) exp.Expression {
+	if p.dialect.Is("snowflake") {
+		return p.snowflakeNegateRange(this)
+	}
 	if this == nil {
 		return this
 	}
@@ -2646,7 +2734,11 @@ func init() {
 		return p.expression(exp.BitString(exp.Args{"this": token.Text}), &token, nil)
 	}
 	primaryParsers[tokens.HEX_STRING] = func(p *Parser, token tokens.Token) exp.Expression {
-		return p.expression(exp.HexString(exp.Args{"this": token.Text, "is_integer": p.dialect.HexStringIsIntegerType}), &token, nil)
+		var isInteger any
+		if p.dialect.HexStringIsIntegerType {
+			isInteger = true
+		}
+		return p.expression(exp.HexString(exp.Args{"this": token.Text, "is_integer": isInteger}), &token, nil)
 	}
 	primaryParsers[tokens.BYTE_STRING] = func(p *Parser, token tokens.Token) exp.Expression {
 		return p.expression(exp.ByteString(exp.Args{"this": token.Text, "is_bytes": p.dialect.ByteStringIsBytesType}), &token, nil)
@@ -3225,6 +3317,15 @@ func (p *Parser) parsePGTypedLiteralValue() exp.Expression {
 }
 
 func (p *Parser) parseIdVar(anyToken bool, toks map[tokens.TokenType]bool) exp.Expression {
+	if p.dialect.Is("snowflake") {
+		if expression, ok := p.parseSnowflakeIDVar(anyToken, toks); ok {
+			return expression
+		}
+	}
+	return p.parseIdVarBase(anyToken, toks)
+}
+
+func (p *Parser) parseIdVarBase(anyToken bool, toks map[tokens.TokenType]bool) exp.Expression {
 	expression := p.parseIdentifier()
 	if expression == nil {
 		if (anyToken && p.advanceAny(false) != nil) || p.matchSet(tokensOrDefault(toks, p.idVarTokensFor())) {
@@ -3372,7 +3473,7 @@ func (p *Parser) parsePlaceholder() exp.Expression {
 		return p.spanned(p.expression(exp.Placeholder(exp.Args{"this": this, "widget": true}), nil, nil), start, p.prev)
 	}
 	if p.match(tokens.COLON) {
-		if p.matchSet(idVarTokens) {
+		if p.matchSet(p.colonPlaceholderTokensFor()) {
 			return p.spanned(p.expression(exp.Placeholder(exp.Args{"this": p.prev.Text}), &p.prev, nil), start, p.prev)
 		}
 		p.retreat(p.index - 1)
@@ -3748,6 +3849,14 @@ func (p *Parser) parseFunction(functions map[string]func([]exp.Expression) exp.E
 }
 
 func (p *Parser) parseFunctionCall(functions map[string]func([]exp.Expression) exp.Expression, anonymous bool, optionalParens bool, anyToken bool) exp.Expression {
+	this := p.parseFunctionCallBase(functions, anonymous, optionalParens, anyToken)
+	if p.dialect.Is("snowflake") {
+		return p.snowflakeDynamicIdentifierCall(this)
+	}
+	return this
+}
+
+func (p *Parser) parseFunctionCallBase(functions map[string]func([]exp.Expression) exp.Expression, anonymous bool, optionalParens bool, anyToken bool) exp.Expression {
 	if !p.curr.IsValid() {
 		return nil
 	}
@@ -3902,18 +4011,15 @@ func (p *Parser) parseLambda(alias bool) exp.Expression {
 		params := p.parseCsv(p.parseLambdaArg)
 		if !p.match(tokens.R_PAREN) {
 			p.retreat(index)
-		} else if builder, ok := lambdas[p.curr.TokenType]; ok {
+		} else if builder, ok := p.lambdaFor(p.curr.TokenType); ok {
 			p.advance()
 			return builder(p, params)
 		} else {
 			p.retreat(index)
 		}
-	} else if _, ok := lambdas[p.next.TokenType]; ok {
-		// TYPED_LAMBDA_ARGS (Snowflake/Materialize's `x INT -> ...`) is always false for the
-		// dialects in this part's scope, so the upstream `self.TYPED_LAMBDA_ARGS or` half of
-		// this condition is dropped.
+	} else if _, ok := lambdas[p.next.TokenType]; ok || p.dialect.TypedLambdaArgs {
 		params := []exp.Expression{p.parseLambdaArg()}
-		if builder, ok := lambdas[p.curr.TokenType]; ok {
+		if builder, ok := p.lambdaFor(p.curr.TokenType); ok {
 			p.advance()
 			return builder(p, params)
 		}
@@ -4283,6 +4389,14 @@ func (p *Parser) parseNamedWindow() exp.Expression {
 }
 
 func (p *Parser) parseWindow(this exp.Expression, alias bool) exp.Expression {
+	if p.dialect.Is("snowflake") {
+		p.snowflakeNthValueFrom(this)
+		return p.snowflakeDefaultRankingFrame(this, p.parseWindowBase(this, alias))
+	}
+	return p.parseWindowBase(this, alias)
+}
+
+func (p *Parser) parseWindowBase(this exp.Expression, alias bool) exp.Expression {
 	funcExpr := this
 	var comments []string
 	if funcExpr != nil {
@@ -4296,6 +4410,14 @@ func (p *Parser) parseWindow(this exp.Expression, alias bool) exp.Expression {
 		p.match(tokens.WHERE)
 		this = p.expression(exp.Filter(exp.Args{"this": this, "expression": p.parseWhere(true)}), nil, nil)
 		p.matchRParen(this)
+	}
+	// parser.py:8320-8325: `FIRST_VALUE(x IGNORE NULLS)` moves the modifier out of the call,
+	// so both spellings build the same tree.
+	if this != nil && this.Is(exp.TraitAggFunc) {
+		if ignoreRespect := findIgnoreRespectNulls(this); ignoreRespect != nil && ignoreRespect != this {
+			ignoreRespect.Replace(ignoreRespect.This())
+			this = p.expression(exp.New(ignoreRespect.Kind(), exp.Args{"this": this}), nil, nil)
+		}
 	}
 	this = p.parseRespectOrIgnoreNulls(this)
 	var over any
@@ -4573,6 +4695,9 @@ func init() {
 			return p.expression(exp.Any(exp.Args{"this": p.parseBitwise()}), nil, nil)
 		},
 		"CASE": func(p *Parser) exp.Expression { return p.parseCase() },
+		"CONNECT_BY_ROOT": func(p *Parser) exp.Expression {
+			return p.expression(exp.New(exp.KindConnectByRoot, exp.Args{"this": p.parseColumn()}), nil, nil)
+		},
 		// PRIOR is a no-paren prefix ONLY inside a CONNECT BY condition
 		// (_parse_connect_with_prior, parser.py:5616-5622); the lookup gate lives in
 		// noParenFunctionParserFor so `PRIOR` stays an ordinary identifier elsewhere.
@@ -4771,4 +4896,24 @@ func (p *Parser) parseDecode() exp.Expression {
 		return p.expression(exp.New(exp.KindDecode, exp.Args{"this": this, "charset": charset}), nil, nil)
 	}
 	return p.expression(exp.New(exp.KindDecodeCase, exp.Args{"expressions": args}), nil, nil)
+}
+
+// findIgnoreRespectNulls ports find_in_scope(this, exp.IgnoreNulls, exp.RespectNulls): a BFS
+// that does not descend into nested queries.
+func findIgnoreRespectNulls(root exp.Expression) exp.Expression {
+	queue := []exp.Expression{root}
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+		if node.Kind() == exp.KindIgnoreNulls || node.Kind() == exp.KindRespectNulls {
+			return node
+		}
+		if node != root && (node.Is(exp.TraitQuery) || node.Kind() == exp.KindSubquery) {
+			continue
+		}
+		for _, child := range exp.Children(node) {
+			queue = append(queue, child)
+		}
+	}
+	return nil
 }

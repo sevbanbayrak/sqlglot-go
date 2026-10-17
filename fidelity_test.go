@@ -18,8 +18,8 @@ import (
 // CREATE FUNCTION rows contain a nested Command in upstream itself; add new
 // oracle rows by raising the applicable floor, never by lowering either one.
 const (
-	minFidelityCases       = 107
-	minCommandFreeFidelity = 105
+	minFidelityCases       = 115
+	minCommandFreeFidelity = 113
 	// maxASTDivergences caps the rows whose Go AST legitimately differs from the
 	// pinned Python repr because of a scoped, documented node deferral (see
 	// ast_divergence below). This is a CEILING — it must not grow without a
@@ -72,7 +72,7 @@ func fidelityDialect(t *testing.T, dialect string) string {
 	switch dialect {
 	case "base":
 		return ""
-	case "mysql", "postgres", "clickhouse":
+	case "mysql", "postgres", "clickhouse", "snowflake":
 		return dialect
 	default:
 		t.Fatalf("unsupported fidelity dialect %q", dialect)

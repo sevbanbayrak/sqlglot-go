@@ -139,7 +139,7 @@ func (g *Generator) varSQL(e expressions.Expression) string { return g.sqlKey(e,
 func (g *Generator) starSQL(e expressions.Expression) string {
 	except := g.expressions(exprsOptions{expression: e, key: "except_", flat: true})
 	if except != "" {
-		except = g.seg("EXCEPT") + " (" + except + ")"
+		except = g.seg(g.dialect.StarExcept) + " (" + except + ")"
 	}
 	replace := g.expressions(exprsOptions{expression: e, key: "replace", flat: true})
 	if replace != "" {
@@ -994,6 +994,11 @@ func (g *Generator) joinSQL(e expressions.Expression) string {
 			return e.Text("hint")
 		}
 		return ""
+	}(), func() string {
+		if truthy(e.Arg("directed")) && g.dialect.DirectedJoins {
+			return "DIRECTED"
+		}
+		return ""
 	}())
 	matchCond := g.sqlKey(e, "match_condition")
 	if matchCond != "" {
@@ -1460,7 +1465,7 @@ func (g *Generator) insertSQL(e expressions.Expression) string {
 		if this := asExpression(e.Arg("this")); this != nil && this.Kind() == expressions.KindDirectory {
 			thisKeyword = " OVERWRITE"
 		} else {
-			thisKeyword = " OVERWRITE TABLE"
+			thisKeyword = g.dialect.InsertOverwrite
 		}
 	}
 	stored := g.sqlKey(e, "stored")
@@ -1924,6 +1929,9 @@ func (g *Generator) createableSQL(e expressions.Expression, locations map[proper
 	if g.isDialect("clickhouse") {
 		return g.clickHouseCreateableSQL(e, locations)
 	}
+	if g.isDialect("snowflake") {
+		return g.snowflakeCreateableSQL(e, locations)
+	}
 	return g.sqlKey(e, "this")
 }
 
@@ -2270,7 +2278,13 @@ func (g *Generator) jsonTableSQL(e expressions.Expression) string {
 }
 
 func (g *Generator) extractSQL(e expressions.Expression) string {
-	this := g.gen(e.Arg("this"))
+	// extract_sql (generator.py:3648-3663); NORMALIZE_EXTRACT_DATE_PARTS is DuckDB-only.
+	var this string
+	if !g.dialect.ExtractDisallowsQuotes {
+		this = g.gen(e.Arg("this"))
+	} else if part := asExpression(e.Arg("this")); part != nil {
+		this = part.Name()
+	}
 	expressionSQL := g.sqlKey(e, "expression")
 	return "EXTRACT(" + this + " FROM " + expressionSQL + ")"
 }
@@ -2612,11 +2626,6 @@ func (g *Generator) logSQL(e expressions.Expression) string {
 	return g.funcCall("LOG", []any{this, expr}, "(", ")", true)
 }
 
-func (g *Generator) pivotInValueAliases(e expressions.Expression) []expressions.Expression {
-	// Base parse and generate use the same pivot naming settings; parser_class attributes are slice-5 work.
-	return nil
-}
-
 func (g *Generator) pivotSQL(e expressions.Expression) string {
 	expressionsSQL := g.expressions(exprsOptions{expression: e, flat: true})
 	direction := "PIVOT"
@@ -2642,6 +2651,12 @@ func (g *Generator) pivotSQL(e expressions.Expression) string {
 			sql = direction + " " + this + on + into + using + group
 		}
 		return g.prependCtes(e, sql)
+	}
+	if !boolValue(e.Arg("unpivot")) {
+		// Wrap IN-list values with explicit aliases where the target dialect would differ
+		if newFieldExprs := g.pivotInValueAliases(e); newFieldExprs != nil {
+			expressions.ExpressionsOf(e, "fields")[0].Set("expressions", newFieldExprs)
+		}
 	}
 	alias := g.sqlKey(e, "alias")
 	if alias != "" {
@@ -3046,4 +3061,103 @@ func (g *Generator) hintSQL(e expressions.Expression) string {
 		sep = " "
 	}
 	return " /*+ " + strings.TrimSpace(g.expressions(exprsOptions{expression: e, sep: sep})) + " */"
+}
+
+// pivotInValueAliases ports _pivot_in_value_aliases (generator.py:2524-2597): it returns the
+// rewritten field.expressions list with PivotAlias wrappers injected where the stored column
+// name differs from the target dialect's natural output.
+func (g *Generator) pivotInValueAliases(e expressions.Expression) []expressions.Expression {
+	columns := expressions.ExpressionsOf(e, "columns")
+	fields := expressions.ExpressionsOf(e, "fields")
+	if len(columns) == 0 || len(fields) != 1 {
+		return nil
+	}
+	tgtIdentifyPivotStrings := g.dialect.IdentifyPivotStrings
+	tgtPivotColumnNaming := g.dialect.PivotColumnNaming
+	srcIdentifyPivotStrings, srcPrefixedPivotColumns, srcPivotColumnNaming := tgtIdentifyPivotStrings, false, tgtPivotColumnNaming
+	if v, ok := e.Arg("identify_pivot_strings").(bool); ok {
+		srcIdentifyPivotStrings = v
+	}
+	if v, ok := e.Arg("prefixed_pivot_columns").(bool); ok {
+		srcPrefixedPivotColumns = v
+	}
+	if v, ok := e.Arg("pivot_column_naming").(string); ok {
+		srcPivotColumnNaming = v
+	}
+	if srcIdentifyPivotStrings == tgtIdentifyPivotStrings && !srcPrefixedPivotColumns && srcPivotColumnNaming == tgtPivotColumnNaming {
+		return nil
+	}
+	inExprs := fields[0].Expressions()
+	if len(inExprs) == 0 {
+		return nil
+	}
+	step := len(columns) / len(inExprs)
+	baseSQL := func(x expressions.Expression) string {
+		sql, _ := x.SQL(expressions.GenerateOptions{})
+		return sql
+	}
+
+	// Derive the per-value suffix from the first stored column vs the first IN-list value.
+	// This correctly handles dialects (e.g. Spark single-agg) that ignore agg aliases.
+	firstBase := inExprs[0].AliasOrName()
+	if srcIdentifyPivotStrings {
+		firstBase = baseSQL(inExprs[0])
+	}
+	firstStored := columns[0].Name()
+	// exit if only suffix matches, not prefix. (e.g. BigQuery, which cannot be fixed)
+	if !strings.HasPrefix(firstStored, firstBase) {
+		return nil
+	}
+	suffix := firstStored[len(firstBase):]
+
+	// Whether the target dialect would append an agg-name suffix for this pivot.
+	// Spark single-agg uniquely drops the agg alias entirely.
+	aggs := e.Expressions()
+	anyAlias := false
+	for _, a := range aggs {
+		if a.Alias() != "" {
+			anyAlias = true
+		}
+	}
+	targetHasSuffix := (len(aggs) > 1 || tgtPivotColumnNaming != "agg_name_if_multiple") && anyAlias
+	sourceHasSuffix := suffix != ""
+
+	newExprs := make([]expressions.Expression, 0, len(inExprs))
+	modified := false
+	for valIdx, x := range inExprs {
+		if x.Kind() == expressions.KindPivotAlias {
+			newExprs = append(newExprs, x)
+			continue
+		}
+		i := valIdx * step
+		if i >= len(columns) {
+			newExprs = append(newExprs, x)
+			continue
+		}
+		storedFull := columns[i].Name()
+		storedValue := storedFull
+		if suffix != "" && len(storedFull) >= len(suffix) {
+			storedValue = storedFull[:len(storedFull)-len(suffix)]
+		}
+		targetValue := x.AliasOrName()
+		if tgtIdentifyPivotStrings {
+			targetValue = baseSQL(x)
+		}
+		switch {
+		// Source had a suffix, but target won't apply one
+		case sourceHasSuffix && !targetHasSuffix:
+			newExprs = append(newExprs, expressions.New(expressions.KindPivotAlias, expressions.Args{"this": x, "alias": expressions.ToIdentifier(storedFull, true)}))
+			modified = true
+		// Value-part mismatch (e.g. Snowflake's literal-style values vs others).
+		case storedValue != targetValue:
+			newExprs = append(newExprs, expressions.New(expressions.KindPivotAlias, expressions.Args{"this": x, "alias": expressions.ToIdentifier(storedValue, true)}))
+			modified = true
+		default:
+			newExprs = append(newExprs, x)
+		}
+	}
+	if !modified {
+		return nil
+	}
+	return newExprs
 }

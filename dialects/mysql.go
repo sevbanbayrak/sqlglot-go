@@ -5,9 +5,32 @@ import (
 	"maps"
 	"strings"
 
+	sqlerrors "github.com/sevbanbayrak/sqlglot-go/errors"
 	exp "github.com/sevbanbayrak/sqlglot-go/expressions"
 	"github.com/sevbanbayrak/sqlglot-go/tokens"
 )
+
+// buildDateDeltaWithInterval ports build_date_delta_with_interval (dialect.py:1658-1679)
+// without a default unit.
+func buildDateDeltaWithInterval(kind exp.Kind) func([]exp.Expression) exp.Expression {
+	return func(args []exp.Expression) exp.Expression {
+		if len(args) < 2 {
+			return nil
+		}
+		interval := args[1]
+		if interval == nil || interval.Kind() != exp.KindInterval {
+			panic(sqlerrors.NewParseError(fmt.Sprintf("INTERVAL expression expected but got '%v'", interval)))
+		}
+		var unit exp.Expression = exp.LiteralString("DAY")
+		if u, ok := interval.Arg("unit").(exp.Expression); ok && u != nil {
+			unit = u
+			if u.Kind() != exp.KindPlaceholder {
+				unit = exp.LiteralString(u.Name())
+			}
+		}
+		return exp.New(kind, exp.Args{"this": args[0], "expression": interval.This(), "unit": unit})
+	}
+}
 
 // applyMySQLAnsiQuotes rewrites the dialect's tokenizer config for MySQL `sql_mode=ANSI_QUOTES`: `"`
 // stops being a string quote and becomes a QUOTED IDENTIFIER delimiter (alongside the backtick),
@@ -75,6 +98,8 @@ func MySQL() *Dialect {
 	d.Name = "mysql"
 	// generators/mysql.py:130-274.
 	d.Nvl2Supported = false
+	d.LastDaySupportsDatePart = false
+	d.SupportsToNumber = false
 	d.PadFillPatternIsRequired = true
 	d.LimitFetch = "LIMIT"
 	// generators/mysql.py:118 SUPPORTS_ALTER_COLUMN_NULLABILITY = True.
@@ -127,6 +152,9 @@ func MySQL() *Dialect {
 	// dialects/mysql.py:27 TIME_FORMAT.
 	d.TimeFormat = "%Y-%m-%d %T"
 	d.FormatTime = MySQLFormatTime
+	// generators/mysql.py:144 JSON_KEY_VALUE_PAIR_SEP.
+	d.JSONKeyValuePairSep = ","
+	d.UescapeUnsupported = true
 	// parsers/mysql.py:304 SUPPORTS_PARTITION_SELECTION = True: allow `FROM t PARTITION(p0)`.
 	d.SupportsPartitionSelection = true
 	// parsers/mysql.py:302 STRING_ALIASES = True: fold a trailing string into an identifier
@@ -164,6 +192,9 @@ func MySQL() *Dialect {
 			node.Set("this", exp.New(exp.KindTsOrDsToTimestamp, exp.Args{"this": hiveSeqGet(args, 0)}))
 			return node
 		},
+		// parsers/mysql.py:111,116.
+		"DATE_ADD": buildDateDeltaWithInterval(exp.KindDateAdd),
+		"DATE_SUB": buildDateDeltaWithInterval(exp.KindDateSub),
 		// parsers/mysql.py:108-110 (v30.17.0): MySQL DATEDIFF counts date-part boundaries.
 		"DATEDIFF": func(args []exp.Expression) exp.Expression {
 			return exp.New(exp.KindDateDiff, exp.Args{

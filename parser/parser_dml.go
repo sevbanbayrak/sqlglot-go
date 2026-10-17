@@ -28,6 +28,9 @@ func (p *Parser) parseInsert() exp.Expression {
 			"row_format": p.parseRowFormat(true),
 		}), nil, nil)
 	} else {
+		if p.matchSet(firstOrAllTokens) {
+			return p.parseMultitableInserts(append(comments, p.prevComments...))
+		}
 		if p.match(tokens.OR) {
 			if p.matchTexts(insertAlternatives) {
 				alternative = p.prev.Text
@@ -486,4 +489,38 @@ func (p *Parser) parseTableHints() []exp.Expression {
 		hints = append(hints, p.expression(exp.IndexTableHint(args), nil, nil))
 	}
 	return hints
+}
+
+var firstOrAllTokens = map[tokens.TokenType]bool{tokens.FIRST: true, tokens.ALL: true}
+
+// parseMultitableInserts ports _parse_multitable_inserts (parser.py:3545-3582).
+func (p *Parser) parseMultitableInserts(comments []string) exp.Expression {
+	kind := strings.ToUpper(p.prev.Text)
+	var expressions []exp.Expression
+	parseConditionalInsert := func() exp.Expression {
+		var expression exp.Expression
+		if p.match(tokens.WHEN) {
+			expression = p.parseDisjunction()
+			p.match(tokens.THEN)
+		}
+		else_ := p.match(tokens.ELSE)
+		if !p.match(tokens.INTO) {
+			return nil
+		}
+		args := exp.Args{"expression": expression, "else_": else_}
+		insert := p.expression(exp.New(exp.KindInsert, exp.Args{
+			"this":       p.parseTable(true, false, nil, false, false, false, false),
+			"expression": p.parseDerivedTableValues(),
+		}), nil, nil)
+		args["this"] = insert
+		return p.expression(exp.New(exp.KindConditionalInsert, args), nil, nil)
+	}
+	for expression := parseConditionalInsert(); expression != nil; expression = parseConditionalInsert() {
+		expressions = append(expressions, expression)
+	}
+	return p.expression(exp.New(exp.KindMultitableInserts, exp.Args{
+		"kind":        kind,
+		"expressions": expressions,
+		"source":      p.parseTable(false, false, nil, false, false, false, false),
+	}), nil, comments)
 }

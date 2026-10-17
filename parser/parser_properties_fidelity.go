@@ -30,6 +30,9 @@ func (p *Parser) parsePropertyBefore() exp.Expression {
 		return p.parseCharacterSet(isDefault)
 	}
 	p.retreat(index)
+	if p.dialect.Is("snowflake") {
+		return p.parseSnowflakePropertyBefore()
+	}
 	return nil
 }
 
@@ -79,7 +82,72 @@ func (p *Parser) parseProperty() exp.Expression {
 			p.curr.TokenType == tokens.CASE) {
 		return nil
 	}
+	index := p.index
+	if seqProps := p.parseSequenceProperties(); seqProps != nil {
+		return seqProps
+	}
+	p.retreat(index)
 	return p.parseKeyValueProperty(nil)
+}
+
+// createSequenceOptions ports CREATE_SEQUENCE (parser.py:1670-1692).
+var createSequenceOptions = optionsType{
+	"SCALE":   {{"EXTEND"}, {"NOEXTEND"}},
+	"SHARD":   {{"EXTEND"}, {"NOEXTEND"}},
+	"NO":      {{"CYCLE"}, {"CACHE"}, {"MAXVALUE"}, {"MINVALUE"}},
+	"SESSION": nil, "GLOBAL": nil, "KEEP": nil, "NOKEEP": nil, "ORDER": nil, "NOORDER": nil,
+	"NOCACHE": nil, "CYCLE": nil, "NOCYCLE": nil, "NOMINVALUE": nil, "NOMAXVALUE": nil,
+	"NOSCALE": nil, "NOSHARD": nil,
+}
+
+// parseSequenceProperties ports _parse_sequence_properties (parser.py:2733-2767).
+func (p *Parser) parseSequenceProperties() exp.Expression {
+	seq := exp.New(exp.KindSequenceProperties, nil)
+	var options []exp.Expression
+	index := p.index
+	for p.curr.IsValid() {
+		p.match(tokens.COMMA)
+		if p.matchTextSeq("INCREMENT") {
+			p.matchTextSeq("BY")
+			p.matchTextSeq("=")
+			seq.Set("increment", p.parseTerm())
+		} else if p.matchTextSeq("MINVALUE") {
+			seq.Set("minvalue", p.parseTerm())
+		} else if p.matchTextSeq("MAXVALUE") {
+			seq.Set("maxvalue", p.parseTerm())
+		} else if p.matchTextSeq("START") {
+			p.matchTextSeq("WITH")
+			p.matchTextSeq("=")
+			seq.Set("start", p.parseTerm())
+		} else if p.matchTextSeq("CACHE") {
+			// T-SQL allows empty CACHE which is initialized dynamically
+			if number := p.parseNumber(); number != nil {
+				seq.Set("cache", number)
+			} else {
+				seq.Set("cache", true)
+			}
+		} else if p.matchTextSeq("OWNED", "BY") {
+			// "OWNED BY NONE" is the default
+			if p.matchTextSeq("NONE") {
+				seq.Set("owned", nil)
+			} else {
+				seq.Set("owned", p.parseColumn())
+			}
+		} else {
+			opt := p.parseVarFromOptions(createSequenceOptions, false)
+			if opt == nil {
+				break
+			}
+			options = append(options, opt)
+		}
+	}
+	if len(options) > 0 {
+		seq.Set("options", options)
+	}
+	if p.index == index {
+		return nil
+	}
+	return seq
 }
 
 // parseKeyValueProperty ports _parse_key_value_property (parser.py:2817-2841), including
@@ -211,6 +279,11 @@ func propertyIdentifierText(identifier exp.Expression) string {
 // (parser.py:3002-3043): WITH (...), WITH DATA, and WITH NO DATA. The wrapped branch uses a
 // temporary Properties node because propertyParserFunc returns one expression.
 func (p *Parser) parseWithProperty() exp.Expression {
+	if p.dialect.Is("snowflake") {
+		if property := p.parseSnowflakeWithProperty(); property != nil {
+			return property
+		}
+	}
 	if p.match(tokens.L_PAREN, false) {
 		return p.expression(exp.Properties(exp.Args{"expressions": p.parseWrappedProperties()}), nil, nil)
 	}

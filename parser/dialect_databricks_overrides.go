@@ -37,14 +37,14 @@ func (p *Parser) parseCurdate() exp.Expression {
 	return p.expression(exp.New(exp.KindCurrentDate, nil), nil, nil)
 }
 
-// buildJSONExtract ports _build_json_extract (parser.py:6918-6934). requires_json is
-// JSON_EXTRACT_REQUIRES_JSON_EXPRESSION, False for every ported dialect, so it is not set.
+// buildJSONExtract ports _build_json_extract (parser.py:6918-6934).
 func (p *Parser) buildJSONExtract(this exp.Expression, pathParts []exp.Expression) (exp.Expression, []exp.Expression) {
 	if len(pathParts) > 1 {
 		this = p.expression(exp.JSONExtract(exp.Args{
 			"this":            this,
 			"expression":      exp.New(exp.KindJSONPath, exp.Args{"expressions": pathParts}),
 			"variant_extract": true,
+			"requires_json":   p.dialect.JSONExtractRequiresJSONExpression,
 		}), nil, nil)
 		pathParts = []exp.Expression{exp.New(exp.KindJSONPathRoot, nil)}
 	}
@@ -76,7 +76,7 @@ func (p *Parser) parseColonAsVariantExtract(this exp.Expression) exp.Expression 
 					pathParts = append(pathParts, pathKey(nextKey))
 				}
 			} else if p.match(tokens.L_BRACKET) {
-				bracketExpr := p.parseBracketKeyValue()
+				bracketExpr := p.parseBracketKeyValue(false)
 				if !p.match(tokens.R_BRACKET) {
 					p.raiseError("Expected ]")
 				}

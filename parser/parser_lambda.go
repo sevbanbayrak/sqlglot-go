@@ -42,15 +42,36 @@ func init() {
 }
 
 // parseLambdaArg ports _parse_lambda_arg (parser.py:7178-7179): a lambda parameter is just
-// an id-var (Snowflake/Materialize override this to also accept `x INT`, out of scope here).
+// an id-var; Snowflake also accepts `x INT` (parsers/snowflake.py).
 func (p *Parser) parseLambdaArg() exp.Expression {
+	if p.dialect.Is("snowflake") {
+		return p.parseSnowflakeLambdaArg()
+	}
 	return p.parseIdVar(true, nil)
 }
 
-// replaceLambda ports _replace_lambda (parser.py:9436-9464), simplified for this part's
-// scope (base/mysql/postgres): TYPED_LAMBDA_ARGS is always false for those dialects, so a
-// lambda param never carries a "to" type annotation and the upstream Cast branch (wrapping
-// a matched column in exp.Cast) never fires - it's dropped here accordingly.
+// lambdaFor is LAMBDAS, with Snowflake's ARROW override (parsers/snowflake.py:910-921): the body
+// is an assignment and typed parameters are stored without their Cast.
+func (p *Parser) lambdaFor(tokenType tokens.TokenType) (func(*Parser, []exp.Expression) exp.Expression, bool) {
+	if tokenType == tokens.ARROW && p.dialect.Is("snowflake") {
+		return func(p *Parser, params []exp.Expression) exp.Expression {
+			body := replaceLambda(p.parseAssignment(), params)
+			stripped := make([]exp.Expression, len(params))
+			for i, param := range params {
+				if param != nil && param.Kind() == exp.KindCast {
+					param = param.This()
+				}
+				stripped[i] = param
+			}
+			return p.expression(exp.Lambda(exp.Args{"this": body, "expressions": stripped}), nil, nil)
+		}, true
+	}
+	builder, ok := lambdas[tokenType]
+	return builder, ok
+}
+
+// replaceLambda ports _replace_lambda (parser.py:9436-9464). Under TYPED_LAMBDA_ARGS
+// (Snowflake) a typed parameter casts its uses in the body.
 //
 // For every exp.Column in the lambda body whose leading part (parts[0], i.e. the outermost
 // qualifier - catalog/db/table/this in that priority) names a parameter, the column is
@@ -66,9 +87,13 @@ func replaceLambda(node exp.Expression, params []exp.Expression) exp.Expression 
 	}
 
 	names := make(map[string]bool, len(params))
+	types := make(map[string]exp.Expression, len(params))
 	for _, param := range params {
 		if param != nil {
 			names[param.Name()] = true
+			if to, ok := param.Arg("to").(exp.Expression); ok && to != nil {
+				types[param.Name()] = to
+			}
 		}
 	}
 
@@ -83,6 +108,10 @@ func replaceLambda(node exp.Expression, params []exp.Expression) exp.Expression 
 			dotOrID = columnToDot(column, parts)
 		} else {
 			dotOrID = column.This()
+		}
+		// parser.py:9448-9449: a typed lambda parameter (TYPED_LAMBDA_ARGS) casts its uses.
+		if typ := types[parts[0].Name()]; typ != nil {
+			dotOrID = exp.Cast(exp.Args{"this": dotOrID, "to": typ})
 		}
 
 		parent := column.Parent()

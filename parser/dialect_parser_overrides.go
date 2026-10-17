@@ -51,6 +51,12 @@ type dialectParserOverrideSet struct {
 	AliasTokensSet      map[tokens.TokenType]bool
 	// QueryModifierParsers adds QUERY_MODIFIER_PARSERS entries (parsers/clickhouse.py:351-358).
 	QueryModifierParsers map[tokens.TokenType]func(*Parser) (string, any)
+	// CreatablesSet replaces CREATABLES, TypeTokensAdded extends TYPE_TOKENS,
+	// STRUCT_TYPE_TOKENS and NESTED_TYPE_TOKENS, and ColonPlaceholderTokensSet replaces
+	// COLON_PLACEHOLDER_TOKENS (parsers/snowflake.py:334-385, 899-908).
+	CreatablesSet             map[tokens.TokenType]bool
+	TypeTokensAdded           map[tokens.TokenType]bool
+	ColonPlaceholderTokensSet map[tokens.TokenType]bool
 }
 
 var dialectParserOverrides = map[string]dialectParserOverrideSet{}
@@ -304,4 +310,42 @@ func (p *Parser) factorToken(tokenType tokens.TokenType) (func(exp.Args) exp.Exp
 	}
 	build, ok := factorTokens[tokenType]
 	return build, ok
+}
+
+// creatablesFor is CREATABLES, or the dialect's replacement set.
+func (p *Parser) creatablesFor() map[tokens.TokenType]bool {
+	if set := dialectParserOverrides[p.parserOverrideKey()].CreatablesSet; set != nil {
+		return set
+	}
+	return creatables
+}
+
+// isTypeToken is TYPE_TOKENS plus the dialect overlay's additions.
+func (p *Parser) isTypeToken(tokenType tokens.TokenType) bool {
+	return typeTokens[tokenType] || dialectParserOverrides[p.parserOverrideKey()].TypeTokensAdded[tokenType]
+}
+
+// typeTokensFor is TYPE_TOKENS plus the dialect overlay's additions.
+func (p *Parser) typeTokensFor() map[tokens.TokenType]bool {
+	extra := dialectParserOverrides[p.parserOverrideKey()].TypeTokensAdded
+	if len(extra) == 0 {
+		return typeTokens
+	}
+	return withTokens(typeTokens, keysOf(extra)...)
+}
+
+func keysOf(set map[tokens.TokenType]bool) []tokens.TokenType {
+	out := make([]tokens.TokenType, 0, len(set))
+	for tt := range set {
+		out = append(out, tt)
+	}
+	return out
+}
+
+// colonPlaceholderTokensFor is COLON_PLACEHOLDER_TOKENS (parser.py: ID_VAR_TOKENS by default).
+func (p *Parser) colonPlaceholderTokensFor() map[tokens.TokenType]bool {
+	if set := dialectParserOverrides[p.parserOverrideKey()].ColonPlaceholderTokensSet; set != nil {
+		return set
+	}
+	return idVarTokens
 }

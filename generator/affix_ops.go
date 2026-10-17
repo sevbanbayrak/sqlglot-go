@@ -2,11 +2,14 @@ package generator
 
 import "github.com/sevbanbayrak/sqlglot-go/expressions"
 
-// collateSQL ports generator.py:4102-4105 collate_sql. Upstream gates the alternate
-// function-call form (`COLLATE(this, expr)`) behind COLLATE_IS_FUNC, which is False for base
-// and not overridden by mysql/postgres (only e.g. duckdb sets it True, out of scope here), so
-// this always renders the binary `this COLLATE expression` form.
-func (g *Generator) collateSQL(e expressions.Expression) string { return g.binary(e, "COLLATE") }
+// collateSQL ports generator.py:4102-4105 collate_sql: the function-call form under
+// COLLATE_IS_FUNC (Snowflake), the binary `this COLLATE expression` form otherwise.
+func (g *Generator) collateSQL(e expressions.Expression) string {
+	if g.dialect.CollateIsFunc {
+		return g.functionFallbackSQL(e)
+	}
+	return g.binary(e, "COLLATE")
+}
 
 // bitwiseNotSQL ports generator.py:4063-4064 bitwisenot_sql: a plain `~this` prefix, no
 // dedicated dialect override in base/mysql/postgres.

@@ -505,3 +505,49 @@ func DataTypeIsType(e Expression, checkNullable bool, dtypes ...any) bool {
 	}
 	return false
 }
+
+// StaticType stands in for annotate_types on the shapes whose type is known without a schema:
+// casts, literals, booleans, NULL and the niladic date/time functions (annotate_types.py:801-811,
+// typing/__init__.py). Anything else is UNKNOWN.
+// ponytail: a stand-in until annotate_types (ROADMAP 4c) is ported; columns and most function
+// calls stay UNKNOWN.
+func StaticType(e Expression) DType {
+	if e == nil {
+		return DTypeUnknown
+	}
+	switch e.Kind() {
+	case KindCast, KindTryCast:
+		if to, ok := e.Arg("to").(Expression); ok && to != nil && to.Kind() == KindDataType {
+			if dtype, ok := to.Arg("this").(DType); ok {
+				return dtype
+			}
+		}
+	case KindLiteral:
+		switch {
+		case e.IsString():
+			return DTypeVarchar
+		case e.IsInt():
+			return DTypeInt
+		default:
+			return DTypeDouble
+		}
+	case KindBoolean:
+		return DTypeBoolean
+	case KindNull:
+		return DTypeNull
+	case KindParen:
+		return StaticType(e.This())
+	case KindArray:
+		return DTypeArray
+	case KindCurrentDate:
+		return DTypeDate
+	case KindCurrentTime, KindLocaltime:
+		return DTypeTime
+	case KindCurrentTimestamp, KindLocaltimestamp:
+		return DTypeTimestamp
+	}
+	return DTypeUnknown
+}
+
+// StaticTypeIs reports whether StaticType(e) is t.
+func StaticTypeIs(e Expression, t DType) bool { return StaticType(e) == t }

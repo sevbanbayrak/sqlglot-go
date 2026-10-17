@@ -130,40 +130,25 @@ func TestCopyFormatAs(t *testing.T) {
 	}
 }
 
-// TestCopyCredentialsDegradesToCommand covers the single-option credentials clause
-// (`CREDENTIALS = (A='b')`). These Snowflake/Redshift-only clauses render faithfully only via
-// upstream's unported _parse_property grammar, so parseCopy degrades any COPY carrying one to
-// a raw Command (exact round-trip) rather than emit a lossy structural rewrite. This makes the
-// single-option case consistent with the multi-option case in TestCopyCredentialsTerminates.
-func TestCopyCredentialsDegradesToCommand(t *testing.T) {
-	sql := "COPY tbl FROM 'file' CREDENTIALS = (A='b')"
-	root := parseOneDialect(t, sql, "postgres")
-	if root.Kind() != exp.KindCommand {
-		t.Fatalf("kind = %v, want Command:\n%s", root.Kind(), root.ToS())
-	}
-	got, err := generateSQL(t, root, "postgres")
-	if err != nil {
-		t.Fatalf("Generate: %v", err)
-	}
-	if got != sql {
-		t.Fatalf("round-trip = %q, want %q", got, sql)
-	}
-}
-
-// TestCopyCredentialsTerminates is a regression guard for the parseCopyWrappedOptions /
-// parseCopyParameters no-progress guards: a comma-separated CREDENTIALS list is a shape this
-// port doesn't fully model (no _parse_property grammar), and before the fix its loop spun
-// forever on the comma token. It must now terminate — degrading to Command and round-tripping
-// the raw input is the acceptable fallback (upstream models this via SequenceProperties, which
-// isn't ported). The go test -timeout would fire if this ever regresses to an infinite loop.
-func TestCopyCredentialsTerminates(t *testing.T) {
-	sql := "COPY tbl FROM 'file' CREDENTIALS = (A='b', C='d')"
-	root := parseOneDialect(t, sql, "postgres")
-	got, err := generateSQL(t, root, "postgres")
-	if err != nil {
-		t.Fatalf("Generate: %v", err)
-	}
-	if got != sql {
-		t.Fatalf("round-trip = %q, want %q", got, sql)
+// TestCopyCredentialsStructured covers the Snowflake/Redshift CREDENTIALS clause, which
+// _parse_credentials (parser.py:9883-9904) structures through _parse_wrapped_options; the
+// separating comma of a multi-option list is consumed as an empty SequenceProperties, so the
+// options render space-separated like upstream.
+func TestCopyCredentialsStructured(t *testing.T) {
+	for sql, want := range map[string]string{
+		"COPY tbl FROM 'file' CREDENTIALS = (A='b')":        "COPY tbl FROM 'file' CREDENTIALS = (A='b')",
+		"COPY tbl FROM 'file' CREDENTIALS = (A='b', C='d')": "COPY tbl FROM 'file' CREDENTIALS = (A='b' C='d')",
+	} {
+		root := parseOneDialect(t, sql, "postgres")
+		if root.Kind() != exp.KindCopy {
+			t.Fatalf("kind = %v, want Copy:\n%s", root.Kind(), root.ToS())
+		}
+		got, err := generateSQL(t, root, "postgres")
+		if err != nil {
+			t.Fatalf("Generate: %v", err)
+		}
+		if got != want {
+			t.Fatalf("round-trip = %q, want %q", got, want)
+		}
 	}
 }

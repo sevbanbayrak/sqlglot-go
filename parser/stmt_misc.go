@@ -19,6 +19,11 @@ var killTargets = map[string]bool{"CONNECTION": true, "QUERY": true}
 
 // parseUse ports _parse_use (parser.py:3735-3741).
 func (p *Parser) parseUse() exp.Expression {
+	if p.dialect.Is("snowflake") {
+		if use := p.parseSnowflakeUse(); use != nil {
+			return use
+		}
+	}
 	kind := p.parseVarFromOptions(usables, false)
 	this := p.parseTable(false, false, nil, false, false, false, false)
 	return p.expression(exp.Use(exp.Args{"kind": kind, "this": this}), nil, nil)
@@ -81,6 +86,11 @@ func (p *Parser) parseLoad() exp.Expression {
 // the body can't be parsed cleanly or leaves trailing tokens.
 func (p *Parser) parseDescribe() exp.Expression {
 	start := p.prev
+	if p.dialect.Is("snowflake") {
+		if describe := p.parseSnowflakeDescribe(); describe != nil {
+			return describe
+		}
+	}
 	if structured := p.tryParse(func() exp.Expression { return p.parseDescribeStructured() }, false); structured != nil {
 		return structured
 	}
@@ -91,7 +101,7 @@ func (p *Parser) parseDescribe() exp.Expression {
 // (signalling the caller to degrade to Command) for any leftover trailing tokens.
 func (p *Parser) parseDescribeStructured() exp.Expression {
 	var kind any
-	if p.matchSet(creatables) {
+	if p.matchSet(p.creatablesFor()) {
 		// parser.py:2399 upper()s the creatable kind; the source spelling must not leak into
 		// the kind discriminator (`explain table t` and `EXPLAIN TABLE t` are the same form).
 		kind = stringsUpper(p.prev.Text)
@@ -185,6 +195,16 @@ func (p *Parser) parseDescribeStructured() exp.Expression {
 		properties := p.parseProperties()
 		if properties != nil {
 			expressions = properties.Expressions()
+		}
+		// MySQL DESCRIBE takes no sequence options: a bare reserved word (`DESCRIBE users order`)
+		// that _parse_sequence_properties would take as a CREATE SEQUENCE option fails closed, as
+		// the mysql-describe-column extension requires (MySQL rejects it at this position).
+		if p.dialect.Name == "mysql" {
+			for _, expression := range expressions {
+				if expression.Kind() == exp.KindSequenceProperties {
+					return nil
+				}
+			}
 		}
 		partition = p.parsePartition()
 		asJSON = p.matchTextSeq("AS", "JSON")

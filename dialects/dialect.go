@@ -300,6 +300,9 @@ type Dialect struct {
 	JSONPathSingleDotIsWildcard bool
 	// JSONPathIdentifiers ports the dialect's JSONPathTokenizer.IDENTIFIERS; nil keeps the base `"`.
 	JSONPathIdentifiers map[rune]string
+	// JSONPathNoRootToken drops `$` from the JSONPathTokenizer's SINGLE_TOKENS
+	// (dialects/snowflake.py:149-151).
+	JSONPathNoRootToken bool
 	// StrictJSONPathSyntax ports STRICT_JSON_PATH_SYNTAX (dialect.py:685): whether an
 	// unparseable JSON path literal logs a warning in ToJSONPath.
 	StrictJSONPathSyntax bool
@@ -349,6 +352,17 @@ type Dialect struct {
 	// A nil/empty map (the base Dialect's zero value) means "no per-dialect overrides",
 	// so p.dialect.Functions is safe to index even when unset.
 	Functions map[string]func([]exp.Expression) exp.Expression
+	// TypedLambdaArgs ports TYPED_LAMBDA_ARGS (parser.py:1073): lambda parameters may carry a
+	// type, e.g. TRANSFORM(arr, x INT -> x + 1).
+	TypedLambdaArgs bool
+	// IdentifyPivotStrings ports IDENTIFY_PIVOT_STRINGS (parser.py), DefaultSamplingMethod
+	// DEFAULT_SAMPLING_METHOD and JSONExtractRequiresJSONExpression
+	// JSON_EXTRACT_REQUIRES_JSON_EXPRESSION.
+	IdentifyPivotStrings bool
+	// PivotColumnNaming ports PIVOT_COLUMN_NAMING (parser.py:1846).
+	PivotColumnNaming                 string
+	DefaultSamplingMethod             string
+	JSONExtractRequiresJSONExpression bool
 	// FuncTokens extends the parser's FUNC_TOKENS for this dialect (parsers/spark2.py:26).
 	FuncTokens map[tokens.TokenType]bool
 	// TrimPatternFirst ports Parser.TRIM_PATTERN_FIRST (parser.py:1860).
@@ -461,6 +475,7 @@ type Dialect struct {
 	QueryHints               bool
 	StructDelimiter          [2]string
 	LastDaySupportsDatePart  bool
+	SupportsConvertTimezone  bool
 	SupportsToNumber         bool
 	JoinHints                bool
 	TableHints               bool
@@ -468,6 +483,27 @@ type Dialect struct {
 	SetOpModifiers           bool
 	AutoRefreshBareIntervals bool
 	SelectKinds              map[string]bool
+	// Generator flags of generator.py first overridden by Snowflake (generators/snowflake.py:
+	// 375-401): INSERT_OVERWRITE, STAR_EXCEPT, COLLATE_IS_FUNC, JSON_KEY_VALUE_PAIR_SEP and the
+	// AUTO_INCREMENT entry of TOKEN_MAPPING. StringEscape is the tokenizer's STRING_ESCAPES[0]
+	// ("" keeps the quote-first default of the existing dialects).
+	InsertOverwrite        string
+	StarExcept             string
+	CollateIsFunc          bool
+	JSONKeyValuePairSep    string
+	AutoIncrementTokenName string
+	StringEscape           string
+	// UescapeUnsupported inverts SUPPORTS_UESCAPE (generator.py) and ExtractDisallowsQuotes
+	// inverts EXTRACT_ALLOWS_QUOTES (generators/hive.py:233).
+	UescapeUnsupported     bool
+	ExtractDisallowsQuotes bool
+	// UnicodeStart ports UNICODE_START (dialect.py:325): the UNICODE_STRING opener ("" when
+	// the tokenizer has none).
+	UnicodeStart string
+	// DirectedJoins ports the generator flag DIRECTED_JOINS (generators/snowflake.py:399).
+	DirectedJoins bool
+	// UUIDIsStringType ports UUID_IS_STRING_TYPE (dialect.py:769).
+	UUIDIsStringType bool
 	// ArrayAggIncludesNulls ports ARRAY_AGG_INCLUDES_NULLS (dialect.py:694): true in base,
 	// upstream's None (false here) for Hive and its descendants.
 	ArrayAggIncludesNulls bool
@@ -670,12 +706,17 @@ func Base() *Dialect {
 		QueryHints:                    true,
 		StructDelimiter:               [2]string{"<", ">"},
 		LastDaySupportsDatePart:       true,
+		PivotColumnNaming:             "agg_name_if_aliased",
 		SupportsToNumber:              true,
 		JoinHints:                     true,
 		TableHints:                    true,
 		GroupingsSep:                  ",",
 		SetOpModifiers:                true,
 		SelectKinds:                   map[string]bool{"STRUCT": true, "VALUE": true},
+		InsertOverwrite:               " OVERWRITE TABLE",
+		StarExcept:                    "EXCEPT",
+		JSONKeyValuePairSep:           ":",
+		AutoIncrementTokenName:        "AUTO_INCREMENT",
 		ArrayAggIncludesNulls:         true,
 	}
 	// parser.py:426-431: the base FUNCTIONS entries whose builders take the dialect. Dialect
@@ -687,6 +728,14 @@ func Base() *Dialect {
 		// parser.py:389 build_array_remove (parser.py:256-273).
 		"ARRAY_REMOVE": func(args []exp.Expression) exp.Expression {
 			return exp.New(exp.KindArrayRemove, exp.Args{"this": hiveSeqGet(args, 0), "expression": hiveSeqGet(args, 1), "null_propagation": d.ArrayFuncsPropagatesNulls})
+		},
+		// parser.py:381-383: ARRAY_AGG excludes NULLs when ARRAY_AGG_INCLUDES_NULLS is None.
+		"ARRAY_AGG": func(args []exp.Expression) exp.Expression {
+			m := exp.Args{"this": hiveSeqGet(args, 0)}
+			if !d.ArrayAggIncludesNulls {
+				m["nulls_excluded"] = true
+			}
+			return exp.New(exp.KindArrayAgg, m)
 		},
 		"JSON_KEYS": func(args []exp.Expression) exp.Expression {
 			return exp.New(exp.KindJSONKeys, exp.Args{"this": hiveSeqGet(args, 0), "expression": d.ToJSONPath(hiveSeqGet(args, 1))})
@@ -846,6 +895,8 @@ func dialectByName(name string) (*Dialect, error) {
 		return Athena(), nil
 	case "clickhouse":
 		return ClickHouse(), nil
+	case "snowflake":
+		return Snowflake(), nil
 	default:
 		return nil, fmt.Errorf("unknown dialect %q", name)
 	}
@@ -1412,6 +1463,7 @@ func (d *Dialect) ToJSONPath(path exp.Expression) exp.Expression {
 		NumbersCanBeUnderscoreSeparated: d.TokenizerConfig.NumbersCanBeUnderscoreSeparated,
 		IdentifiersCanStartWithDigit:    d.TokenizerConfig.IdentifiersCanStartWithDigit,
 		Identifiers:                     d.JSONPathIdentifiers,
+		NoDollarToken:                   d.JSONPathNoRootToken,
 	})
 	if err == nil {
 		return parsed
@@ -1480,4 +1532,68 @@ func buildJSONExtractPathWith(kind exp.Kind, zeroBasedIndexing, arrowReqJSONType
 		}
 		return node
 	}
+}
+
+// MapDatePart ports map_date_part (dialect.py:2150-2159): a part named in the dialect's
+// DATE_PART_MAPPING (the base Dialect's when d is nil) is replaced by its canonical name.
+func MapDatePart(part exp.Expression, d *Dialect) exp.Expression {
+	if part == nil || (part.Kind() == exp.KindColumn && len(part.Parts()) != 1) {
+		return part
+	}
+	mapping := datePartMapping
+	if d != nil {
+		mapping = d.DatePartMapping
+	}
+	mapped := mapping[strings.ToUpper(part.Name())]
+	if mapped == "" {
+		return part
+	}
+	if part.IsString() {
+		return exp.LiteralString(mapped)
+	}
+	return exp.Var(exp.Args{"this": mapped})
+}
+
+// DateTruncToTime ports date_trunc_to_time (dialect.py:1682-1688).
+func DateTruncToTime(args []exp.Expression) exp.Expression {
+	unit, this := hiveSeqGet(args, 0), hiveSeqGet(args, 1)
+	if this != nil && this.Kind() == exp.KindCast && exp.IsType(asExpr(this.Arg("to")), exp.DTypeDate) {
+		return exp.DateTrunc(exp.Args{"unit": unit, "this": this})
+	}
+	return exp.New(exp.KindTimestampTrunc, exp.Args{"this": this, "unit": unit})
+}
+
+// dateUnits ports helper.DATE_UNITS (helper.py:449).
+var dateUnits = map[string]bool{"day": true, "week": true, "month": true, "quarter": true, "year": true, "year_month": true}
+
+// IsDateUnit ports helper.is_date_unit (helper.py:452-453).
+func IsDateUnit(e exp.Expression) bool {
+	return e != nil && dateUnits[strings.ToLower(e.Name())]
+}
+
+// BuildTrunc ports build_trunc (dialect.py:1907-1945). The argument types come from
+// exp.StaticType instead of annotate_types.
+func BuildTrunc(args []exp.Expression, dateTruncUnabbreviate bool, defaultDateTruncUnit string, dateTruncRequiresPart bool, fractionsSupported bool) exp.Expression {
+	this, second := hiveSeqGet(args, 0), hiveSeqGet(args, 1)
+	thisType, secondType := exp.StaticType(this), exp.StaticType(second)
+
+	// Date truncation
+	if (this != nil && exp.TemporalTypes[thisType] && (second != nil || defaultDateTruncUnit != "")) || (second != nil && exp.TextTypes[secondType]) {
+		unit := second
+		if unit == nil {
+			unit = exp.LiteralString(defaultDateTruncUnit)
+		}
+		return exp.DateTrunc(exp.Args{"this": this, "unit": unit, "unabbreviate": dateTruncUnabbreviate})
+	}
+
+	// Numeric truncation
+	if (this != nil && exp.NumericTypes[thisType]) || (second != nil && exp.NumericTypes[secondType]) || (!dateTruncRequiresPart && second == nil) {
+		m := exp.Args{"this": this, "fractions_supported": fractionsSupported}
+		if second != nil {
+			m["decimals"] = second
+		}
+		return exp.New(exp.KindTrunc, m)
+	}
+
+	return exp.Anonymous(exp.Args{"this": "TRUNC", "expressions": args})
 }

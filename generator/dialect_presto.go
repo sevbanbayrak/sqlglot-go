@@ -82,11 +82,23 @@ func init() {
 	}
 	for kind, name := range map[exp.Kind]string{
 		exp.KindAnyValue: "ARBITRARY", exp.KindArrayContains: "CONTAINS", exp.KindArrayUniqueAgg: "SET_AGG", exp.KindArraySlice: "SLICE", exp.KindArraySize: "CARDINALITY",
-		exp.KindBitwiseAnd: "BITWISE_AND", exp.KindBitwiseOr: "BITWISE_OR", exp.KindBitwiseXor: "BITWISE_XOR", exp.KindBitwiseNot: "BITWISE_NOT", exp.KindBitwiseLeftShift: "BITWISE_LEFT_SHIFT", exp.KindBitwiseRightShift: "BITWISE_RIGHT_SHIFT",
+		exp.KindBitwiseLeftShift: "BITWISE_LEFT_SHIFT", exp.KindBitwiseRightShift: "BITWISE_RIGHT_SHIFT",
 		exp.KindDayOfWeekIso: "DAY_OF_WEEK", exp.KindLogicalOr: "BOOL_OR", exp.KindStrToMap: "SPLIT_TO_MAP", exp.KindTrunc: "TRUNCATE", exp.KindVariancePop: "VAR_POP", exp.KindUnhex: "FROM_HEX", exp.KindTimeToUnix: "TO_UNIXTIME", exp.KindMD5Digest: "MD5", exp.KindSubstring: "SUBSTR",
 	} {
 		table[kind] = prestoRename(name)
 	}
+	// generators/presto.py:327-332: the bitwise functions take exactly their operands.
+	for kind, name := range map[exp.Kind]string{exp.KindBitwiseAnd: "BITWISE_AND", exp.KindBitwiseOr: "BITWISE_OR", exp.KindBitwiseXor: "BITWISE_XOR"} {
+		name := name
+		table[kind] = func(g *Generator, e exp.Expression) string {
+			return g.funcCall(name, []any{e.This(), e.Arg("expression")}, "(", ")", true)
+		}
+	}
+	table[exp.KindBitwiseNot] = func(g *Generator, e exp.Expression) string {
+		return g.funcCall("BITWISE_NOT", []any{e.This()}, "(", ")", true)
+	}
+	// no_pivot_sql (dialects/dialect.py:1296-1298), generators/presto.py:374.
+	table[exp.KindPivot] = noPivotSQL
 	// generators/presto.py:334-336; Localtime/Localtimestamp keep the base handlers, which
 	// preserve a precision argument (generator.py:6262-6268).
 	for kind, name := range map[exp.Kind]string{exp.KindCurrentTime: "CURRENT_TIME", exp.KindCurrentTimestamp: "CURRENT_TIMESTAMP", exp.KindCurrentUser: "CURRENT_USER"} {

@@ -133,6 +133,8 @@ func Postgres() *Dialect {
 	// [("x'","'"),("X'","'")] / BYTE_STRINGS=[("e'","'"),("E'","'")]; *_START take the
 	// FIRST tuple of each.
 	d.BitStart, d.BitEnd = "b'", "'"
+	// dialects/postgres.py UNICODE_STRINGS: UNICODE_START is U&'.
+	d.UnicodeStart = "U&'"
 	d.HexStart, d.HexEnd = "x'", "'"
 	d.ByteStart, d.ByteEnd = "e'", "'"
 	cfg.FormatStrings["$"] = tokens.FormatString{End: "$", TokenType: tokens.HEREDOC_STRING}

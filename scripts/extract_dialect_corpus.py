@@ -61,9 +61,10 @@ from tests.dialects.test_postgres import TestPostgres  # noqa: E402
 from tests.dialects.test_spark import TestSpark  # noqa: E402
 from tests.dialects.test_databricks import TestDatabricks  # noqa: E402
 from tests.dialects.test_clickhouse import TestClickhouse  # noqa: E402
+from tests.dialects.test_snowflake import TestSnowflake  # noqa: E402
 
-DIALECTS = ("mysql", "postgres", "athena", "trino", "presto", "hive", "spark", "databricks", "clickhouse")
-SAME_DIALECT_WRITES = {"athena", "trino", "presto", "hive", "spark", "databricks", "clickhouse"}
+DIALECTS = ("mysql", "postgres", "athena", "trino", "presto", "hive", "spark", "databricks", "clickhouse", "snowflake")
+SAME_DIALECT_WRITES = {"athena", "trino", "presto", "hive", "spark", "databricks", "clickhouse", "snowflake"}
 
 captured = []
 
@@ -162,7 +163,7 @@ def main():
 
     runner = unittest.TextTestRunner(verbosity=0)
     unexpected = []
-    for cls in (TestMySQL, TestPostgres, TestAthena, TestTrino, TestPresto, TestHive, TestSpark, TestDatabricks, TestClickhouse):
+    for cls in (TestMySQL, TestPostgres, TestAthena, TestTrino, TestPresto, TestHive, TestSpark, TestDatabricks, TestClickhouse, TestSnowflake):
         if cls.dialect not in selected:
             continue
         result = runner.run(unittest.defaultTestLoader.loadTestsFromTestCase(cls))

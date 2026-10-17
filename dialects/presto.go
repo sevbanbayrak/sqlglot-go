@@ -12,6 +12,7 @@ func Presto() *Dialect {
 	d.Name = "presto"
 	// generators/presto.py:268-280.
 	d.Nvl2Supported = false
+	d.SupportsToNumber = false
 	d.PadFillPatternIsRequired = true
 	d.ArraySizeName = "CARDINALITY"
 	d.LogBaseFirst = nil
@@ -167,6 +168,7 @@ func Presto() *Dialect {
 	// Both cases are registered because the tokenizer resolves a format string by its
 	// original-case matched text (postgres x'/X', e'/E' precedent).
 	cfg.FormatStrings["U&'"] = tokens.FormatString{End: "'", TokenType: tokens.UNICODE_STRING}
+	d.UnicodeStart = "U&'"
 	cfg.FormatStrings["u&'"] = tokens.FormatString{End: "'", TokenType: tokens.UNICODE_STRING}
 	// dialects/presto.py:52 NESTED_COMMENTS = False.
 	cfg.NestedComments = false
@@ -446,7 +448,7 @@ func prestoBuildDateTrunc(args []exp.Expression) exp.Expression {
 	if this != nil && (this.Kind() == exp.KindCast || this.Kind() == exp.KindTryCast) && exp.DataTypeIsType(this, false, exp.DTypeDate) {
 		return exp.DateTrunc(exp.Args{"unit": unit, "this": this})
 	}
-	return exp.New(exp.KindTimestampTrunc, exp.Args{"this": this, "unit": exp.TimeUnitVar(unit)})
+	return exp.New(exp.KindTimestampTrunc, exp.Args{"this": this, "unit": unit})
 }
 
 func prestoBuildRegexpExtract(kind exp.Kind) func([]exp.Expression) exp.Expression {

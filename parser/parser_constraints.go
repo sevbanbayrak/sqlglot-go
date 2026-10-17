@@ -196,6 +196,9 @@ func (p *Parser) constraintParsers() map[string]func(*Parser) exp.Expression {
 	if p.dialect.Name == "mysql" {
 		return mysqlConstraintParsers
 	}
+	if p.dialect.Is("snowflake") {
+		return snowflakeConstraintParsers
+	}
 	if p.dialect.Is("clickhouse") {
 		return clickHouseConstraintParsers
 	}
@@ -205,6 +208,9 @@ func (p *Parser) constraintParsers() map[string]func(*Parser) exp.Expression {
 func (p *Parser) constraintParserKeys() map[string]bool {
 	if p.dialect.Name == "mysql" {
 		return mysqlConstraintParserKeySet
+	}
+	if p.dialect.Is("snowflake") {
+		return snowflakeConstraintParserKeySet
 	}
 	if p.dialect.Is("clickhouse") {
 		return clickHouseConstraintParserKeySet
@@ -220,6 +226,23 @@ func (p *Parser) schemaUnnamedConstraints() map[string]bool {
 		return clickHouseSchemaUnnamedConstraints
 	}
 	return schemaUnnamedConstraints
+}
+
+// snowflakeConstraintParsers ports parsers/snowflake.py:833-839 CONSTRAINT_PARSERS.
+var (
+	snowflakeConstraintParsers      map[string]func(*Parser) exp.Expression
+	snowflakeConstraintParserKeySet map[string]bool
+)
+
+func init() {
+	snowflakeConstraintParsers = make(map[string]func(*Parser) exp.Expression, len(constraintParsers)+4)
+	for k, v := range constraintParsers {
+		snowflakeConstraintParsers[k] = v
+	}
+	for _, key := range []string{"WITH", "MASKING", "PROJECTION", "TAG"} {
+		snowflakeConstraintParsers[key] = (*Parser).parseSnowflakeWithConstraint
+	}
+	snowflakeConstraintParserKeySet = funcMapKeys(snowflakeConstraintParsers)
 }
 
 // clickHouse* port parsers/clickhouse.py:360-385 CONSTRAINT_PARSERS (INDEX/CODEC/ASSUME and
@@ -519,6 +542,10 @@ func (p *Parser) parseReferences(match bool) exp.Expression {
 
 // parseForeignKey ports _parse_foreign_key (parser.py:7564-7597).
 func (p *Parser) parseForeignKey() exp.Expression {
+	// parsers/snowflake.py:1332-1338: inlineFK, the REFERENCES columns are implied.
+	if p.dialect.Is("snowflake") && p.match(tokens.REFERENCES, false) {
+		return p.expression(exp.ForeignKey(nil), nil, nil)
+	}
 	var expressions []exp.Expression
 	if !p.match(tokens.REFERENCES, false) {
 		expressions = p.parseWrappedIdVars()

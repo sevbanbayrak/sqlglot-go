@@ -215,6 +215,9 @@ func traverseScopeWithMode(expression exp.Expression, mode scopeTraversalMode) [
 
 func BuildScope(expression exp.Expression) *Scope { return buildScope(expression) }
 
+// NewScope is the bare Scope(expression) constructor (scope.py:63-93), without traversal.
+func NewScope(expression exp.Expression) *Scope { return newScope(expression, scopeOptions{}) }
+
 func buildScope(expression exp.Expression) *Scope {
 	scopes := traverseScope(expression)
 	scope, ok := seqGet(scopes, -1)
